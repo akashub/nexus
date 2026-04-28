@@ -28,10 +28,10 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
   const incoming = edges?.filter((e) => e.target_id === conceptId) || [];
 
   return (
-    <div className="w-80 bg-gray-900 border-l border-gray-800 p-4 overflow-y-auto">
+    <div className="w-80 bg-[#0a0a0b]/95 backdrop-blur-xl border-l border-white/[0.06] p-4 overflow-y-auto">
       <div className="flex items-start justify-between mb-3">
-        <h2 className="text-lg font-semibold text-white">{concept.name}</h2>
-        <button onClick={onClose} className="text-gray-500 hover:text-gray-300 text-xl leading-none">
+        <h2 className="text-lg font-semibold text-gray-100">{concept.name}</h2>
+        <button onClick={onClose} className="text-gray-600 hover:text-gray-300 text-xl leading-none transition-colors">
           &times;
         </button>
       </div>
@@ -45,7 +45,7 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
       {concept.tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-3">
           {concept.tags.map((tag) => (
-            <span key={tag} className="px-1.5 py-0.5 bg-gray-800 text-gray-400 rounded text-xs">
+            <span key={tag} className="px-1.5 py-0.5 bg-white/[0.04] border border-white/[0.06] text-gray-500 rounded text-xs">
               {tag}
             </span>
           ))}
@@ -54,28 +54,28 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
 
       {concept.description && (
         <div className="mb-4">
-          <h3 className="text-xs font-medium text-gray-500 uppercase mb-1">Description</h3>
+          <h3 className="text-[11px] font-medium text-gray-600 uppercase tracking-wide mb-1">Description</h3>
           <p className="text-sm text-gray-300 leading-relaxed">{concept.description}</p>
         </div>
       )}
 
       {concept.notes && (
         <div className="mb-4">
-          <h3 className="text-xs font-medium text-gray-500 uppercase mb-1">Notes</h3>
+          <h3 className="text-[11px] font-medium text-gray-600 uppercase tracking-wide mb-1">Notes</h3>
           <p className="text-sm text-gray-400">{concept.notes}</p>
         </div>
       )}
 
       {outgoing.length > 0 && (
         <div className="mb-4">
-          <h3 className="text-xs font-medium text-gray-500 uppercase mb-1">
+          <h3 className="text-[11px] font-medium text-gray-600 uppercase tracking-wide mb-1">
             Outgoing ({outgoing.length})
           </h3>
           {outgoing.map((e) => (
             <button
               key={e.id}
               onClick={() => onNavigate(e.target_id)}
-              className="block w-full text-left text-sm text-blue-400 hover:text-blue-300 py-0.5"
+              className="block w-full text-left text-sm text-blue-400/80 hover:text-blue-300 py-0.5 transition-colors"
             >
               &rarr; {e.relationship} &rarr; {e.target_id.slice(0, 8)}
             </button>
@@ -85,14 +85,14 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
 
       {incoming.length > 0 && (
         <div className="mb-4">
-          <h3 className="text-xs font-medium text-gray-500 uppercase mb-1">
+          <h3 className="text-[11px] font-medium text-gray-600 uppercase tracking-wide mb-1">
             Incoming ({incoming.length})
           </h3>
           {incoming.map((e) => (
             <button
               key={e.id}
               onClick={() => onNavigate(e.source_id)}
-              className="block w-full text-left text-sm text-blue-400 hover:text-blue-300 py-0.5"
+              className="block w-full text-left text-sm text-blue-400/80 hover:text-blue-300 py-0.5 transition-colors"
             >
               &larr; {e.source_id.slice(0, 8)} &rarr; {e.relationship}
             </button>
@@ -100,7 +100,7 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
         </div>
       )}
 
-      <div className="text-xs text-gray-600 mt-4">
+      <div className="text-[11px] text-gray-700 mt-4">
         Added {new Date(concept.created_at).toLocaleDateString()}
       </div>
     </div>

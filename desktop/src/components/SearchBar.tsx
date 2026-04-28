@@ -36,15 +36,15 @@ export default function SearchBar({ onSelect, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-start justify-center pt-24 z-50">
-      <div className="w-full max-w-lg bg-gray-900 border border-gray-700 rounded-lg shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-start justify-center pt-24 z-50">
+      <div className="w-full max-w-lg bg-[#0a0a0b]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-2xl shadow-black/50 overflow-hidden">
         <input
           ref={inputRef}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Search concepts..."
-          className="w-full px-4 py-3 bg-transparent text-white text-lg outline-none border-b border-gray-800"
+          className="w-full px-4 py-3 bg-transparent text-gray-100 text-lg outline-none border-b border-white/[0.06] placeholder:text-gray-600"
         />
         {results && results.length > 0 && (
           <ul className="max-h-64 overflow-y-auto">
@@ -55,13 +55,13 @@ export default function SearchBar({ onSelect, onClose }: Props) {
                     onSelect(c.id);
                     onClose();
                   }}
-                  className={`w-full text-left px-4 py-2 flex items-center gap-2 ${
-                    i === selectedIdx ? "bg-gray-800" : "hover:bg-gray-800/50"
+                  className={`w-full text-left px-4 py-2.5 flex items-center gap-2 transition-colors ${
+                    i === selectedIdx ? "bg-white/[0.06]" : "hover:bg-white/[0.04]"
                   }`}
                 >
-                  <span className="text-white text-sm">{c.name}</span>
+                  <span className="text-gray-200 text-sm">{c.name}</span>
                   {c.category && (
-                    <span className="text-xs text-gray-500">{c.category}</span>
+                    <span className="text-[11px] text-gray-600">{c.category}</span>
                   )}
                 </button>
               </li>
@@ -69,7 +69,7 @@ export default function SearchBar({ onSelect, onClose }: Props) {
           </ul>
         )}
         {query && results && results.length === 0 && (
-          <p className="px-4 py-3 text-sm text-gray-500">No results</p>
+          <p className="px-4 py-3 text-sm text-gray-600">No results</p>
         )}
       </div>
     </div>
