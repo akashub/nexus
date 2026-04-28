@@ -131,14 +131,12 @@ def search_cmd(query: str, semantic: bool) -> None:
                 results = search_fts(conn, query)
             else:
                 all_c = list_concepts(conn, limit=200)
-                scored = []
-                for c in all_c:
-                    if c.embedding:
-                        sim = cosine_similarity(qvec, c.embedding)
-                        if sim > 0.3:
-                            scored.append((c, sim))
-                scored.sort(key=lambda x: x[1], reverse=True)
-                results = [c for c, _ in scored[:10]]
+                scored = sorted(
+                    ((c, cosine_similarity(qvec, c.embedding))
+                     for c in all_c if c.embedding),
+                    key=lambda x: x[1], reverse=True,
+                )
+                results = [c for c, s in scored[:10] if s > 0.3]
         else:
             results = search_fts(conn, query)
     finally:
@@ -149,13 +147,21 @@ def search_cmd(query: str, semantic: bool) -> None:
     click.echo(f"Found {len(results)} result(s):")
     for c in results:
         cat = f" [{c.category}]" if c.category else ""
-        desc = ""
-        if c.description:
-            desc = f" — {c.description[:80]}"
+        desc = f" — {c.description[:80]}" if c.description else ""
         click.echo(f"  {c.name}{cat}{desc}")
 
 
 main.add_command(ask_cmd)
+
+@main.command("serve")
+@click.option("--port", "-p", default=7777, help="Port number.")
+@click.option("--host", default="127.0.0.1", help="Host address.")
+def serve_cmd(port: int, host: str) -> None:
+    """Start the Nexus API server."""
+    import uvicorn
+
+    click.echo(f"Starting Nexus server on {host}:{port}")
+    uvicorn.run("nexus.server:app", host=host, port=port, reload=False)
 
 
 @main.command("show")
