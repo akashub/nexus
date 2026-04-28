@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus — Refined Minimal Mono</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg: #08080a;
+    --bg-raised: #0c0c0f;
+    --bg-surface: #111114;
+    --border: #1a1a1f;
+    --border-hover: #28282f;
+    --text-primary: #ececee;
+    --text-secondary: #88889a;
+    --text-muted: #4a4a5a;
+    --text-ghost: #2a2a35;
+    --accent: #ececee;
+    --accent-dim: #88889a;
+    --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+    --font-sans: 'Outfit', system-ui, sans-serif;
+    --radius: 6px;
+    --radius-lg: 10px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text-secondary);
+    height: 100vh;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Titlebar ── */
+  .titlebar {
+    height: 48px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 14px;
+    -webkit-app-region: drag;
+  }
+  .traffic-lights { display: flex; gap: 8px; align-items: center; }
+  .tl { width: 12px; height: 12px; border-radius: 50%; background: #1e1e24; transition: background 0.15s; }
+  .titlebar:hover .tl-r { background: #ff5f57; }
+  .titlebar:hover .tl-y { background: #febc2e; }
+  .titlebar:hover .tl-g { background: #28c840; }
+  .app-name {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+  .titlebar-spacer { flex: 1; }
+  .titlebar-meta {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+  .meta-item {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-ghost);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pulse {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: #3fcf6e;
+    box-shadow: 0 0 6px rgba(63,207,110,0.4);
+    animation: pulse 2s ease infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* ── Main Layout ── */
+  .main { display: flex; height: calc(100vh - 48px); }
+
+  /* ── Left Sidebar ── */
+  .sidebar {
+    width: 208px;
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .sidebar-search {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .search-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    padding: 7px 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .search-trigger:hover { border-color: var(--border-hover); background: var(--bg-surface); }
+  .search-icon { color: var(--text-ghost); font-size: 12px; }
+  .search-text {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--text-ghost);
+    flex: 1;
+  }
+  .search-kbd {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-ghost);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .sidebar-section { padding: 8px; }
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--text-ghost);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 4px 8px;
+    margin-bottom: 2px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.1s;
+    margin-bottom: 1px;
+  }
+  .nav-item:hover { background: var(--bg-raised); color: var(--text-secondary); }
+  .nav-item.active { background: var(--bg-surface); color: var(--text-primary); }
+  .nav-dot {
+    width: 6px; height: 6px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    opacity: 0.6;
+  }
+  .nav-item.active .nav-dot { opacity: 1; }
+  .nav-count {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-ghost);
+  }
+  .nav-item.active .nav-count { color: var(--text-muted); }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .footer-stat {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-ghost);
+    padding: 2px 0;
+  }
+  .footer-val { color: var(--text-muted); }
+
+  /* ── Graph Canvas ── */
+  .graph {
+    flex: 1;
+    position: relative;
+    background: var(--bg);
+    overflow: hidden;
+  }
+  .graph-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle, #16161a 0.8px, transparent 0.8px);
+    background-size: 32px 32px;
+    opacity: 0.5;
+  }
+
+  /* Edges SVG */
+  .graph > svg {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+  svg line {
+    stroke: var(--border);
+    stroke-width: 1;
+  }
+  svg line.active {
+    stroke: #3a3a44;
+    stroke-width: 1.5;
+  }
+  svg line.faint {
+    stroke-dasharray: 5 5;
+    opacity: 0.5;
+  }
+
+  /* Graph Nodes */
+  .node {
+    position: absolute;
+    z-index: 2;
+    border-radius: 50%;
+    border: 1.5px solid #2a2a34;
+    background: var(--bg-raised);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .node::after {
+    content: '';
+    width: 30%;
+    height: 30%;
+    border-radius: 50%;
+    background: #3a3a48;
+    transition: all 0.2s;
+  }
+  .node:hover {
+    border-color: #48485a;
+    background: var(--bg-surface);
+    transform: scale(1.08);
+  }
+  .node:hover::after { background: #5a5a6a; }
+  .node.selected {
+    border-color: var(--text-primary);
+    background: rgba(236,236,238,0.04);
+    box-shadow:
+      0 0 0 1px rgba(236,236,238,0.06),
+      0 0 20px rgba(236,236,238,0.03);
+  }
+  .node.selected::after { background: var(--text-primary); }
+  .node-name {
+    position: absolute;
+    bottom: -22px;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-ghost);
+    letter-spacing: 0.3px;
+    transition: color 0.15s;
+  }
+  .node:hover .node-name { color: var(--text-muted); }
+  .node.selected .node-name { color: var(--text-secondary); }
+
+  /* Hint bar */
+  .hints {
+    position: absolute;
+    top: 14px; left: 14px;
+    display: flex; gap: 6px;
+    z-index: 10;
+  }
+  .hint {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-ghost);
+    background: rgba(8,8,10,0.8);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 4px;
+    backdrop-filter: blur(8px);
+  }
+
+  .fit-btn {
+    position: absolute;
+    top: 14px;
+    right: 310px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-ghost);
+    background: rgba(8,8,10,0.8);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    z-index: 10;
+  }
+  .fit-btn:hover { border-color: var(--border-hover); color: var(--text-muted); }
+
+  /* FABs */
+  .fabs {
+    position: absolute;
+    bottom: 16px;
+    right: 322px;
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+  }
+  .fab {
+    width: 38px; height: 38px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: rgba(8,8,10,0.85);
+    color: var(--text-muted);
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    backdrop-filter: blur(8px);
+  }
+  .fab:hover { border-color: var(--border-hover); color: var(--text-secondary); background: var(--bg-raised); }
+  .fab-primary { border-color: #3a3a44; color: var(--text-secondary); }
+  .fab-primary:hover { border-color: #58586a; color: var(--text-primary); }
+
+  /* Legend */
+  .legend {
+    position: absolute;
+    bottom: 16px; left: 14px;
+    display: flex; gap: 14px;
+    z-index: 10;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-ghost);
+  }
+  .legend-mark {
+    width: 6px; height: 6px;
+    border-radius: 2px;
+  }
+
+  /* ── Right Panel ── */
+  .panel {
+    width: 304px;
+    background: var(--bg);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+  .panel::-webkit-scrollbar { width: 4px; }
+  .panel::-webkit-scrollbar-track { background: transparent; }
+  .panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .panel-header {
+    padding: 16px 16px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-title {
+    font-family: var(--font-sans);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+    margin-bottom: 8px;
+  }
+  .panel-badge {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: var(--radius);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .panel-block {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .block-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--text-ghost);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+  }
+  .block-text {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    font-weight: 300;
+  }
+  .tag-list { display: flex; flex-wrap: wrap; gap: 5px; }
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 400;
+    padding: 3px 8px;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    transition: all 0.1s;
+  }
+  .tag:hover { border-color: var(--border-hover); color: var(--text-secondary); }
+
+  .conn-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    cursor: pointer;
+    transition: color 0.1s;
+  }
+  .conn-row:hover { color: var(--text-primary); }
+  .conn-row:hover .conn-line { background: var(--text-muted); }
+  .conn-dot {
+    width: 5px; height: 5px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .conn-name {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .conn-row:hover .conn-name { color: var(--text-secondary); }
+  .conn-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    transition: background 0.15s;
+  }
+  .conn-rel {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-ghost);
+  }
+
+  .notes-box {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 300;
+    color: var(--text-muted);
+    font-style: italic;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    line-height: 1.7;
+    cursor: text;
+    transition: border-color 0.15s;
+  }
+  .notes-box:hover { border-color: var(--border-hover); }
+
+  .panel-source {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-ghost);
+    letter-spacing: 0.3px;
+  }
+
+  .panel-actions {
+    padding: 14px 16px;
+    display: flex;
+    gap: 6px;
+  }
+  .btn {
+    flex: 1;
+    padding: 8px 0;
+    border-radius: var(--radius);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    border: 1px solid;
+  }
+  .btn-fill {
+    background: var(--text-primary);
+    color: var(--bg);
+    border-color: var(--text-primary);
+  }
+  .btn-fill:hover { background: #d4d4d8; border-color: #d4d4d8; }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border-color: var(--border);
+  }
+  .btn-ghost:hover { border-color: var(--border-hover); color: var(--text-secondary); }
+</style>
+</head>
+<body>
+
+<!-- Titlebar -->
+<div class="titlebar">
+  <div class="traffic-lights">
+    <div class="tl tl-r"></div>
+    <div class="tl tl-y"></div>
+    <div class="tl tl-g"></div>
+  </div>
+  <span class="app-name">nexus</span>
+  <div class="titlebar-spacer"></div>
+  <div class="titlebar-meta">
+    <div class="meta-item"><div class="pulse"></div> ollama</div>
+    <div class="meta-item">12 nodes · 18 edges</div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-search">
+      <div class="search-trigger">
+        <span class="search-icon">&#x2315;</span>
+        <span class="search-text">Search...</span>
+        <span class="search-kbd">⌘K</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-label">Categories</div>
+      <div class="nav-item active">
+        <div class="nav-dot" style="background:#ececee;"></div>
+        All
+        <span class="nav-count">12</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-dot" style="background:#88889a;"></div>
+        Dev Tools
+        <span class="nav-count">5</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-dot" style="background:#5a5a6a;"></div>
+        Frameworks
+        <span class="nav-count">3</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-dot" style="background:#4a4a5a;"></div>
+        Concepts
+        <span class="nav-count">3</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-dot" style="background:#3a3a48;"></div>
+        Patterns
+        <span class="nav-count">1</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-label">Recent</div>
+      <div class="nav-item">
+        <div class="nav-dot" style="background:#88889a;"></div>
+        MCP Servers
+      </div>
+      <div class="nav-item">
+        <div class="nav-dot" style="background:#5a5a6a;"></div>
+        React
+      </div>
+      <div class="nav-item">
+        <div class="nav-dot" style="background:#4a4a5a;"></div>
+        RAG
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="footer-stat"><span>nodes</span><span class="footer-val">12</span></div>
+      <div class="footer-stat"><span>edges</span><span class="footer-val">18</span></div>
+      <div class="footer-stat"><span>asked</span><span class="footer-val">7</span></div>
+    </div>
+  </div>
+
+  <!-- Graph -->
+  <div class="graph">
+    <div class="graph-grid"></div>
+
+    <svg viewBox="0 0 1000 700">
+      <!-- Active edges (connected to selected node) -->
+      <line x1="400" y1="280" x2="555" y2="198" class="active" />
+      <line x1="400" y1="280" x2="305" y2="158" class="active" />
+      <line x1="400" y1="280" x2="245" y2="348" class="active" />
+      <line x1="400" y1="280" x2="675" y2="308" class="active" />
+      <!-- Secondary edges -->
+      <line x1="555" y1="198" x2="695" y2="138" />
+      <line x1="555" y1="198" x2="675" y2="308" />
+      <line x1="245" y1="348" x2="145" y2="448" class="faint" />
+      <line x1="245" y1="348" x2="348" y2="448" class="faint" />
+      <line x1="675" y1="308" x2="578" y2="428" />
+      <line x1="578" y1="428" x2="458" y2="508" class="faint" />
+      <line x1="172" y1="198" x2="118" y2="288" class="faint" />
+      <line x1="795" y1="428" x2="675" y2="308" />
+      <line x1="795" y1="428" x2="578" y2="428" class="faint" />
+    </svg>
+
+    <!-- Hub: Claude Code (selected) -->
+    <div class="node selected" style="left:366px;top:246px;width:68px;height:68px;">
+      <span class="node-name">Claude Code</span>
+    </div>
+    <!-- MCP Servers -->
+    <div class="node" style="left:533px;top:176px;width:46px;height:46px;">
+      <span class="node-name">MCP Servers</span>
+    </div>
+    <!-- Hooks -->
+    <div class="node" style="left:289px;top:142px;width:34px;height:34px;">
+      <span class="node-name">Hooks</span>
+    </div>
+    <!-- Eagle Mem -->
+    <div class="node" style="left:222px;top:326px;width:46px;height:46px;">
+      <span class="node-name">Eagle Mem</span>
+    </div>
+    <!-- Context7 -->
+    <div class="node" style="left:680px;top:122px;width:32px;height:32px;">
+      <span class="node-name">Context7</span>
+    </div>
+    <!-- Agents -->
+    <div class="node" style="left:652px;top:286px;width:46px;height:46px;">
+      <span class="node-name">Agents</span>
+    </div>
+    <!-- SQLite -->
+    <div class="node" style="left:126px;top:432px;width:34px;height:34px;">
+      <span class="node-name">SQLite</span>
+    </div>
+    <!-- FTS5 -->
+    <div class="node" style="left:330px;top:432px;width:30px;height:30px;">
+      <span class="node-name">FTS5</span>
+    </div>
+    <!-- RAG -->
+    <div class="node" style="left:558px;top:410px;width:40px;height:40px;">
+      <span class="node-name">RAG</span>
+    </div>
+    <!-- Embeddings -->
+    <div class="node" style="left:440px;top:492px;width:32px;height:32px;">
+      <span class="node-name">Embeddings</span>
+    </div>
+    <!-- React -->
+    <div class="node" style="left:154px;top:180px;width:38px;height:38px;">
+      <span class="node-name">React</span>
+    </div>
+    <!-- Tauri -->
+    <div class="node" style="left:100px;top:272px;width:34px;height:34px;">
+      <span class="node-name">Tauri</span>
+    </div>
+    <!-- Ollama -->
+    <div class="node" style="left:778px;top:410px;width:38px;height:38px;">
+      <span class="node-name">Ollama</span>
+    </div>
+
+    <!-- Controls -->
+    <div class="hints">
+      <span class="hint">⌘K search</span>
+      <span class="hint">⌘N add</span>
+      <span class="hint">⌘/ ask</span>
+    </div>
+    <button class="fit-btn">⊞ fit</button>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-mark" style="background:#ececee;"></div> devtool</div>
+      <div class="legend-item"><div class="legend-mark" style="background:#5a5a6a;"></div> framework</div>
+      <div class="legend-item"><div class="legend-mark" style="background:#4a4a5a;"></div> concept</div>
+      <div class="legend-item"><div class="legend-mark" style="background:#3a3a48;"></div> pattern</div>
+    </div>
+
+    <div class="fabs">
+      <div class="fab">+</div>
+      <div class="fab fab-primary">?</div>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">Claude Code</div>
+      <span class="panel-badge">devtool</span>
+    </div>
+
+    <div class="panel-block">
+      <div class="block-label">Description</div>
+      <p class="block-text">Anthropic's CLI agent for software engineering. A terminal-based AI assistant with full access to your development environment — reads, writes, and executes code using Claude models for reasoning and generation.</p>
+    </div>
+
+    <div class="panel-block">
+      <div class="block-label">Tags</div>
+      <div class="tag-list">
+        <span class="tag">cli</span>
+        <span class="tag">ai-agent</span>
+        <span class="tag">anthropic</span>
+        <span class="tag">vibecoding</span>
+      </div>
+    </div>
+
+    <div class="panel-block">
+      <div class="block-label">Connections</div>
+      <div class="conn-row">
+        <div class="conn-dot" style="background:#88889a;"></div>
+        <span class="conn-name">MCP Servers</span>
+        <div class="conn-line"></div>
+        <span class="conn-rel">uses</span>
+      </div>
+      <div class="conn-row">
+        <div class="conn-dot" style="background:#4a4a5a;"></div>
+        <span class="conn-name">Hooks</span>
+        <div class="conn-line"></div>
+        <span class="conn-rel">uses</span>
+      </div>
+      <div class="conn-row">
+        <div class="conn-dot" style="background:#88889a;"></div>
+        <span class="conn-name">Eagle Mem</span>
+        <div class="conn-line"></div>
+        <span class="conn-rel">uses</span>
+      </div>
+      <div class="conn-row">
+        <div class="conn-dot" style="background:#4a4a5a;"></div>
+        <span class="conn-name">Agents</span>
+        <div class="conn-line"></div>
+        <span class="conn-rel">part_of</span>
+      </div>
+    </div>
+
+    <div class="panel-block">
+      <div class="block-label">Notes</div>
+      <div class="notes-box">Started using for FarmerChat dev. Hooks system is powerful — Eagle Mem plugs in through it. Skills are like plugins invoked with /commands.</div>
+    </div>
+
+    <div class="panel-block">
+      <div class="block-label">Source</div>
+      <div class="panel-source">enriched via context7 · 2d ago</div>
+    </div>
+
+    <div class="panel-actions">
+      <button class="btn btn-fill">Connect to...</button>
+      <button class="btn btn-ghost">Research</button>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

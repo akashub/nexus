@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus — Minimal Mono Theme</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #09090b;
+    color: #d4d4d8;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Titlebar ── */
+  .titlebar {
+    height: 44px;
+    background: #09090b;
+    border-bottom: 1px solid #18181b;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+  }
+  .traffic-lights { display: flex; gap: 8px; }
+  .tl { width: 12px; height: 12px; border-radius: 50%; }
+  .tl-r { background: #3f3f46; }
+  .tl-y { background: #3f3f46; }
+  .tl-g { background: #3f3f46; }
+  .titlebar:hover .tl-r { background: #ff5f57; }
+  .titlebar:hover .tl-y { background: #febc2e; }
+  .titlebar:hover .tl-g { background: #28c840; }
+  .app-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: #52525b;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+  .titlebar-right {
+    margin-left: auto;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+  .status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: #3f3f46;
+  }
+  .status-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #22c55e;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+
+  /* ── Layout ── */
+  .main { display: flex; height: calc(100vh - 44px); }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 200px;
+    background: #09090b;
+    border-right: 1px solid #18181b;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .sidebar-search {
+    padding: 12px;
+    border-bottom: 1px solid #18181b;
+  }
+  .search-box {
+    width: 100%;
+    background: transparent;
+    border: 1px solid #27272a;
+    color: #a1a1aa;
+    padding: 7px 10px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-box::placeholder { color: #3f3f46; }
+  .search-box:focus { border-color: #52525b; }
+  .search-hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: #27272a;
+    text-align: right;
+    margin-top: 4px;
+  }
+
+  .sidebar-group { padding: 12px; }
+  .group-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    color: #27272a;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .sidebar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    color: #52525b;
+    cursor: pointer;
+    margin-bottom: 1px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .sidebar-row:hover { background: #18181b; color: #a1a1aa; }
+  .sidebar-row.active { background: #18181b; color: #e4e4e7; }
+  .row-indicator {
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: #52525b;
+    flex-shrink: 0;
+  }
+  .row-count {
+    margin-left: auto;
+    font-size: 10px;
+    color: #27272a;
+  }
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 12px;
+    border-top: 1px solid #18181b;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: #27272a;
+    line-height: 1.8;
+  }
+
+  /* ── Graph Canvas ── */
+  .graph {
+    flex: 1;
+    position: relative;
+    background: #09090b;
+    background-image: radial-gradient(circle at 1px 1px, #141416 1px, transparent 0);
+    background-size: 28px 28px;
+    overflow: hidden;
+  }
+
+  /* Edges */
+  .graph svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+  .graph svg line {
+    stroke: #1e1e22;
+    stroke-width: 1;
+    stroke-dasharray: 6 4;
+  }
+  .graph svg line.highlighted {
+    stroke: #3f3f46;
+    stroke-dasharray: none;
+    stroke-width: 1.5;
+  }
+
+  /* Nodes */
+  .gnode {
+    position: absolute;
+    border-radius: 50%;
+    border: 1.5px solid #3f3f46;
+    background: rgba(39,39,42,0.15);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .gnode:hover {
+    border-color: #71717a;
+    background: rgba(39,39,42,0.3);
+    transform: scale(1.08);
+  }
+  .gnode.selected {
+    border-color: #e4e4e7;
+    background: rgba(228,228,231,0.08);
+    box-shadow: 0 0 0 4px rgba(228,228,231,0.05);
+  }
+  .gnode-inner {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: #52525b;
+  }
+  .gnode.selected .gnode-inner { background: #e4e4e7; }
+  .gnode:hover .gnode-inner { background: #71717a; }
+  .gnode-label {
+    position: absolute;
+    bottom: -20px;
+    white-space: nowrap;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: #3f3f46;
+    font-weight: 500;
+  }
+  .gnode.selected .gnode-label { color: #a1a1aa; }
+  .gnode:hover .gnode-label { color: #71717a; }
+
+  /* Graph controls */
+  .graph-controls {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: flex;
+    gap: 6px;
+  }
+  .gctr {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: #27272a;
+    background: transparent;
+    border: 1px solid #1e1e22;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .gctr:hover { border-color: #3f3f46; color: #52525b; }
+  .gctr kbd { font-size: 9px; }
+
+  .graph-fit {
+    position: absolute;
+    top: 12px;
+    right: 308px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: #27272a;
+    background: transparent;
+    border: 1px solid #1e1e22;
+    padding: 4px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .graph-fit:hover { border-color: #3f3f46; color: #52525b; }
+
+  /* Floating buttons */
+  .fab-group {
+    position: absolute;
+    bottom: 16px;
+    right: 320px;
+    display: flex;
+    gap: 8px;
+  }
+  .fab {
+    width: 40px; height: 40px;
+    border-radius: 6px;
+    border: 1px solid #27272a;
+    background: #09090b;
+    color: #52525b;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .fab:hover { border-color: #52525b; color: #a1a1aa; }
+  .fab.primary { border-color: #52525b; color: #a1a1aa; }
+  .fab.primary:hover { border-color: #71717a; color: #e4e4e7; }
+
+  /* Legend */
+  .legend {
+    position: absolute;
+    bottom: 16px;
+    left: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: #27272a;
+    display: flex;
+    gap: 14px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+  .legend-dot { width: 6px; height: 6px; border-radius: 50%; border: 1px solid; }
+
+  /* ── Right Panel ── */
+  .panel {
+    width: 300px;
+    background: #09090b;
+    border-left: 1px solid #18181b;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+  .panel-head {
+    padding: 16px;
+    border-bottom: 1px solid #18181b;
+  }
+  .panel-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fafafa;
+    margin-bottom: 6px;
+  }
+  .panel-category {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: #52525b;
+    border: 1px solid #27272a;
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .panel-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid #18181b;
+  }
+  .panel-section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    color: #27272a;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .panel-text {
+    font-size: 12px;
+    line-height: 1.7;
+    color: #71717a;
+  }
+  .panel-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .ptag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 2px 8px;
+    border: 1px solid #1e1e22;
+    border-radius: 3px;
+    color: #3f3f46;
+  }
+  .panel-conn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #52525b;
+    cursor: pointer;
+  }
+  .panel-conn:hover { color: #a1a1aa; }
+  .conn-line {
+    width: 16px;
+    height: 1px;
+    background: #27272a;
+    flex-shrink: 0;
+  }
+  .conn-type {
+    font-size: 9px;
+    color: #27272a;
+    margin-left: auto;
+  }
+  .panel-notes {
+    font-size: 12px;
+    color: #3f3f46;
+    font-style: italic;
+    border: 1px dashed #1e1e22;
+    padding: 10px;
+    border-radius: 4px;
+    line-height: 1.6;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .panel-source {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: #27272a;
+  }
+  .panel-actions {
+    padding: 14px 16px;
+    display: flex;
+    gap: 8px;
+  }
+  .panel-btn {
+    flex: 1;
+    padding: 7px 12px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid;
+    transition: all 0.15s;
+  }
+  .btn-primary {
+    background: #e4e4e7;
+    color: #09090b;
+    border-color: #e4e4e7;
+  }
+  .btn-primary:hover { background: #d4d4d8; }
+  .btn-secondary {
+    background: transparent;
+    color: #52525b;
+    border-color: #27272a;
+  }
+  .btn-secondary:hover { border-color: #52525b; color: #a1a1aa; }
+</style>
+</head>
+<body>
+
+<div class="titlebar">
+  <div class="traffic-lights">
+    <div class="tl tl-r"></div>
+    <div class="tl tl-y"></div>
+    <div class="tl tl-g"></div>
+  </div>
+  <span class="app-title">nexus</span>
+  <div class="titlebar-right">
+    <span class="status"><span class="status-dot"></span>ollama</span>
+    <span class="status" style="color:#3f3f46">12 nodes . 18 edges</span>
+  </div>
+</div>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="sidebar-search">
+      <input class="search-box" placeholder="search..." />
+      <div class="search-hint">cmd+k</div>
+    </div>
+    <div class="sidebar-group">
+      <div class="group-label">categories</div>
+      <div class="sidebar-row active"><div class="row-indicator"></div>all<span class="row-count">12</span></div>
+      <div class="sidebar-row"><div class="row-indicator"></div>devtool<span class="row-count">5</span></div>
+      <div class="sidebar-row"><div class="row-indicator"></div>framework<span class="row-count">3</span></div>
+      <div class="sidebar-row"><div class="row-indicator"></div>concept<span class="row-count">3</span></div>
+      <div class="sidebar-row"><div class="row-indicator"></div>pattern<span class="row-count">1</span></div>
+    </div>
+    <div class="sidebar-group">
+      <div class="group-label">recent</div>
+      <div class="sidebar-row"><div class="row-indicator"></div>mcp_servers</div>
+      <div class="sidebar-row"><div class="row-indicator"></div>react</div>
+      <div class="sidebar-row"><div class="row-indicator"></div>rag</div>
+    </div>
+    <div class="sidebar-footer">
+      nodes &nbsp;&nbsp;12<br>
+      edges &nbsp;&nbsp;18<br>
+      asked &nbsp;&nbsp;7
+    </div>
+  </div>
+
+  <div class="graph">
+    <svg viewBox="0 0 1000 700">
+      <line x1="400" y1="280" x2="560" y2="195" class="highlighted" />
+      <line x1="400" y1="280" x2="300" y2="155" class="highlighted" />
+      <line x1="400" y1="280" x2="240" y2="350" class="highlighted" />
+      <line x1="400" y1="280" x2="680" y2="310" />
+      <line x1="560" y1="195" x2="700" y2="135" />
+      <line x1="560" y1="195" x2="680" y2="310" />
+      <line x1="240" y1="350" x2="140" y2="450" />
+      <line x1="240" y1="350" x2="350" y2="450" />
+      <line x1="680" y1="310" x2="580" y2="430" />
+      <line x1="580" y1="430" x2="460" y2="510" />
+      <line x1="170" y1="195" x2="115" y2="290" />
+      <line x1="800" y1="430" x2="680" y2="310" />
+      <line x1="800" y1="430" x2="580" y2="430" />
+    </svg>
+
+    <!-- Claude Code (selected, hub) -->
+    <div class="gnode selected" style="left:368px;top:248px;width:66px;height:66px;">
+      <div class="gnode-inner" style="width:8px;height:8px;"></div>
+      <span class="gnode-label">claude_code</span>
+    </div>
+    <!-- MCP Servers -->
+    <div class="gnode" style="left:540px;top:175px;width:44px;height:44px;">
+      <div class="gnode-inner"></div>
+      <span class="gnode-label">mcp_servers</span>
+    </div>
+    <!-- Hooks -->
+    <div class="gnode" style="left:284px;top:140px;width:34px;height:34px;">
+      <div class="gnode-inner"></div>
+      <span class="gnode-label">hooks</span>
+    </div>
+    <!-- Eagle Mem -->
+    <div class="gnode" style="left:218px;top:330px;width:44px;height:44px;">
+      <div class="gnode-inner"></div>
+      <span class="gnode-label">eagle_mem</span>
+    </div>
+    <!-- Context7 -->
+    <div class="gnode" style="left:684px;top:118px;width:32px;height:32px;">
+      <div class="gnode-inner"></div>
+      <span class="gnode-label">context7</span>
+    </div>
+    <!-- Agents -->
+    <div class="gnode" style="left:658px;top:290px;width:44px;height:44px;">
+      <div class="gnode-inner"></div>
+      <span class="gnode-label">agents</span>
+    </div>
+    <!-- SQLite -->
+    <div class="gnode" style="left:122px;top:434px;width:34px;height:34px;">
+      <div class="gnode-inner"></div>
+      <span class="gnode-label">sqlite</span>
+    </div>
+    <!-- FTS5 -->
+    <div class="gnode" style="left:334px;top:434px;width:32px;height:32px;">
+      <div class="gnode-inner"></div>
+      <span class="gnode-label">fts5</span>
+    </div>
+    <!-- RAG -->
+    <div class="gnode" style="left:560px;top:412px;width:38px;height:38px;">
+      <div class="gnode-inner"></div>
+      <span class="gnode-label">rag</span>
+    </div>
+    <!-- Embeddings -->
+    <div class="gnode" style="left:442px;top:494px;width:32px;height:32px;">
+      <div class="gnode-inner"></div>
+      <span class="gnode-label">embeddings</span>
+    </div>
+    <!-- React -->
+    <div class="gnode" style="left:152px;top:178px;width:38px;height:38px;">
+      <div class="gnode-inner"></div>
+      <span class="gnode-label">react</span>
+    </div>
+    <!-- Tauri -->
+    <div class="gnode" style="left:98px;top:274px;width:34px;height:34px;">
+      <div class="gnode-inner"></div>
+      <span class="gnode-label">tauri</span>
+    </div>
+    <!-- Ollama -->
+    <div class="gnode" style="left:782px;top:412px;width:38px;height:38px;">
+      <div class="gnode-inner"></div>
+      <span class="gnode-label">ollama</span>
+    </div>
+
+    <div class="graph-controls">
+      <span class="gctr"><kbd>⌘K</kbd> search</span>
+      <span class="gctr"><kbd>⌘N</kbd> add</span>
+      <span class="gctr"><kbd>⌘/</kbd> ask</span>
+    </div>
+    <button class="graph-fit">fit</button>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="border-color:#71717a;"></div> devtool</div>
+      <div class="legend-item"><div class="legend-dot" style="border-color:#52525b;"></div> framework</div>
+      <div class="legend-item"><div class="legend-dot" style="border-color:#3f3f46;"></div> concept</div>
+      <div class="legend-item"><div class="legend-dot" style="border-color:#27272a;"></div> pattern</div>
+    </div>
+
+    <div class="fab-group">
+      <div class="fab">+</div>
+      <div class="fab primary">?</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-name">claude_code</div>
+      <span class="panel-category">devtool</span>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-label">description</div>
+      <p class="panel-text">Anthropic's official CLI agent for software engineering. Terminal-based AI assistant that reads, writes, and executes code with full access to your development environment. Uses Claude models for reasoning and code generation.</p>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-label">tags</div>
+      <div class="panel-tags">
+        <span class="ptag">cli</span>
+        <span class="ptag">ai-agent</span>
+        <span class="ptag">anthropic</span>
+        <span class="ptag">vibecoding</span>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-label">connections</div>
+      <div class="panel-conn"><div class="conn-line"></div>mcp_servers<span class="conn-type">uses</span></div>
+      <div class="panel-conn"><div class="conn-line"></div>hooks<span class="conn-type">uses</span></div>
+      <div class="panel-conn"><div class="conn-line"></div>eagle_mem<span class="conn-type">uses</span></div>
+      <div class="panel-conn"><div class="conn-line"></div>agents<span class="conn-type">part_of</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-label">notes</div>
+      <div class="panel-notes">Started using for FarmerChat development. Hooks system is powerful — Eagle Mem plugs in through it. Skills are like plugins invoked with /commands.</div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-label">source</div>
+      <div class="panel-source">enriched via context7 · 2d ago</div>
+    </div>
+    <div class="panel-actions">
+      <button class="panel-btn btn-primary">connect</button>
+      <button class="panel-btn btn-secondary">research</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

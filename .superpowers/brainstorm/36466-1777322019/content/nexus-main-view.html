@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus — Main App View Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+    background: #09090b;
+    color: #e4e4e7;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Titlebar */
+  .titlebar {
+    height: 40px;
+    background: #0a0a0c;
+    border-bottom: 1px solid #1e1e24;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+    -webkit-app-region: drag;
+  }
+  .traffic-lights {
+    display: flex;
+    gap: 8px;
+  }
+  .traffic-light {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+  .tl-close { background: #ff5f57; }
+  .tl-minimize { background: #febc2e; }
+  .tl-maximize { background: #28c840; }
+  .titlebar-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #71717a;
+    letter-spacing: 0.5px;
+  }
+  .titlebar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .titlebar-btn {
+    font-size: 11px;
+    color: #52525b;
+    background: #18181b;
+    border: 1px solid #27272a;
+    padding: 3px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .titlebar-btn:hover { background: #27272a; color: #a1a1aa; }
+
+  /* Main Layout */
+  .main {
+    display: flex;
+    height: calc(100vh - 40px);
+  }
+
+  /* Left Sidebar */
+  .sidebar {
+    width: 220px;
+    background: #0c0c0f;
+    border-right: 1px solid #1e1e24;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .sidebar-search {
+    padding: 12px;
+    border-bottom: 1px solid #1e1e24;
+  }
+  .search-input {
+    width: 100%;
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #e4e4e7;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    outline: none;
+  }
+  .search-input::placeholder { color: #52525b; }
+  .search-input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.15); }
+  .search-kbd {
+    font-size: 10px;
+    color: #52525b;
+    text-align: right;
+    margin-top: 4px;
+  }
+  .sidebar-section {
+    padding: 12px;
+  }
+  .sidebar-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #52525b;
+    margin-bottom: 8px;
+  }
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #a1a1aa;
+    cursor: pointer;
+    margin-bottom: 2px;
+  }
+  .sidebar-item:hover { background: #18181b; color: #e4e4e7; }
+  .sidebar-item.active { background: #1e1b4b; color: #a78bfa; }
+  .sidebar-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .sidebar-count {
+    margin-left: auto;
+    font-size: 11px;
+    color: #52525b;
+    background: #18181b;
+    padding: 1px 6px;
+    border-radius: 10px;
+  }
+  .sidebar-stats {
+    margin-top: auto;
+    padding: 12px;
+    border-top: 1px solid #1e1e24;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #52525b;
+    margin-bottom: 4px;
+  }
+  .stat-val { color: #71717a; }
+
+  /* Graph Canvas */
+  .graph-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #09090b;
+    background-image: radial-gradient(circle at 1px 1px, #1a1a1f 1px, transparent 0);
+    background-size: 32px 32px;
+  }
+
+  /* Graph Nodes */
+  .node {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-align: center;
+  }
+  .node:hover {
+    transform: scale(1.1);
+    z-index: 10;
+  }
+  .node-label {
+    position: absolute;
+    bottom: -22px;
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 500;
+    color: #a1a1aa;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  }
+  .node.selected {
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.5), 0 0 20px rgba(99,102,241,0.2);
+  }
+
+  /* Edge lines (SVG) */
+  .edges-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  /* Category colors */
+  .cat-devtool { background: rgba(139,92,246,0.2); border: 2px solid #8b5cf6; }
+  .cat-framework { background: rgba(59,130,246,0.2); border: 2px solid #3b82f6; }
+  .cat-concept { background: rgba(34,197,94,0.2); border: 2px solid #22c55e; }
+  .cat-pattern { background: rgba(249,115,22,0.2); border: 2px solid #f97316; }
+  .cat-language { background: rgba(239,68,68,0.2); border: 2px solid #ef4444; }
+
+  /* Right Panel */
+  .right-panel {
+    width: 320px;
+    background: #0c0c0f;
+    border-left: 1px solid #1e1e24;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+  .panel-header {
+    padding: 16px;
+    border-bottom: 1px solid #1e1e24;
+  }
+  .panel-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fafafa;
+    margin-bottom: 4px;
+  }
+  .panel-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge-devtool { background: rgba(139,92,246,0.15); color: #a78bfa; }
+  .badge-framework { background: rgba(59,130,246,0.15); color: #60a5fa; }
+
+  .panel-section {
+    padding: 16px;
+    border-bottom: 1px solid #1e1e24;
+  }
+  .panel-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #52525b;
+    margin-bottom: 8px;
+  }
+  .panel-desc {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #a1a1aa;
+  }
+  .panel-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .tag {
+    font-size: 11px;
+    padding: 3px 10px;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    color: #71717a;
+  }
+  .connection-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 13px;
+    color: #a1a1aa;
+    cursor: pointer;
+  }
+  .connection-item:hover { color: #e4e4e7; }
+  .connection-type {
+    font-size: 10px;
+    color: #52525b;
+    background: #18181b;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+  }
+  .connection-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .panel-notes {
+    font-size: 13px;
+    color: #71717a;
+    font-style: italic;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 10px;
+    line-height: 1.5;
+  }
+
+  .panel-actions {
+    padding: 16px;
+    display: flex;
+    gap: 8px;
+  }
+  .action-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s;
+  }
+  .action-primary {
+    background: #6366f1;
+    color: white;
+  }
+  .action-primary:hover { background: #4f46e5; }
+  .action-secondary {
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #a1a1aa;
+  }
+  .action-secondary:hover { background: #27272a; }
+
+  /* Chat Drawer */
+  .chat-toggle {
+    position: absolute;
+    bottom: 16px;
+    right: 340px;
+    background: #6366f1;
+    color: white;
+    border: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(99,102,241,0.3);
+    transition: transform 0.15s;
+  }
+  .chat-toggle:hover { transform: scale(1.05); }
+
+  /* Add button */
+  .add-btn {
+    position: absolute;
+    bottom: 16px;
+    right: 396px;
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #a1a1aa;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .add-btn:hover { background: #27272a; color: #e4e4e7; }
+
+  /* Fit button */
+  .fit-btn {
+    position: absolute;
+    top: 16px;
+    right: 340px;
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #71717a;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .fit-btn:hover { background: #27272a; color: #a1a1aa; }
+
+  /* Legend */
+  .legend {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    display: flex;
+    gap: 12px;
+    font-size: 11px;
+    color: #52525b;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  /* Keyboard hints */
+  .kbd-hints {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    display: flex;
+    gap: 8px;
+  }
+  .kbd-hint {
+    font-size: 10px;
+    color: #3f3f46;
+    background: #18181b;
+    border: 1px solid #27272a;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  kbd {
+    font-family: monospace;
+    background: #27272a;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 10px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Titlebar -->
+<div class="titlebar">
+  <div class="traffic-lights">
+    <div class="traffic-light tl-close"></div>
+    <div class="traffic-light tl-minimize"></div>
+    <div class="traffic-light tl-maximize"></div>
+  </div>
+  <span class="titlebar-text">NEXUS</span>
+  <div class="titlebar-right">
+    <span class="titlebar-btn">Ollama: Connected</span>
+    <span class="titlebar-btn">12 concepts</span>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Left Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-search">
+      <input class="search-input" placeholder="Search concepts..." />
+      <div class="search-kbd"><kbd>⌘</kbd> <kbd>K</kbd></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Categories</div>
+      <div class="sidebar-item active">
+        <div class="sidebar-dot" style="background:#8b5cf6"></div>
+        Dev Tools
+        <span class="sidebar-count">5</span>
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot" style="background:#3b82f6"></div>
+        Frameworks
+        <span class="sidebar-count">3</span>
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot" style="background:#22c55e"></div>
+        Concepts
+        <span class="sidebar-count">3</span>
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot" style="background:#f97316"></div>
+        Patterns
+        <span class="sidebar-count">1</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Recent</div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot" style="background:#8b5cf6"></div>
+        MCP Servers
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot" style="background:#3b82f6"></div>
+        React
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot" style="background:#22c55e"></div>
+        RAG
+      </div>
+    </div>
+
+    <div class="sidebar-stats">
+      <div class="stat-row"><span>Concepts</span><span class="stat-val">12</span></div>
+      <div class="stat-row"><span>Connections</span><span class="stat-val">18</span></div>
+      <div class="stat-row"><span>Asked</span><span class="stat-val">7 questions</span></div>
+    </div>
+  </div>
+
+  <!-- Graph Canvas -->
+  <div class="graph-area">
+    <!-- Edges -->
+    <svg class="edges-svg" viewBox="0 0 1000 700">
+      <!-- Claude Code → MCP Servers -->
+      <line x1="420" y1="280" x2="580" y2="200" stroke="#27272a" stroke-width="1.5" />
+      <!-- Claude Code → Hooks -->
+      <line x1="420" y1="280" x2="320" y2="160" stroke="#27272a" stroke-width="1.5" />
+      <!-- Claude Code → Eagle Mem -->
+      <line x1="420" y1="280" x2="250" y2="360" stroke="#27272a" stroke-width="1.5" />
+      <!-- MCP Servers → Context7 -->
+      <line x1="580" y1="200" x2="720" y2="140" stroke="#27272a" stroke-width="1.5" />
+      <!-- MCP Servers → Agents -->
+      <line x1="580" y1="200" x2="700" y2="320" stroke="#27272a" stroke-width="1.5" />
+      <!-- Eagle Mem → SQLite -->
+      <line x1="250" y1="360" x2="140" y2="460" stroke="#27272a" stroke-width="1.5" />
+      <!-- Eagle Mem → FTS5 -->
+      <line x1="250" y1="360" x2="360" y2="460" stroke="#27272a" stroke-width="1.5" />
+      <!-- Agents → RAG -->
+      <line x1="700" y1="320" x2="600" y2="440" stroke="#27272a" stroke-width="1.5" />
+      <!-- RAG → Embeddings -->
+      <line x1="600" y1="440" x2="480" y2="520" stroke="#27272a" stroke-width="1.5" />
+      <!-- React → Tauri -->
+      <line x1="180" y1="200" x2="120" y2="300" stroke="#27272a" stroke-width="1.5" />
+      <!-- Ollama → Agents -->
+      <line x1="820" y1="440" x2="700" y2="320" stroke="#27272a" stroke-width="1.5" />
+      <!-- Ollama → RAG -->
+      <line x1="820" y1="440" x2="600" y2="440" stroke="#27272a" stroke-width="1.5" />
+    </svg>
+
+    <!-- Nodes -->
+    <!-- Claude Code - Hub node (large, devtool) -->
+    <div class="node cat-devtool selected" style="left:380px;top:250px;width:80px;height:80px;">
+      <span class="node-label">Claude Code</span>
+    </div>
+
+    <!-- MCP Servers (devtool) -->
+    <div class="node cat-devtool" style="left:555px;top:175px;width:50px;height:50px;">
+      <span class="node-label">MCP Servers</span>
+    </div>
+
+    <!-- Hooks (concept) -->
+    <div class="node cat-concept" style="left:300px;top:140px;width:40px;height:40px;">
+      <span class="node-label">Hooks</span>
+    </div>
+
+    <!-- Eagle Mem (devtool) -->
+    <div class="node cat-devtool" style="left:225px;top:335px;width:50px;height:50px;">
+      <span class="node-label">Eagle Mem</span>
+    </div>
+
+    <!-- Context7 (devtool) -->
+    <div class="node cat-devtool" style="left:700px;top:120px;width:40px;height:40px;">
+      <span class="node-label">Context7</span>
+    </div>
+
+    <!-- Agents (concept) -->
+    <div class="node cat-concept" style="left:675px;top:295px;width:50px;height:50px;">
+      <span class="node-label">Agents</span>
+    </div>
+
+    <!-- SQLite (concept) -->
+    <div class="node cat-concept" style="left:120px;top:440px;width:40px;height:40px;">
+      <span class="node-label">SQLite</span>
+    </div>
+
+    <!-- FTS5 (pattern) -->
+    <div class="node cat-pattern" style="left:340px;top:440px;width:40px;height:40px;">
+      <span class="node-label">FTS5</span>
+    </div>
+
+    <!-- RAG (concept) -->
+    <div class="node cat-concept" style="left:575px;top:415px;width:45px;height:45px;">
+      <span class="node-label">RAG</span>
+    </div>
+
+    <!-- Embeddings (concept) -->
+    <div class="node cat-concept" style="left:458px;top:498px;width:40px;height:40px;">
+      <span class="node-label">Embeddings</span>
+    </div>
+
+    <!-- React (framework) -->
+    <div class="node cat-framework" style="left:158px;top:178px;width:45px;height:45px;">
+      <span class="node-label">React</span>
+    </div>
+
+    <!-- Tauri (framework) -->
+    <div class="node cat-framework" style="left:100px;top:278px;width:40px;height:40px;">
+      <span class="node-label">Tauri</span>
+    </div>
+
+    <!-- Ollama (devtool) -->
+    <div class="node cat-devtool" style="left:798px;top:418px;width:45px;height:45px;">
+      <span class="node-label">Ollama</span>
+    </div>
+
+    <!-- Controls -->
+    <div class="kbd-hints">
+      <span class="kbd-hint"><kbd>⌘</kbd><kbd>K</kbd> Search</span>
+      <span class="kbd-hint"><kbd>⌘</kbd><kbd>N</kbd> Add</span>
+      <span class="kbd-hint"><kbd>⌘</kbd><kbd>/</kbd> Ask</span>
+    </div>
+    <button class="fit-btn">⊞ Fit All</button>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div> Dev Tools</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> Frameworks</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div> Concepts</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div> Patterns</div>
+    </div>
+
+    <button class="add-btn" title="Add Concept (⌘N)">+</button>
+    <button class="chat-toggle" title="Ask Question (⌘/)">💬</button>
+  </div>
+
+  <!-- Right Panel (Concept Detail) -->
+  <div class="right-panel">
+    <div class="panel-header">
+      <div class="panel-title">Claude Code</div>
+      <span class="panel-badge badge-devtool">devtool</span>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">Description</div>
+      <p class="panel-desc">
+        Anthropic's official CLI agent for software engineering. A terminal-based AI assistant that can read, write, and execute code with full access to your development environment. Uses Claude models (Opus, Sonnet, Haiku) for reasoning and code generation.
+      </p>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">Tags</div>
+      <div class="panel-tags">
+        <span class="tag">CLI</span>
+        <span class="tag">AI agent</span>
+        <span class="tag">Anthropic</span>
+        <span class="tag">vibecoding</span>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">Connections (4)</div>
+      <div class="connection-item">
+        <div class="connection-dot" style="background:#8b5cf6"></div>
+        MCP Servers
+        <span class="connection-type">uses</span>
+      </div>
+      <div class="connection-item">
+        <div class="connection-dot" style="background:#22c55e"></div>
+        Hooks
+        <span class="connection-type">uses</span>
+      </div>
+      <div class="connection-item">
+        <div class="connection-dot" style="background:#8b5cf6"></div>
+        Eagle Mem
+        <span class="connection-type">uses</span>
+      </div>
+      <div class="connection-item">
+        <div class="connection-dot" style="background:#22c55e"></div>
+        Agents
+        <span class="connection-type">part_of</span>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">My Notes</div>
+      <div class="panel-notes">
+        Started using this for FarmerChat development. Hooks system is powerful — Eagle Mem plugs in through it. Skills are like plugins you can invoke with /commands.
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">Source</div>
+      <p class="panel-desc" style="font-size:12px; color:#52525b;">
+        Enriched via Context7 · Added 2 days ago
+      </p>
+    </div>
+
+    <div class="panel-actions">
+      <button class="action-btn action-primary">Connect to...</button>
+      <button class="action-btn action-secondary">Research</button>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
