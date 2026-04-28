@@ -36,8 +36,8 @@ export default function SearchBar({ onSelect, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-start justify-center pt-24 z-50">
-      <div className="w-full max-w-lg bg-[#0a0a0b]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-2xl shadow-black/50 overflow-hidden">
+    <div className="fixed inset-0 bg-black/80 flex items-start justify-center pt-24 z-50" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg bg-[#0f0f10] border border-white/[0.08] rounded-xl shadow-2xl shadow-black/50 overflow-hidden">
         <input
           ref={inputRef}
           value={query}

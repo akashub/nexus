@@ -23,7 +23,7 @@ export default function ChatPanel({ onClose }: Props) {
   }
 
   return (
-    <div className="w-96 bg-[#0a0a0b]/95 backdrop-blur-xl border-l border-white/[0.06] flex flex-col">
+    <div className="w-96 bg-[#111113] border-l border-white/[0.08] flex flex-col">
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
         <h2 className="text-sm font-semibold text-gray-200">Ask</h2>
         <button onClick={onClose} className="text-gray-600 hover:text-gray-300 text-xl leading-none transition-colors">

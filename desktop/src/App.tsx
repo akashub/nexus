@@ -2,132 +2,142 @@ import { useCallback, useEffect, useState } from "react";
 import AddModal from "./components/AddModal";
 import ChatPanel from "./components/ChatPanel";
 import GraphView from "./components/GraphView";
+import LeftSidebar from "./components/LeftSidebar";
 import Logo from "./components/Logo";
 import SearchBar from "./components/SearchBar";
 import SidePanel from "./components/SidePanel";
-import { useGraph, useStats } from "./hooks/useApi";
+import { useGraph, useOllamaStatus, useStats } from "./hooks/useApi";
 import { useBackend } from "./hooks/useBackend";
-
-const CATEGORIES = [
-  { key: "devtool", color: "#a78bfa", label: "Devtool" },
-  { key: "framework", color: "#60a5fa", label: "Framework" },
-  { key: "concept", color: "#34d399", label: "Concept" },
-  { key: "pattern", color: "#fb923c", label: "Pattern" },
-  { key: "language", color: "#f87171", label: "Language" },
-];
 
 export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const backendStatus = useBackend();
   const { data: graph } = useGraph();
   const { data: stats } = useStats();
+  const { data: aiStatus } = useOllamaStatus();
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      if (e.metaKey && e.key === "k") {
-        e.preventDefault();
-        setShowSearch(true);
-      } else if (e.metaKey && e.key === "n") {
-        e.preventDefault();
-        setShowAdd(true);
-      } else if (e.key === "Escape") {
-        setShowSearch(false);
-        setShowAdd(false);
-      }
+      if (e.metaKey && e.key === "k") { e.preventDefault(); setShowSearch(true); }
+      else if (e.metaKey && e.key === "n") { e.preventDefault(); setShowAdd(true); }
+      else if (e.metaKey && e.key === "/") { e.preventDefault(); setShowChat((v) => !v); }
+      else if (e.key === "Escape") { setShowSearch(false); setShowAdd(false); }
     }
+    const onAdd = () => setShowAdd(true);
+    const onChat = () => setShowChat((v) => !v);
     window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
+    window.addEventListener("nexus:add", onAdd);
+    window.addEventListener("nexus:chat", onChat);
+    return () => {
+      window.removeEventListener("keydown", handleKey);
+      window.removeEventListener("nexus:add", onAdd);
+      window.removeEventListener("nexus:chat", onChat);
+    };
   }, []);
 
-  const handleSelectNode = useCallback((id: string | null) => {
-    setSelectedId(id);
-  }, []);
+  const handleSelectNode = useCallback((id: string | null) => setSelectedId(id), []);
+
+  if (backendStatus === "connecting") {
+    return (
+      <div className="flex items-center justify-center h-screen bg-[#0a0a0b] text-gray-100">
+        <div className="text-center">
+          <Logo size={48} />
+          <p className="text-gray-500 text-sm mt-4">connecting to backend...</p>
+          <p className="text-gray-700 text-xs mt-1">
+            run <code className="text-gray-500 bg-white/[0.04] px-1.5 py-0.5 rounded">nexus serve</code> if not started
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-screen bg-[#0a0a0b] text-gray-100">
-      <div className="flex-1 flex flex-col">
-        <header className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06] bg-[#0a0a0b]/90 backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <Logo size={22} />
-            <h1 className="text-sm font-semibold tracking-wider text-gray-200">NEXUS</h1>
-            {stats && (
-              <span className="text-[11px] text-gray-600">
-                {stats.concept_count} concepts &middot; {stats.edge_count} edges
-              </span>
-            )}
-          </div>
+    <div className="flex flex-col h-screen bg-[#0a0a0b] text-gray-100">
+      <header className="flex items-center justify-between px-4 h-10 border-b border-white/[0.06] shrink-0">
+        <div className="flex items-center gap-2">
+          <Logo size={18} />
+          <span className="text-xs tracking-[0.2em] text-gray-400 uppercase">nexus</span>
+        </div>
+        <div className="flex items-center gap-3 text-[11px] text-gray-600">
           <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setShowSearch(true)}
-              className="px-2.5 py-1 text-[11px] text-gray-500 bg-white/[0.04] border border-white/[0.06] rounded-md hover:bg-white/[0.08] hover:text-gray-300 transition-colors"
-            >
-              Search
-              <kbd className="ml-1.5 text-gray-700">&#8984;K</kbd>
-            </button>
-            <button
-              onClick={() => setShowAdd(true)}
-              className="px-2.5 py-1 text-[11px] text-blue-200 bg-blue-600/80 border border-blue-500/30 rounded-md hover:bg-blue-600 transition-colors"
-            >
-              Add
-              <kbd className="ml-1.5 text-blue-400/60">&#8984;N</kbd>
-            </button>
-            <button
-              onClick={() => setShowChat((v) => !v)}
-              className={`px-2.5 py-1 text-[11px] rounded-md border transition-colors ${
-                showChat
-                  ? "text-gray-200 bg-white/[0.08] border-white/[0.1]"
-                  : "text-gray-500 bg-white/[0.04] border-white/[0.06] hover:bg-white/[0.08] hover:text-gray-300"
-              }`}
-            >
-              Chat
-            </button>
+            <div className={`w-1.5 h-1.5 rounded-full ${aiStatus?.available ? "bg-emerald-500" : "bg-gray-600"}`} />
+            <span>ollama</span>
           </div>
-        </header>
+          {stats && <span>{stats.concept_count} nodes &middot; {stats.edge_count} edges</span>}
+        </div>
+      </header>
 
-        <main className="flex-1 relative">
-          {backendStatus === "connecting" ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <Logo size={48} />
-                <p className="text-gray-500 text-sm mt-4">Connecting to backend...</p>
-                <p className="text-gray-700 text-xs mt-1">
-                  Run <code className="text-gray-600 bg-white/[0.04] px-1.5 py-0.5 rounded">nexus serve</code> if not started
-                </p>
-              </div>
-            </div>
-          ) : (
-            <GraphView data={graph} onSelectNode={handleSelectNode} selectedId={selectedId} />
-          )}
+      <div className="flex flex-1 overflow-hidden">
+        <LeftSidebar
+          onSelectNode={handleSelectNode}
+          selectedId={selectedId}
+          categoryFilter={categoryFilter}
+          onCategoryFilter={setCategoryFilter}
+        />
 
-          {stats && stats.concept_count > 0 && (
-            <div className="absolute bottom-4 left-4 flex items-center gap-3 px-3 py-1.5 bg-[#0a0a0b]/80 backdrop-blur-md border border-white/[0.06] rounded-lg">
-              {CATEGORIES.map((cat) => (
-                <div key={cat.key} className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
-                  <span className="text-[10px] text-gray-600">{cat.label}</span>
+        <div className="flex-1 min-w-0 flex flex-col">
+          <div className="flex items-center gap-2 px-3 py-1.5 border-b border-white/[0.06] shrink-0">
+            <input
+              readOnly
+              onClick={() => setShowSearch(true)}
+              placeholder="search..."
+              className="w-36 px-2 py-1 text-[11px] text-gray-600 bg-white/[0.03] border border-white/[0.06] rounded cursor-pointer hover:bg-white/[0.06] transition-colors"
+            />
+            <span className="text-[10px] text-gray-700 ml-0.5">cmd+k</span>
+            <Shortcut label="search" keys="⌘K" onClick={() => setShowSearch(true)} />
+            <Shortcut label="add" keys="⌘N" onClick={() => setShowAdd(true)} />
+            <Shortcut label="ask" keys="⌘/" onClick={() => setShowChat((v) => !v)} />
+            <div className="flex-1" />
+            <Shortcut label="fit" onClick={() => {
+              const evt = new CustomEvent("nexus:fit");
+              window.dispatchEvent(evt);
+            }} />
+          </div>
+
+          <main className="flex-1 relative">
+            <GraphView data={graph} onSelectNode={handleSelectNode} selectedId={selectedId} categoryFilter={categoryFilter} />
+          </main>
+
+          <div className="flex items-center px-3 py-1 border-t border-white/[0.06] shrink-0 text-[10px] text-gray-700">
+            {stats && (
+              <span>nodes: {stats.concept_count} &nbsp; edges: {stats.edge_count}</span>
+            )}
+            <div className="flex-1" />
+            <div className="flex items-center gap-3">
+              {["devtool", "framework", "concept", "pattern"].map((cat) => (
+                <div key={cat} className="flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: { devtool: "#8b7bb8", framework: "#5b8cb8", concept: "#5ba88b", pattern: "#b89060" }[cat] }} />
+                  <span>{cat}</span>
                 </div>
               ))}
             </div>
-          )}
-        </main>
+          </div>
+        </div>
+
+        {selectedId && (
+          <SidePanel conceptId={selectedId} onClose={() => setSelectedId(null)} onNavigate={setSelectedId} />
+        )}
+        {showChat && !selectedId && <ChatPanel onClose={() => setShowChat(false)} />}
       </div>
 
-      {selectedId && (
-        <SidePanel
-          conceptId={selectedId}
-          onClose={() => setSelectedId(null)}
-          onNavigate={setSelectedId}
-        />
-      )}
-
-      {showChat && <ChatPanel onClose={() => setShowChat(false)} />}
-      {showSearch && (
-        <SearchBar onSelect={setSelectedId} onClose={() => setShowSearch(false)} />
-      )}
+      {showSearch && <SearchBar onSelect={setSelectedId} onClose={() => setShowSearch(false)} />}
       {showAdd && <AddModal onClose={() => setShowAdd(false)} />}
     </div>
+  );
+}
+
+function Shortcut({ label, keys, onClick }: { label: string; keys?: string; onClick?: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="px-2 py-0.5 text-[10px] text-gray-600 border border-white/[0.08] rounded hover:bg-white/[0.06] hover:text-gray-400 transition-colors"
+    >
+      {keys && <span className="mr-1 text-gray-700">{keys}</span>}
+      {label}
+    </button>
   );
 }

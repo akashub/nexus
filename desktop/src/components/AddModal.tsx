@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAddConcept } from "../hooks/useApi";
 
 interface Props {
@@ -10,8 +10,13 @@ export default function AddModal({ onClose }: Props) {
   const [category, setCategory] = useState("");
   const [tags, setTags] = useState("");
   const [notes, setNotes] = useState("");
-  const [enrich, setEnrich] = useState(true);
+  const [enrich, setEnrich] = useState(false);
   const addConcept = useAddConcept();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,20 +34,21 @@ export default function AddModal({ onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={onClose}>
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-md bg-[#0a0a0b]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-2xl shadow-black/50 p-6"
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md bg-[#0f0f10] border border-white/[0.08] rounded-xl shadow-2xl shadow-black/50 p-6"
       >
         <h2 className="text-lg font-semibold text-gray-100 mb-4">Add Concept</h2>
 
         <label className="block mb-3">
           <span className="text-[11px] text-gray-500 uppercase tracking-wide">Name</span>
           <input
+            ref={inputRef}
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="mt-1 w-full px-3 py-2 bg-white/[0.04] border border-white/[0.06] rounded-lg text-gray-100 text-sm outline-none focus:border-blue-500/50 transition-colors"
-            autoFocus
           />
         </label>
 

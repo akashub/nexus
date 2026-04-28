@@ -94,6 +94,19 @@ export function useAddEdge() {
   });
 }
 
+export function useEnrichConcept() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<{ status: string }>(`/concepts/${id}/enrich`, { method: "POST" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["concepts"] });
+      qc.invalidateQueries({ queryKey: ["concept"] });
+      qc.invalidateQueries({ queryKey: ["graph"] });
+    },
+  });
+}
+
 export function useSearch(query: string, semantic = false) {
   const params = `?q=${encodeURIComponent(query)}&semantic=${semantic}`;
   return useQuery({
@@ -124,5 +137,21 @@ export function useStats() {
   return useQuery({
     queryKey: ["stats"],
     queryFn: () => apiFetch<Stats>("/stats"),
+  });
+}
+
+export function useOllamaStatus() {
+  return useQuery({
+    queryKey: ["ai-status"],
+    queryFn: () => apiFetch<{ available: boolean }>("/ai/status"),
+    refetchInterval: 60000,
+    staleTime: 60000,
+  });
+}
+
+export function useRecentConcepts(limit = 8) {
+  return useQuery({
+    queryKey: ["concepts", "recent", limit],
+    queryFn: () => apiFetch<Concept[]>(`/concepts?limit=${limit}`),
   });
 }
