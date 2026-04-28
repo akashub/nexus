@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import click
 
+from nexus.cli_ask import ask_cmd
 from nexus.db import (
     DB_PATH,
     add_concept,
@@ -61,7 +62,9 @@ def add_cmd(
         c = add_concept(conn, name, category=category, tags=tag_list, notes=notes)
         click.echo(f"Added: {c.name} ({c.id[:8]})")
         if not no_enrich:
-            click.echo("  (enrichment available in Phase 3 — use --no-enrich to suppress)")
+            from nexus.enrich import enrich_concept
+
+            enrich_concept(conn, c.id)
     finally:
         conn.close()
 
@@ -114,11 +117,30 @@ def list_cmd(category: str | None, limit: int, fmt: str) -> None:
 
 @main.command("search")
 @click.argument("query")
-def search_cmd(query: str) -> None:
-    """Search concepts by keyword (FTS5)."""
+@click.option("--semantic", "-s", is_flag=True, help="Use embedding similarity.")
+def search_cmd(query: str, semantic: bool) -> None:
+    """Search concepts by keyword or semantic similarity."""
     conn = get_connection()
     try:
-        results = search_fts(conn, query)
+        if semantic:
+            from nexus.ai import cosine_similarity, embed
+
+            qvec = embed(query)
+            if not qvec:
+                click.echo("Embedding model unavailable. Falling back to FTS.")
+                results = search_fts(conn, query)
+            else:
+                all_c = list_concepts(conn, limit=200)
+                scored = []
+                for c in all_c:
+                    if c.embedding:
+                        sim = cosine_similarity(qvec, c.embedding)
+                        if sim > 0.3:
+                            scored.append((c, sim))
+                scored.sort(key=lambda x: x[1], reverse=True)
+                results = [c for c, _ in scored[:10]]
+        else:
+            results = search_fts(conn, query)
     finally:
         conn.close()
     if not results:
@@ -131,6 +153,9 @@ def search_cmd(query: str) -> None:
         if c.description:
             desc = f" — {c.description[:80]}"
         click.echo(f"  {c.name}{cat}{desc}")
+
+
+main.add_command(ask_cmd)
 
 
 @main.command("show")

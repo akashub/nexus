@@ -6,6 +6,7 @@ import pytest
 
 from nexus.db import (
     add_concept,
+    add_conversation,
     add_edge,
     delete_concept,
     delete_edge,
@@ -64,14 +65,9 @@ class TestInitDb:
 class TestConcepts:
     def test_add_and_get(self, conn):
         c = add_concept(conn, "React", category="framework", tags=["frontend"])
-        assert c.name == "React"
-        assert c.category == "framework"
-        assert c.tags == ["frontend"]
-        assert c.id
-
+        assert c.name == "React" and c.category == "framework" and c.tags == ["frontend"]
         fetched = get_concept(conn, c.id)
-        assert fetched is not None
-        assert fetched.name == "React"
+        assert fetched is not None and fetched.name == "React"
 
     def test_get_by_name_case_insensitive(self, conn):
         add_concept(conn, "React")
@@ -163,6 +159,16 @@ class TestEdges:
         add_edge(conn, a.id, b.id, "uses")
         with pytest.raises(Exception, match="UNIQUE"):
             add_edge(conn, a.id, b.id, "uses")
+
+
+class TestConversations:
+    def test_add_and_retrieve(self, conn):
+        c = add_concept(conn, "React")
+        conv = add_conversation(conn, "What is React?", "A UI library.", [c.id])
+        assert conv.question == "What is React?"
+        assert conv.related_concepts == [c.id]
+        no_concepts = add_conversation(conn, "General?", "An answer.")
+        assert no_concepts.related_concepts == []
 
 
 class TestFTS:

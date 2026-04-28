@@ -18,7 +18,14 @@ def db_path(tmp_path: Path) -> Path:
 @pytest.fixture()
 def runner(db_path: Path):
     init_db(db_path)
-    with patch("nexus.cli.get_connection", lambda: get_connection(db_path)):
+
+    def conn_fn():
+        return get_connection(db_path)
+
+    with (
+        patch("nexus.cli.get_connection", conn_fn),
+        patch("nexus.cli_ask.get_connection", conn_fn),
+    ):
         yield CliRunner()
 
 
@@ -160,3 +167,21 @@ class TestRemove:
         assert result.exit_code != 0
         r2 = invoke(runner, ["list"])
         assert "React" in r2.output
+
+
+class TestAsk:
+    def test_ask_ollama_unavailable(self, runner):
+        with patch("nexus.ai.is_available", return_value=False):
+            result = runner.invoke(main, ["ask", "What is React?"])
+            assert result.exit_code != 0
+            assert "Ollama is not running" in result.output
+
+    def test_ask_streams_response(self, runner):
+        invoke(runner, ["add", "React", "--no-enrich"])
+        with (
+            patch("nexus.ai.is_available", return_value=True),
+            patch("nexus.ai.generate_stream", return_value=iter(["A ", "UI ", "lib."])),
+        ):
+            result = invoke(runner, ["ask", "What is React?"])
+            assert result.exit_code == 0
+            assert "A UI lib." in result.output

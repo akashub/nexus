@@ -5,7 +5,7 @@ import sqlite3
 import uuid
 from pathlib import Path
 
-from nexus.models import Concept, Edge
+from nexus.models import Concept, Conversation, Edge
 
 DB_DIR = Path.home() / ".nexus"
 DB_PATH = DB_DIR / "nexus.db"
@@ -152,6 +152,24 @@ def delete_edge(conn: sqlite3.Connection, eid: str) -> bool:
     cur = conn.execute("DELETE FROM edges WHERE id = ?", (eid,))
     conn.commit()
     return cur.rowcount > 0
+
+
+def add_conversation(
+    conn: sqlite3.Connection,
+    question: str,
+    answer: str,
+    concept_ids: list[str] | None = None,
+) -> Conversation:
+    cid = str(uuid.uuid4())
+    related = json.dumps(concept_ids or [])
+    conn.execute(
+        "INSERT INTO conversations (id, question, answer, related_concepts) "
+        "VALUES (?, ?, ?, ?)",
+        (cid, question, answer, related),
+    )
+    conn.commit()
+    row = conn.execute("SELECT * FROM conversations WHERE id = ?", (cid,)).fetchone()
+    return Conversation.from_row(dict(row))
 
 
 def search_fts(conn: sqlite3.Connection, query: str) -> list[Concept]:
