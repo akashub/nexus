@@ -6,10 +6,10 @@ import struct
 import httpx
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
-LLM_MODEL = os.environ.get("NEXUS_LLM_MODEL", "gemma4")
+LLM_MODEL = os.environ.get("NEXUS_LLM_MODEL", "gemma3:4b")
 EMBED_MODEL = os.environ.get("NEXUS_EMBED_MODEL", "nomic-embed-text")
 
-_TIMEOUT = httpx.Timeout(120.0, connect=5.0)
+_TIMEOUT = httpx.Timeout(30.0, connect=5.0)
 
 
 def is_available() -> bool:
@@ -22,7 +22,12 @@ def is_available() -> bool:
 
 def generate(prompt: str, *, model: str | None = None, system: str | None = None) -> str:
     model = model or LLM_MODEL
-    payload: dict = {"model": model, "prompt": prompt, "stream": False}
+    payload: dict = {
+        "model": model,
+        "prompt": prompt,
+        "stream": False,
+        "options": {"num_ctx": 2048},
+    }
     if system:
         payload["system"] = system
     r = httpx.post(f"{OLLAMA_URL}/api/generate", json=payload, timeout=_TIMEOUT)

@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from nexus.db import (
     add_concept,
     add_conversation,
     add_edge,
+    count_edges,
     delete_concept,
     delete_edge,
+    get_all_edges,
     get_concept,
     get_edges,
     list_concepts,
@@ -42,20 +44,27 @@ def get_concept_route(concept_id: str, conn: ConnDep):
 
 
 @router.post("/concepts", status_code=201)
-def create_concept_route(body: ConceptCreate, conn: ConnDep):
+def create_concept_route(body: ConceptCreate, conn: ConnDep, background_tasks: BackgroundTasks):
     existing = get_concept(conn, body.name)
     if existing:
         raise HTTPException(409, f"Concept already exists: {body.name}")
     c = add_concept(conn, body.name, category=body.category, tags=body.tags, notes=body.notes)
     if not body.no_enrich:
-        try:
-            from nexus.enrich import enrich_concept
-
-            enrich_concept(conn, c.id)
-            c = get_concept(conn, c.id)
-        except Exception:
-            pass
+        background_tasks.add_task(_enrich_background, c.id)
     return concept_to_dict(c)
+
+
+def _enrich_background(concept_id: str) -> None:
+    from nexus.db import get_connection
+    from nexus.enrich import enrich_concept
+
+    conn = get_connection()
+    try:
+        enrich_concept(conn, concept_id)
+    except Exception:
+        pass
+    finally:
+        conn.close()
 
 
 @router.put("/concepts/{concept_id}")
@@ -150,26 +159,35 @@ def ask_route(body: AskRequest, conn: ConnDep):
 def graph_route(conn: ConnDep):
     concepts = list_concepts(conn, limit=500)
     nodes = [concept_to_dict(c) for c in concepts]
-    all_edges = []
-    seen: set[str] = set()
-    for c in concepts:
-        for e in get_edges(conn, c.id):
-            if e.id not in seen:
-                seen.add(e.id)
-                all_edges.append(edge_to_dict(e))
-    return {"nodes": nodes, "edges": all_edges}
+    edges = [edge_to_dict(e) for e in get_all_edges(conn)]
+    return {"nodes": nodes, "edges": edges}
 
 
 @router.get("/stats")
 def stats_route(conn: ConnDep):
     concepts = list_concepts(conn, limit=10000)
-    edge_count = sum(len(get_edges(conn, c.id)) for c in concepts) // 2
     categories: dict[str, int] = {}
     for c in concepts:
         cat = c.category or "uncategorized"
         categories[cat] = categories.get(cat, 0) + 1
     return {
         "concept_count": len(concepts),
-        "edge_count": edge_count,
+        "edge_count": count_edges(conn),
         "categories": categories,
     }
+
+
+@router.post("/concepts/{concept_id}/enrich")
+def enrich_concept_route(concept_id: str, conn: ConnDep, background_tasks: BackgroundTasks):
+    c = get_concept(conn, concept_id)
+    if not c:
+        raise HTTPException(404, f"Concept not found: {concept_id}")
+    background_tasks.add_task(_enrich_background, concept_id)
+    return {"status": "enriching", "concept_id": concept_id}
+
+
+@router.get("/ai/status")
+def ai_status_route():
+    from nexus.ai import is_available
+
+    return {"available": is_available()}

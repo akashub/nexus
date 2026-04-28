@@ -148,6 +148,16 @@ def get_edges(conn: sqlite3.Connection, concept_id: str) -> list[Edge]:
     return [Edge.from_row(dict(r)) for r in rows]
 
 
+def get_all_edges(conn: sqlite3.Connection, limit: int = 5000) -> list[Edge]:
+    rows = conn.execute("SELECT * FROM edges LIMIT ?", (limit,)).fetchall()
+    return [Edge.from_row(dict(r)) for r in rows]
+
+
+def count_edges(conn: sqlite3.Connection) -> int:
+    row = conn.execute("SELECT COUNT(*) as cnt FROM edges").fetchone()
+    return row["cnt"]
+
+
 def delete_edge(conn: sqlite3.Connection, eid: str) -> bool:
     cur = conn.execute("DELETE FROM edges WHERE id = ?", (eid,))
     conn.commit()

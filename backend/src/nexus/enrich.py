@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import sqlite3
+import time
 
 import click
 
@@ -15,6 +17,13 @@ _SYSTEM = (
     "knowledge graph. Respond with only what is asked, no preamble."
 )
 
+_ENRICH_PROMPT = """Analyze '{name}' for a developer's knowledge graph.
+{context}
+Respond in EXACTLY this JSON format, nothing else:
+{{"description": "2-3 sentence technical description",\
+ "summary": "one-line summary under 15 words",\
+ "category": "one of: {categories}"}}"""
+
 
 def enrich_concept(conn: sqlite3.Connection, concept_id: str) -> None:
     if not is_available():
@@ -28,24 +37,21 @@ def enrich_concept(conn: sqlite3.Connection, concept_id: str) -> None:
     click.echo(f"  Enriching {c.name}...")
 
     docs = _fetch_docs(c.name)
-    description = _generate_description(c.name, docs)
-    summary = _generate_summary(c.name, description)
-    category = _suggest_category(c.name, description, c.category)
-    embedding = _generate_embedding(c.name, description)
+    fields = _generate_all(c.name, docs, c.category)
 
-    fields: dict = {}
-    if description and not c.description:
-        fields["description"] = description
-    if summary and not c.summary:
-        fields["summary"] = summary
-    if category and not c.category:
-        fields["category"] = category
+    time.sleep(1)
+    embedding = _generate_embedding(c.name, fields.get("description"))
+
     if embedding and not c.embedding:
         fields["embedding"] = embedding
-    if fields:
-        fields["source"] = "ollama"
-        update_concept(conn, concept_id, **fields)
-        click.echo(f"  Updated: {', '.join(fields.keys())}")
+    filtered: dict = {}
+    for k, v in fields.items():
+        if v and not getattr(c, k, None):
+            filtered[k] = v
+    if filtered:
+        filtered["source"] = "ollama"
+        update_concept(conn, concept_id, **filtered)
+        click.echo(f"  Updated: {', '.join(filtered.keys())}")
 
     _suggest_connections(conn, concept_id)
 
@@ -55,45 +61,35 @@ def _fetch_docs(name: str) -> str | None:
     docs = fetch_context(name)
     if docs:
         click.echo(f"  Found docs ({len(docs)} chars)")
-        return docs[:4000]
+        return docs[:3000]
     click.echo("  No docs found, using LLM knowledge only.")
     return None
 
 
-def _generate_description(name: str, docs: str | None) -> str | None:
-    context = f"\n\nReference docs:\n{docs}" if docs else ""
-    prompt = (
-        f"Describe '{name}' for a developer learning about it. "
-        f"2-3 sentences, technically accurate.{context}"
+def _generate_all(name: str, docs: str | None, existing_cat: str | None) -> dict:
+    context = f"Reference docs:\n{docs}" if docs else "No docs available, use your knowledge."
+    prompt = _ENRICH_PROMPT.format(
+        name=name, context=context, categories=", ".join(CATEGORIES),
     )
     try:
-        return generate(prompt, system=_SYSTEM)
+        raw = generate(prompt, system=_SYSTEM)
+        start = raw.find("{")
+        end = raw.rfind("}") + 1
+        if start >= 0 and end > start:
+            data = json.loads(raw[start:end])
+        else:
+            return {}
+        result: dict = {}
+        if data.get("description"):
+            result["description"] = data["description"]
+        if data.get("summary"):
+            result["summary"] = data["summary"]
+        cat = (data.get("category") or "").strip().lower()
+        if not existing_cat and cat in CATEGORIES:
+            result["category"] = cat
+        return result
     except Exception:
-        return None
-
-
-def _generate_summary(name: str, description: str | None) -> str | None:
-    if not description:
-        return None
-    prompt = f"Write a one-line summary (under 15 words) for '{name}': {description}"
-    try:
-        return generate(prompt, system=_SYSTEM)
-    except Exception:
-        return None
-
-
-def _suggest_category(name: str, desc: str | None, existing: str | None) -> str | None:
-    if existing:
-        return existing
-    prompt = (
-        f"Categorize '{name}' as exactly one of: {', '.join(CATEGORIES)}.\n"
-        f"Context: {desc or name}\nRespond with only the category word."
-    )
-    try:
-        result = generate(prompt, system=_SYSTEM).strip().lower()
-        return result if result in CATEGORIES else None
-    except Exception:
-        return None
+        return {}
 
 
 def _generate_embedding(name: str, description: str | None) -> bytes | None:
@@ -122,22 +118,4 @@ def _suggest_connections(conn: sqlite3.Connection, concept_id: str) -> None:
 
     click.echo("  Suggested connections:")
     for other, sim in top:
-        rel = _guess_relationship(c.name, c.description, other.name, other.description)
-        click.echo(f"    {c.name} --[{rel}]--> {other.name}  (similarity: {sim:.2f})")
-
-
-def _guess_relationship(
-    name_a: str, desc_a: str | None, name_b: str, desc_b: str | None,
-) -> str:
-    prompt = (
-        f"What is the relationship between '{name_a}' and '{name_b}'?\n"
-        f"A: {desc_a or name_a}\nB: {desc_b or name_b}\n"
-        f"Choose exactly one: uses, depends_on, similar_to, part_of, related_to\n"
-        f"Respond with only the relationship."
-    )
-    try:
-        result = generate(prompt, system=_SYSTEM).strip().lower()
-        valid = ["uses", "depends_on", "similar_to", "part_of", "related_to"]
-        return result if result in valid else "related_to"
-    except Exception:
-        return "related_to"
+        click.echo(f"    {c.name} --[related_to]--> {other.name}  (similarity: {sim:.2f})")

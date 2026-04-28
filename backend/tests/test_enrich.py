@@ -13,10 +13,12 @@ def _fake_embed(text, **kw):
 
 
 def _fake_generate(prompt, **kw):
-    if "Categorize" in prompt:
-        return "framework"
-    if "one-line summary" in prompt:
-        return "A short summary"
+    if "Analyze" in prompt and "JSON" in prompt:
+        return (
+            '{"description": "A generated description.",'
+            ' "summary": "A short summary",'
+            ' "category": "framework"}'
+        )
     return "A generated description."
 
 
