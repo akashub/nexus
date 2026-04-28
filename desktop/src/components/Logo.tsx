@@ -2,34 +2,23 @@ export default function Logo({ size = 24 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
       <defs>
-        <linearGradient id="ln" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.4" />
-          <stop offset="100%" stopColor="#a78bfa" stopOpacity="0.4" />
+        <linearGradient id="lc" x1="25" y1="25" x2="75" y2="75" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#cbd5e1" />
+          <stop offset="40%" stopColor="#f1f5f9" />
+          <stop offset="60%" stopColor="#94a3b8" />
+          <stop offset="100%" stopColor="#e2e8f0" />
         </linearGradient>
-        <linearGradient id="ng" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#60a5fa" />
-          <stop offset="100%" stopColor="#a78bfa" />
-        </linearGradient>
-        <radialGradient id="gl">
-          <stop offset="0%" stopColor="#7dd3fc" stopOpacity="0.5" />
-          <stop offset="100%" stopColor="#7dd3fc" stopOpacity="0" />
-        </radialGradient>
       </defs>
-      <g stroke="url(#ln)" strokeWidth="1.5" strokeLinecap="round">
-        <line x1="48" y1="44" x2="25" y2="28" />
-        <line x1="48" y1="44" x2="72" y2="32" />
-        <line x1="48" y1="44" x2="30" y2="68" />
-        <line x1="48" y1="44" x2="70" y2="65" />
-        <line x1="25" y1="28" x2="72" y2="32" />
-        <line x1="30" y1="68" x2="70" y2="65" />
-      </g>
-      <circle cx="48" cy="44" r="7" fill="url(#gl)" />
-      <circle cx="25" cy="28" r="3.5" fill="#60a5fa" />
-      <circle cx="72" cy="32" r="3.8" fill="#818cf8" />
-      <circle cx="30" cy="68" r="3.2" fill="#60a5fa" />
-      <circle cx="70" cy="65" r="3.4" fill="#a78bfa" />
-      <circle cx="48" cy="44" r="5" fill="url(#ng)" />
-      <circle cx="48" cy="44" r="3" fill="#e0e7ff" fillOpacity="0.25" />
+      {/* Back of loop A */}
+      <ellipse cx="40" cy="50" rx="16" ry="24" transform="rotate(-30,40,50)"
+        stroke="url(#lc)" strokeWidth="5" fill="none" opacity="0.3" />
+      {/* Full loop B */}
+      <ellipse cx="60" cy="50" rx="16" ry="24" transform="rotate(30,60,50)"
+        stroke="url(#lc)" strokeWidth="5" fill="none" opacity="0.8" />
+      {/* Front of loop A (crosses over B) */}
+      <ellipse cx="40" cy="50" rx="16" ry="24" transform="rotate(-30,40,50)"
+        stroke="url(#lc)" strokeWidth="5" fill="none" opacity="0.8"
+        strokeDasharray="40 120" strokeDashoffset="-50" />
     </svg>
   );
 }
