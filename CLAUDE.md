@@ -21,13 +21,20 @@ Personal learning knowledge graph. Capture concepts, understand them with local 
 - **Styling**: Tailwind CSS. Dark theme only for V1.
 - **Package management**: uv for Python, pnpm for Node/React.
 
-## Development workflow
-1. **Understand** — clarify the ask.
-2. **Plan** — create or update plan in `plans/`.
-3. **Implement** — write code following the plan.
-4. **Test** — `uv run pytest -q` (backend), `pnpm test` (desktop). All must pass.
-5. **Lint** — `uv run ruff check` (Python), `pnpm lint` (TypeScript). Zero warnings.
-6. **Commit** — discrete bisectable commits with clear messages.
+## Development workflow (mandatory)
+Every change follows this pipeline. No shortcuts.
+
+1. **Requirement** — understand the ask, clarify ambiguities.
+2. **Plan** — create or update plan in `plans/` with Objective, Acceptance criteria, Steps.
+3. **Tasks + Acceptance criteria + Test cases** — break plan into discrete tasks with measurable criteria and test cases for each.
+4. **Implement** — write code following the plan and tasks.
+5. **Run test cases** — all must pass: no linter errors, no type errors, no build errors, no warnings (`uv run pytest -q` backend, `pnpm test` desktop).
+6. **Run anti-slop skill** — `/eagle-anti-slop` on changed files to eliminate AI-generated slop.
+7. **Run spectral agents** — clear all severity levels (critical, high, medium, low, nits).
+8. **Lint** — `uv run ruff check` (Python), `pnpm lint` (TypeScript). Zero warnings.
+9. **Commit to git** — discrete bisectable commits with Conventional Commits (`feat()`, `fix()`, `docs()`, etc.).
+10. **Push to GitHub** — push with `GH_TOKEN` for akashub account.
+11. **Post-push** — if successful: update wiki (llm-wiki + Obsidian), update task list, create memories if needed. Move to next task.
 
 ## Directory layout
 ```
