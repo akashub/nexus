@@ -100,6 +100,13 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
         setCtxMenu({ x: pos.x, y: pos.y, nodeId: evt.target.id() });
       });
       cy.on("tap", () => setCtxMenu(null));
+      cy.on("drag", "node", (evt) => {
+        const pos = evt.target.position();
+        cy.nodes().not(evt.target).forEach((o: cytoscape.NodeSingular) => {
+          const p = o.position(), dx = p.x - pos.x, dy = p.y - pos.y, d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 70 && d > 0) { const f = (70 - d) * 0.25; o.position({ x: p.x + dx / d * f, y: p.y + dy / d * f }); }
+        });
+      });
       cy.on("dragfree", "node", (evt) => {
         const pos = evt.target.position();
         evt.target.neighborhood("node").forEach((nb: cytoscape.NodeSingular) => {
@@ -126,24 +133,15 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
   }, [data, onSelectNode, buildElements, categoryFilter]);
 
   useEffect(() => {
-    const cy = cyRef.current;
-    if (!cy) return;
-    cy.nodes().unselect();
-    if (selectedId) {
-      const node = cy.getElementById(selectedId);
-      if (node.length) { node.select(); cy.animate({ center: { eles: node }, duration: 300 }); }
-    }
+    const cy = cyRef.current; if (!cy) return; cy.nodes().unselect();
+    if (selectedId) { const n = cy.getElementById(selectedId); if (n.length) { n.select(); cy.animate({ center: { eles: n }, duration: 300 }); } }
   }, [selectedId]);
 
   return (
     <div className="relative w-full h-full">
       <div ref={containerRef} className="w-full h-full" />
-      {tooltip && (
-        <div className="absolute pointer-events-none px-2 py-1 bg-[#1a1a1c] border border-white/[0.1] rounded text-[10px] text-gray-400 max-w-[200px] truncate z-10"
-          style={{ left: tooltip.x, top: tooltip.y, transform: "translate(-50%, -100%)" }}>
-          {tooltip.text}
-        </div>
-      )}
+      {tooltip && <div className="absolute pointer-events-none px-2 py-1 bg-[#1a1a1c] border border-white/[0.1] rounded text-[10px] text-gray-400 max-w-[200px] truncate z-10"
+        style={{ left: tooltip.x, top: tooltip.y, transform: "translate(-50%, -100%)" }}>{tooltip.text}</div>}
       {ctxMenu && (
         <div className="absolute z-20 bg-[#1a1a1c] border border-white/[0.1] rounded-lg shadow-lg py-1 min-w-[120px]"
           style={{ left: ctxMenu.x, top: ctxMenu.y }}>
