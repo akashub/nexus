@@ -1,48 +1,64 @@
 from __future__ import annotations
 
-import httpx
+import json
+import re
+import subprocess
+from dataclasses import dataclass
 
-_CONTEXT7_BASE = "https://api.context7.com/v1"
-_TIMEOUT = httpx.Timeout(30.0, connect=5.0)
+
+@dataclass
+class DocResult:
+    text: str
+    library_id: str | None = None
+    doc_url: str | None = None
 
 
-def resolve_library(name: str) -> str | None:
+def _mcp_call(method: str, arguments: dict) -> str | None:
+    msg = json.dumps({
+        "jsonrpc": "2.0", "id": 1,
+        "method": "tools/call",
+        "params": {"name": method, "arguments": arguments},
+    })
     try:
-        r = httpx.get(
-            f"{_CONTEXT7_BASE}/resolve",
-            params={"query": name, "libraryName": name},
-            timeout=_TIMEOUT,
+        proc = subprocess.run(
+            f"echo '{msg}' | npx -y @upstash/context7-mcp",
+            capture_output=True, text=True, timeout=45, shell=True,
         )
-        r.raise_for_status()
-        results = r.json()
-        if results and isinstance(results, list):
-            return results[0].get("id")
+        if proc.returncode != 0 or not proc.stdout.strip():
+            return None
+        resp = json.loads(proc.stdout)
+        content = resp.get("result", {}).get("content", [])
+        for item in content:
+            if item.get("type") == "text":
+                return item["text"]
         return None
-    except (httpx.HTTPError, KeyError, IndexError):
+    except (subprocess.TimeoutExpired, json.JSONDecodeError, OSError):
         return None
+
+
+def resolve_library(name: str) -> tuple[str | None, str | None]:
+    text = _mcp_call("resolve-library-id", {"query": name, "libraryName": name})
+    if not text:
+        return None, None
+    match = re.search(r"Context7-compatible library ID:\s*(\S+)", text)
+    if not match:
+        return None, None
+    return match.group(1), None
 
 
 def query_docs(library_id: str, topic: str | None = None) -> str | None:
     query = topic or "overview and getting started"
-    try:
-        r = httpx.get(
-            f"{_CONTEXT7_BASE}/query",
-            params={"libraryId": library_id, "query": query},
-            timeout=_TIMEOUT,
-        )
-        r.raise_for_status()
-        data = r.json()
-        if isinstance(data, dict):
-            return data.get("text") or data.get("content")
-        if isinstance(data, str):
-            return data
-        return None
-    except (httpx.HTTPError, KeyError):
-        return None
+    return _mcp_call("query-docs", {"libraryId": library_id, "query": query})
 
 
-def fetch_context(name: str, topic: str | None = None) -> str | None:
-    lib_id = resolve_library(name)
+def fetch_context(name: str, topic: str | None = None) -> DocResult | None:
+    lib_id, doc_url = resolve_library(name)
     if lib_id:
-        return query_docs(lib_id, topic)
+        text = query_docs(lib_id, topic)
+        if text:
+            return DocResult(text=text, library_id=lib_id, doc_url=doc_url)
     return None
+
+
+def fetch_quickstart(library_id: str) -> str | None:
+    return query_docs(library_id, "installation and quick start code examples")

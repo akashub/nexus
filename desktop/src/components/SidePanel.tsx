@@ -71,6 +71,23 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
             </PanelSection>
           )}
 
+          {concept.quickstart && (
+            <PanelSection title="quickstart">
+              <pre className="w-full bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2 text-[10px] text-gray-400 leading-relaxed overflow-x-auto whitespace-pre-wrap font-mono max-h-48 overflow-y-auto">
+                {concept.quickstart}
+              </pre>
+            </PanelSection>
+          )}
+
+          {concept.doc_url && (
+            <PanelSection title="docs">
+              <a href={concept.doc_url} target="_blank" rel="noopener noreferrer"
+                className="text-[11px] text-blue-400/80 hover:text-blue-300 underline underline-offset-2 break-all">
+                {concept.doc_url}
+              </a>
+            </PanelSection>
+          )}
+
           {concept.tags.length > 0 && (
             <PanelSection title="tags">
               <div className="flex flex-wrap gap-1">

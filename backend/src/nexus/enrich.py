@@ -8,7 +8,7 @@ import click
 
 from nexus.ai import cosine_similarity, embed, generate, is_available
 from nexus.db import get_concept, get_connection, list_concepts, update_concept
-from nexus.fetch import fetch_context
+from nexus.fetch import fetch_context, fetch_quickstart
 
 log = logging.getLogger(__name__)
 
@@ -38,8 +38,18 @@ def enrich_concept(conn: sqlite3.Connection, concept_id: str) -> None:
 
     click.echo(f"  Enriching {c.name}...")
 
-    docs = _fetch_docs(c.name)
-    fields = _generate_all(c.name, docs, c.category)
+    docs_result = _fetch_docs(c.name)
+    docs_text = docs_result.text[:3000] if docs_result else None
+    fields = _generate_all(c.name, docs_text, c.category)
+
+    if docs_result:
+        if docs_result.library_id:
+            fields["context7_id"] = docs_result.library_id
+        if docs_result.doc_url:
+            fields["doc_url"] = docs_result.doc_url
+        quickstart = _fetch_quickstart(docs_result.library_id)
+        if quickstart:
+            fields["quickstart"] = quickstart[:5000]
 
     embedding = _generate_embedding(c.name, fields.get("description"))
 
@@ -57,14 +67,24 @@ def enrich_concept(conn: sqlite3.Connection, concept_id: str) -> None:
     _suggest_connections(conn, concept_id)
 
 
-def _fetch_docs(name: str) -> str | None:
+def _fetch_docs(name: str):
     click.echo("  Fetching docs via Context7...")
-    docs = fetch_context(name)
-    if docs:
-        click.echo(f"  Found docs ({len(docs)} chars)")
-        return docs[:3000]
+    result = fetch_context(name)
+    if result:
+        click.echo(f"  Found docs ({len(result.text)} chars)")
+        return result
     click.echo("  No docs found, using LLM knowledge only.")
     return None
+
+
+def _fetch_quickstart(library_id: str | None) -> str | None:
+    if not library_id:
+        return None
+    click.echo("  Fetching quickstart...")
+    qs = fetch_quickstart(library_id)
+    if qs:
+        click.echo(f"  Found quickstart ({len(qs)} chars)")
+    return qs
 
 
 def _generate_all(name: str, docs: str | None, existing_cat: str | None) -> dict:

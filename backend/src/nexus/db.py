@@ -93,7 +93,7 @@ def list_concepts(
 
 _UPDATABLE_COLUMNS = frozenset({
     "name", "description", "summary", "category", "tags",
-    "source", "embedding", "notes",
+    "source", "embedding", "notes", "quickstart", "doc_url", "context7_id",
 })
 
 

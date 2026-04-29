@@ -7,7 +7,7 @@ import struct
 import httpx
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
-LLM_MODEL = os.environ.get("NEXUS_LLM_MODEL", "gemma3:4b")
+LLM_MODEL = os.environ.get("NEXUS_LLM_MODEL", "gemma4:e2b")
 EMBED_MODEL = os.environ.get("NEXUS_EMBED_MODEL", "nomic-embed-text")
 
 _TIMEOUT = httpx.Timeout(30.0, connect=5.0)

@@ -53,7 +53,7 @@ class TestInitDb:
         c = get_connection(db_path)
         migrations = c.execute("SELECT COUNT(*) FROM _migrations").fetchone()[0]
         c.close()
-        assert migrations == 1
+        assert migrations == 2
 
     def test_pragmas(self, conn):
         journal = conn.execute("PRAGMA journal_mode").fetchone()[0]

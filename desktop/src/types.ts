@@ -7,6 +7,9 @@ export interface Concept {
   tags: string[];
   source: string;
   notes: string | null;
+  quickstart: string | null;
+  doc_url: string | null;
+  context7_id: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from nexus.db import add_concept, get_concept, get_connection, init_db
 from nexus.enrich import enrich_concept
+from nexus.fetch import DocResult
 
 
 def _fake_embed(text, **kw):
@@ -37,7 +38,9 @@ class TestEnrichConcept:
             c = add_concept(conn, "React")
             with (
                 patch("nexus.enrich.is_available", return_value=True),
-                patch("nexus.enrich.fetch_context", return_value="React docs"),
+                patch("nexus.enrich.fetch_context",
+                       return_value=DocResult(text="React docs", library_id="lib-1")),
+                patch("nexus.enrich.fetch_quickstart", return_value="npm install react"),
                 patch("nexus.enrich.generate", side_effect=_fake_generate),
                 patch("nexus.enrich.embed", side_effect=_fake_embed),
             ):
