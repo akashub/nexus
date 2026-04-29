@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useAddConcept } from "../hooks/useApi";
+import { useAddConcept, useConcept } from "../hooks/useApi";
 
 interface Props {
   onClose: () => void;
@@ -11,12 +11,19 @@ export default function AddModal({ onClose }: Props) {
   const [tags, setTags] = useState("");
   const [notes, setNotes] = useState("");
   const [enrich, setEnrich] = useState(false);
+  const [enrichingId, setEnrichingId] = useState<string | null>(null);
   const addConcept = useAddConcept();
+  const { data: enrichingConcept } = useConcept(enrichingId ?? "", enrichingId ? 2000 : undefined);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    if (!enrichingId) return;
+    if (enrichingConcept?.description) { onClose(); return; }
+    const t = setTimeout(onClose, 30000);
+    return () => clearTimeout(t);
+  }, [enrichingId, enrichingConcept, onClose]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,7 +36,7 @@ export default function AddModal({ onClose }: Props) {
         notes: notes || undefined,
         no_enrich: !enrich,
       },
-      { onSuccess: onClose },
+      { onSuccess: (data) => enrich ? setEnrichingId(data.id) : onClose() },
     );
   }
 
@@ -97,23 +104,23 @@ export default function AddModal({ onClose }: Props) {
           Enrich with AI
         </label>
 
-        <div className="flex gap-2 justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-500 hover:text-gray-200 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={!name.trim() || addConcept.isPending}
-            className="px-4 py-2 bg-blue-600/80 hover:bg-blue-600 border border-blue-500/30 text-blue-100 text-sm rounded-lg disabled:opacity-50 transition-colors"
-          >
-            {addConcept.isPending ? "Adding..." : "Add"}
-          </button>
-        </div>
-
+        {enrichingId ? (
+          <div className="flex items-center gap-2 text-sm text-gray-400">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+            enriching with AI...
+          </div>
+        ) : (
+          <div className="flex gap-2 justify-end">
+            <button type="button" onClick={onClose}
+              className="px-4 py-2 text-sm text-gray-500 hover:text-gray-200 transition-colors">
+              Cancel
+            </button>
+            <button type="submit" disabled={!name.trim() || addConcept.isPending}
+              className="px-4 py-2 bg-blue-600/80 hover:bg-blue-600 border border-blue-500/30 text-blue-100 text-sm rounded-lg disabled:opacity-50 transition-colors">
+              {addConcept.isPending ? "Adding..." : "Add"}
+            </button>
+          </div>
+        )}
         {addConcept.isError && (
           <p className="mt-2 text-sm text-red-400/80">{addConcept.error.message}</p>
         )}

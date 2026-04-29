@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi.responses import StreamingResponse
 
 from nexus.db import (
     add_concept,
@@ -15,6 +16,7 @@ from nexus.db import (
     get_concept,
     get_edges,
     list_concepts,
+    list_conversations,
     search_fts,
     update_concept,
 )
@@ -56,21 +58,9 @@ def create_concept_route(body: ConceptCreate, conn: ConnDep, background_tasks: B
         raise HTTPException(409, f"Concept already exists: {body.name}")
     c = add_concept(conn, body.name, category=body.category, tags=body.tags, notes=body.notes)
     if not body.no_enrich:
-        background_tasks.add_task(_enrich_background, c.id)
+        from nexus.enrich import enrich_background
+        background_tasks.add_task(enrich_background, c.id)
     return concept_to_dict(c)
-
-
-def _enrich_background(concept_id: str) -> None:
-    from nexus.db import get_connection
-    from nexus.enrich import enrich_concept
-
-    conn = get_connection()
-    try:
-        enrich_concept(conn, concept_id)
-    except Exception:
-        log.exception("Background enrichment failed for concept %s", concept_id)
-    finally:
-        conn.close()
 
 
 @router.put("/concepts/{concept_id}")
@@ -81,31 +71,25 @@ def update_concept_route(concept_id: str, body: ConceptUpdate, conn: ConnDep):
     fields = body.model_dump(exclude_none=True)
     if not fields:
         return concept_to_dict(c)
-    updated = update_concept(conn, concept_id, **fields)
-    return concept_to_dict(updated)
+    return concept_to_dict(update_concept(conn, concept_id, **fields))
 
 
 @router.delete("/concepts/{concept_id}")
 def delete_concept_route(concept_id: str, conn: ConnDep):
-    c = get_concept(conn, concept_id)
-    if not c:
+    if not get_concept(conn, concept_id):
         raise HTTPException(404, f"Concept not found: {concept_id}")
     delete_concept(conn, concept_id)
     return {"deleted": concept_id}
 
 
 @router.get("/edges")
-def list_edges_route(conn: ConnDep, concept_id: str | None = None):
-    if not concept_id:
-        raise HTTPException(400, "concept_id query parameter required")
-    edges = get_edges(conn, concept_id)
-    return [edge_to_dict(e) for e in edges]
+def list_edges_route(conn: ConnDep, concept_id: str = Query()):
+    return [edge_to_dict(e) for e in get_edges(conn, concept_id)]
 
 
 @router.post("/edges", status_code=201)
 def create_edge_route(body: EdgeCreate, conn: ConnDep):
-    src = get_concept(conn, body.source_id)
-    tgt = get_concept(conn, body.target_id)
+    src, tgt = get_concept(conn, body.source_id), get_concept(conn, body.target_id)
     if not src:
         raise HTTPException(404, f"Source concept not found: {body.source_id}")
     if not tgt:
@@ -139,7 +123,7 @@ def search_route(conn: ConnDep, q: str = Query(max_length=500), semantic: bool =
 
 @router.post("/ask")
 def ask_route(body: AskRequest, conn: ConnDep):
-    from nexus.ai import generate, is_available
+    from nexus.ai import generate_stream, is_available
 
     if not is_available():
         raise HTTPException(503, "Ollama is not running")
@@ -152,44 +136,49 @@ def ask_route(body: AskRequest, conn: ConnDep):
         f"Knowledge graph context:\n{ctx}\n\n"
         f"Question: {body.question}\n\nAnswer using the context above."
     )
-    try:
-        answer = generate(prompt)
-    except Exception as exc:
-        log.exception("AI generation failed for question: %.100s", body.question)
-        raise HTTPException(503, "AI generation failed — is Ollama running?") from exc
     concept_ids = [c.id for c in related]
-    add_conversation(conn, body.question, answer, concept_ids)
-    return {"question": body.question, "answer": answer, "concepts_used": concept_ids}
+
+    def stream():
+        chunks = []
+        try:
+            for token in generate_stream(prompt):
+                chunks.append(token)
+                yield token
+        except Exception:
+            log.exception("AI generation failed for question: %.100s", body.question)
+            return
+        add_conversation(conn, body.question, "".join(chunks), concept_ids)
+
+    return StreamingResponse(stream(), media_type="text/plain")
+
+
+@router.get("/conversations")
+def list_conversations_route(conn: ConnDep, limit: int = Query(default=20, ge=1, le=100)):
+    return [{"id": c.id, "question": c.question, "answer": c.answer,
+             "created_at": c.created_at} for c in list_conversations(conn, limit=limit)]
 
 
 @router.get("/graph")
 def graph_route(conn: ConnDep):
-    concepts = list_concepts(conn, limit=500)
-    nodes = [concept_to_dict(c) for c in concepts]
-    edges = [edge_to_dict(e) for e in get_all_edges(conn)]
-    return {"nodes": nodes, "edges": edges}
+    nodes = [concept_to_dict(c) for c in list_concepts(conn, limit=500)]
+    return {"nodes": nodes, "edges": [edge_to_dict(e) for e in get_all_edges(conn)]}
 
 
 @router.get("/stats")
 def stats_route(conn: ConnDep):
     concepts = list_concepts(conn, limit=10000)
-    categories: dict[str, int] = {}
+    cats: dict[str, int] = {}
     for c in concepts:
-        cat = c.category or "uncategorized"
-        categories[cat] = categories.get(cat, 0) + 1
-    return {
-        "concept_count": len(concepts),
-        "edge_count": count_edges(conn),
-        "categories": categories,
-    }
+        cats[c.category or "uncategorized"] = cats.get(c.category or "uncategorized", 0) + 1
+    return {"concept_count": len(concepts), "edge_count": count_edges(conn), "categories": cats}
 
 
 @router.post("/concepts/{concept_id}/enrich")
 def enrich_concept_route(concept_id: str, conn: ConnDep, background_tasks: BackgroundTasks):
-    c = get_concept(conn, concept_id)
-    if not c:
+    if not get_concept(conn, concept_id):
         raise HTTPException(404, f"Concept not found: {concept_id}")
-    background_tasks.add_task(_enrich_background, concept_id)
+    from nexus.enrich import enrich_background
+    background_tasks.add_task(enrich_background, concept_id)
     return {"status": "enriching", "concept_id": concept_id}
 
 

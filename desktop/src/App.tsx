@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import AddModal from "./components/AddModal";
 import ChatPanel from "./components/ChatPanel";
-import GraphView from "./components/GraphView";
+import GraphView, { CATEGORY_COLORS } from "./components/GraphView";
 import LeftSidebar from "./components/LeftSidebar";
 import Logo from "./components/Logo";
 import SearchBar from "./components/SearchBar";
@@ -29,17 +29,18 @@ export default function App() {
     }
     const onAdd = () => setShowAdd(true);
     const onChat = () => setShowChat((v) => !v);
+    const onEdit = (e: Event) => setSelectedId((e as CustomEvent).detail);
     window.addEventListener("keydown", handleKey);
     window.addEventListener("nexus:add", onAdd);
     window.addEventListener("nexus:chat", onChat);
+    window.addEventListener("nexus:edit", onEdit);
     return () => {
       window.removeEventListener("keydown", handleKey);
       window.removeEventListener("nexus:add", onAdd);
       window.removeEventListener("nexus:chat", onChat);
+      window.removeEventListener("nexus:edit", onEdit);
     };
   }, []);
-
-  const handleSelectNode = useCallback((id: string | null) => setSelectedId(id), []);
 
   if (backendStatus === "connecting") {
     return (
@@ -73,7 +74,7 @@ export default function App() {
 
       <div className="flex flex-1 overflow-hidden">
         <LeftSidebar
-          onSelectNode={handleSelectNode}
+          onSelectNode={setSelectedId}
           selectedId={selectedId}
           categoryFilter={categoryFilter}
           onCategoryFilter={setCategoryFilter}
@@ -87,30 +88,23 @@ export default function App() {
               placeholder="search..."
               className="w-36 px-2 py-1 text-[11px] text-gray-600 bg-white/[0.03] border border-white/[0.06] rounded cursor-pointer hover:bg-white/[0.06] transition-colors"
             />
-            <span className="text-[10px] text-gray-700 ml-0.5">cmd+k</span>
-            <Shortcut label="search" keys="⌘K" onClick={() => setShowSearch(true)} />
+            <span className="text-[10px] text-gray-700 ml-0.5">⌘K</span>
             <Shortcut label="add" keys="⌘N" onClick={() => setShowAdd(true)} />
             <Shortcut label="ask" keys="⌘/" onClick={() => setShowChat((v) => !v)} />
             <div className="flex-1" />
-            <Shortcut label="fit" onClick={() => {
-              const evt = new CustomEvent("nexus:fit");
-              window.dispatchEvent(evt);
-            }} />
+            <Shortcut label="fit" onClick={() => window.dispatchEvent(new CustomEvent("nexus:fit"))} />
           </div>
 
           <main className="flex-1 relative">
-            <GraphView data={graph} onSelectNode={handleSelectNode} selectedId={selectedId} categoryFilter={categoryFilter} />
+            <GraphView data={graph} onSelectNode={setSelectedId} selectedId={selectedId} categoryFilter={categoryFilter} />
           </main>
 
           <div className="flex items-center px-3 py-1 border-t border-white/[0.06] shrink-0 text-[10px] text-gray-700">
-            {stats && (
-              <span>nodes: {stats.concept_count} &nbsp; edges: {stats.edge_count}</span>
-            )}
             <div className="flex-1" />
             <div className="flex items-center gap-3">
-              {["devtool", "framework", "concept", "pattern"].map((cat) => (
+              {Object.entries(CATEGORY_COLORS).map(([cat, color]) => (
                 <div key={cat} className="flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: { devtool: "#8b7bb8", framework: "#5b8cb8", concept: "#5ba88b", pattern: "#b89060" }[cat] }} />
+                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
                   <span>{cat}</span>
                 </div>
               ))}

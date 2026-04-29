@@ -1,15 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type {
-  AskResponse,
-  Concept,
-  ConceptCreate,
-  Edge,
-  EdgeCreate,
-  GraphData,
-  Stats,
-} from "../types";
+import type { Concept, ConceptCreate, Conversation, Edge, EdgeCreate, GraphData, Stats } from "../types";
 
-const API = "http://127.0.0.1:7777/api";
+export const API = "http://127.0.0.1:7777/api";
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API}${path}`, {
@@ -24,18 +16,19 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function useConcepts(category?: string) {
-  const params = category ? `?category=${category}` : "";
+  const params = category ? `?category=${encodeURIComponent(category)}` : "";
   return useQuery({
     queryKey: ["concepts", category],
     queryFn: () => apiFetch<Concept[]>(`/concepts${params}`),
   });
 }
 
-export function useConcept(id: string) {
+export function useConcept(id: string, refetchInterval?: number) {
   return useQuery({
     queryKey: ["concept", id],
     queryFn: () => apiFetch<Concept>(`/concepts/${id}`),
     enabled: !!id,
+    refetchInterval,
   });
 }
 
@@ -58,6 +51,7 @@ export function useUpdateConcept() {
       apiFetch<Concept>(`/concepts/${id}`, { method: "PUT", body: JSON.stringify(body) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["concepts"] });
+      qc.invalidateQueries({ queryKey: ["concept"] });
       qc.invalidateQueries({ queryKey: ["graph"] });
     },
   });
@@ -77,7 +71,7 @@ export function useDeleteConcept() {
 export function useEdges(conceptId: string) {
   return useQuery({
     queryKey: ["edges", conceptId],
-    queryFn: () => apiFetch<Edge[]>(`/edges?concept_id=${conceptId}`),
+    queryFn: () => apiFetch<Edge[]>(`/edges?concept_id=${encodeURIComponent(conceptId)}`),
     enabled: !!conceptId,
   });
 }
@@ -116,16 +110,6 @@ export function useSearch(query: string, semantic = false) {
   });
 }
 
-export function useAsk() {
-  return useMutation({
-    mutationFn: (question: string) =>
-      apiFetch<AskResponse>("/ask", {
-        method: "POST",
-        body: JSON.stringify({ question }),
-      }),
-  });
-}
-
 export function useGraph() {
   return useQuery({
     queryKey: ["graph"],
@@ -146,6 +130,13 @@ export function useOllamaStatus() {
     queryFn: () => apiFetch<{ available: boolean }>("/ai/status"),
     refetchInterval: 60000,
     staleTime: 60000,
+  });
+}
+
+export function useConversations(limit = 20) {
+  return useQuery({
+    queryKey: ["conversations", limit],
+    queryFn: () => apiFetch<Conversation[]>(`/conversations?limit=${limit}`),
   });
 }
 

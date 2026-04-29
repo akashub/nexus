@@ -96,7 +96,7 @@ class TestEdgesCRUD:
         assert r.status_code == 200
 
     def test_edges_missing_param(self, client):
-        assert client.get("/api/edges").status_code == 400
+        assert client.get("/api/edges").status_code == 422
 
 
 class TestSearch:
@@ -120,11 +120,11 @@ class TestAsk:
         _add(client, "React")
         with (
             patch("nexus.ai.is_available", return_value=True),
-            patch("nexus.ai.generate", return_value="React is a UI library."),
+            patch("nexus.ai.generate_stream", return_value=iter(["React ", "is a UI library."])),
         ):
             r = client.post("/api/ask", json={"question": "What is React?"})
             assert r.status_code == 200
-            assert "React is a UI library" in r.json()["answer"]
+            assert "React is a UI library" in r.text
 
 
 class TestGraphAndStats:

@@ -22,7 +22,7 @@ _PRAGMAS = [
 def get_connection(db_path: Path | None = None) -> sqlite3.Connection:
     path = db_path or DB_PATH
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(path))
+    conn = sqlite3.connect(str(path), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     for pragma in _PRAGMAS:
         conn.execute(pragma)
@@ -53,17 +53,10 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
 
 
 def add_concept(
-    conn: sqlite3.Connection,
-    name: str,
-    *,
-    description: str | None = None,
-    summary: str | None = None,
-    category: str | None = None,
-    tags: list[str] | None = None,
-    source: str = "manual",
-    embedding: bytes | None = None,
-    notes: str | None = None,
-    setup: str | None = None,
+    conn: sqlite3.Connection, name: str, *, description: str | None = None,
+    summary: str | None = None, category: str | None = None,
+    tags: list[str] | None = None, source: str = "manual",
+    embedding: bytes | None = None, notes: str | None = None, setup: str | None = None,
 ) -> Concept:
     cid = str(uuid.uuid4())
     tags_json = json.dumps(tags or [])
@@ -148,8 +141,7 @@ def add_edge(
 
 def get_edges(conn: sqlite3.Connection, concept_id: str) -> list[Edge]:
     rows = conn.execute(
-        "SELECT * FROM edges WHERE source_id = ? OR target_id = ?",
-        (concept_id, concept_id),
+        "SELECT * FROM edges WHERE source_id = ? OR target_id = ?", (concept_id, concept_id),
     ).fetchall()
     return [Edge.from_row(dict(r)) for r in rows]
 
@@ -182,6 +174,13 @@ def add_conversation(
     conn.commit()
     row = conn.execute("SELECT * FROM conversations WHERE id = ?", (cid,)).fetchone()
     return Conversation.from_row(dict(row))
+
+
+def list_conversations(conn: sqlite3.Connection, limit: int = 20) -> list[Conversation]:
+    rows = conn.execute(
+        "SELECT * FROM conversations ORDER BY created_at DESC LIMIT ?", (limit,),
+    ).fetchall()
+    return [Conversation.from_row(dict(r)) for r in rows]
 
 
 def search_fts(conn: sqlite3.Connection, query: str) -> list[Concept]:

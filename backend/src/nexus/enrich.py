@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import time
 
 import click
 
 from nexus.ai import cosine_similarity, embed, generate, is_available
-from nexus.db import get_concept, list_concepts, update_concept
+from nexus.db import get_concept, get_connection, list_concepts, update_concept
 from nexus.fetch import fetch_context
+
+log = logging.getLogger(__name__)
 
 CATEGORIES = ["devtool", "framework", "concept", "pattern", "language"]
 
@@ -119,3 +122,13 @@ def _suggest_connections(conn: sqlite3.Connection, concept_id: str) -> None:
     click.echo("  Suggested connections:")
     for other, sim in top:
         click.echo(f"    {c.name} --[related_to]--> {other.name}  (similarity: {sim:.2f})")
+
+
+def enrich_background(concept_id: str) -> None:
+    conn = get_connection()
+    try:
+        enrich_concept(conn, concept_id)
+    except Exception:
+        log.exception("Background enrichment failed for concept %s", concept_id)
+    finally:
+        conn.close()

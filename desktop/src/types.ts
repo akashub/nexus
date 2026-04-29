@@ -32,10 +32,11 @@ export interface Stats {
   categories: Record<string, number>;
 }
 
-export interface AskResponse {
+export interface Conversation {
+  id: string;
   question: string;
   answer: string;
-  concepts_used: string[];
+  created_at: string;
 }
 
 export interface ConceptCreate {

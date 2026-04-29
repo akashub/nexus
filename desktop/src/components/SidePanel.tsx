@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useConcept, useConcepts, useEdges, useEnrichConcept } from "../hooks/useApi";
+import { useEffect, useRef, useState } from "react";
+import { useConcept, useConcepts, useEdges, useEnrichConcept, useUpdateConcept } from "../hooks/useApi";
 import ConnectModal from "./ConnectModal";
 
 interface Props {
@@ -13,7 +13,17 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
   const { data: edges } = useEdges(conceptId);
   const { data: allConcepts } = useConcepts();
   const enrich = useEnrichConcept();
+  const update = useUpdateConcept();
   const [showConnect, setShowConnect] = useState(false);
+  const [noteDraft, setNoteDraft] = useState(concept?.notes ?? "");
+  const initRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (concept && initRef.current !== conceptId) {
+      initRef.current = conceptId;
+      setNoteDraft(concept.notes ?? "");
+    }
+  }, [concept, conceptId]);
 
   const nameById = (id: string) => {
     const c = allConcepts?.find((c) => c.id === id);
@@ -94,13 +104,19 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
             )}
           </PanelSection>
 
-          {concept.notes && (
-            <PanelSection title="notes">
-              <div className="border-l-2 border-white/[0.08] pl-3 py-1">
-                <p className="text-[11px] text-gray-500 italic leading-relaxed">{concept.notes}</p>
-              </div>
-            </PanelSection>
-          )}
+          <PanelSection title="notes">
+            <textarea
+              value={noteDraft}
+              onChange={(e) => setNoteDraft(e.target.value)}
+              onBlur={() => {
+                if (noteDraft !== (concept.notes ?? ""))
+                  update.mutate({ id: conceptId, notes: noteDraft || undefined });
+              }}
+              placeholder="add notes..."
+              rows={3}
+              className="w-full bg-white/[0.03] border border-white/[0.06] rounded px-2 py-1.5 text-[11px] text-gray-400 placeholder:text-gray-700 leading-relaxed resize-none outline-none focus:border-white/[0.12] transition-colors"
+            />
+          </PanelSection>
 
           <PanelSection title="source">
             <p className="text-[10px] text-gray-700">
