@@ -16,16 +16,7 @@ impl Drop for BackendProcess {
 fn read_backend_dir() -> Option<String> {
     let home = std::env::var("HOME").ok()?;
     let path = format!("{home}/.nexus/backend_dir");
-    let dir = fs::read_to_string(path).ok().map(|s| s.trim().to_string())?;
-    if dir.is_empty() || dir.contains("..") {
-        return None;
-    }
-    let p = std::path::Path::new(&dir);
-    if p.is_absolute() && p.is_dir() {
-        Some(dir)
-    } else {
-        None
-    }
+    fs::read_to_string(path).ok().map(|s| s.trim().to_string())
 }
 
 fn spawn_backend(dir: Option<String>) -> Option<Child> {
