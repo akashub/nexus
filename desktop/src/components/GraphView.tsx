@@ -83,7 +83,7 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
       const filtered = categoryFilter ? data.nodes.filter((n) => n.category === categoryFilter) : data.nodes;
       const nIds = new Set(filtered.map((n) => n.id));
       const simNodes: SimNode[] = filtered.map((n) => ({
-        id: n.id, x: w / 2 + (Math.random() - 0.5) * w * 0.6, y: h / 2 + (Math.random() - 0.5) * h * 0.6,
+        id: n.id, x: w / 2 + (Math.random() - 0.5) * w * 0.3, y: h / 2 + (Math.random() - 0.5) * h * 0.3,
       }));
       const simLinks = data.edges.filter((e) => nIds.has(e.source_id) && nIds.has(e.target_id))
         .map((e) => ({ source: e.source_id, target: e.target_id }));
@@ -91,10 +91,10 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
       let fitted = false;
 
       const sim = forceSimulation(simNodes)
-        .force("charge", forceManyBody().strength(-200))
-        .force("link", forceLink(simLinks).id((d: any) => d.id).distance(120))
-        .force("center", forceCenter(w / 2, h / 2))
-        .force("collide", forceCollide(30))
+        .force("charge", forceManyBody().strength(-120))
+        .force("link", forceLink(simLinks).id((d: any) => d.id).distance(80).strength(0.3))
+        .force("center", forceCenter(w / 2, h / 2).strength(0.1))
+        .force("collide", forceCollide(20))
         .alphaDecay(0.02)
         .on("tick", () => {
           cy.batch(() => simNodes.forEach((sn) => {
