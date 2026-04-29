@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useConcept, useConcepts, useEdges, useEnrichConcept, useUpdateConcept } from "../hooks/useApi";
 import { slugify } from "../types";
 import ConnectModal from "./ConnectModal";
+import QuickstartContent from "./QuickstartContent";
 
 const STATUS_LABELS: Record<string, string> = {
   fetching_docs: "fetching docs from context7...",
@@ -172,22 +173,6 @@ function PanelSection({ title, children }: { title: string; children: React.Reac
       <h3 className="text-[10px] text-gray-600 uppercase tracking-wider mb-1">{title}</h3>
       {children}
     </div>
-  );
-}
-
-function QuickstartContent({ text }: { text: string }) {
-  return (
-    <div className="space-y-2 max-h-64 overflow-y-auto">{text.split(/(```[\s\S]*?```)/g).filter(Boolean).map((part, i) => {
-      const m = part.match(/^```\w*\n?([\s\S]*?)```$/);
-      if (m) return (
-        <div key={i} className="relative group">
-          <pre className="w-full bg-white/[0.03] border border-white/[0.06] rounded px-3 py-2 text-[10px] text-gray-400 leading-relaxed overflow-x-auto whitespace-pre-wrap font-mono">{m[1].trim()}</pre>
-          <button onClick={() => navigator.clipboard.writeText(m[1].trim())}
-            className="absolute top-1 right-1 px-1.5 py-0.5 text-[9px] text-gray-600 hover:text-gray-300 bg-white/[0.06] rounded opacity-0 group-hover:opacity-100 transition-opacity">copy</button>
-        </div>
-      );
-      return part.trim() ? <p key={i} className="text-[11px] text-gray-400 leading-relaxed">{part.trim()}</p> : null;
-    })}</div>
   );
 }
 

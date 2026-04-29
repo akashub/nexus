@@ -26,6 +26,7 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
   const lastStructHash = useRef("");
+  const fitHandlerRef = useRef<(() => void) | null>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null);
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
   const deleteConcept = useDeleteConcept();
@@ -53,12 +54,18 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
     ];
   }, [categoryFilter]);
 
+  useEffect(() => () => {
+    if (fitHandlerRef.current) window.removeEventListener("nexus:fit", fitHandlerRef.current);
+    if (cyRef.current) { cyRef.current.destroy(); cyRef.current = null; }
+  }, []);
+
   useEffect(() => {
     if (!containerRef.current || !data) return;
     const hash = structuralHash(data, categoryFilter);
 
     if (hash !== lastStructHash.current || !cyRef.current) {
       lastStructHash.current = hash;
+      if (fitHandlerRef.current) window.removeEventListener("nexus:fit", fitHandlerRef.current);
       if (cyRef.current) cyRef.current.destroy();
 
       const cy = cytoscape({
@@ -76,14 +83,13 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
       cy.on("tap", (evt) => { if (evt.target === cy) onSelectNode(null); });
       cy.on("dbltap", "node", (evt) => window.dispatchEvent(new CustomEvent("nexus:edit", { detail: evt.target.id() })));
       cy.on("mouseover", "node", (evt) => {
-        evt.target.addClass("hover");
-        const summary = evt.target.data("summary");
-        if (summary) {
-          const pos = evt.target.renderedPosition();
-          setTooltip({ x: pos.x, y: pos.y - 30, text: summary });
-        }
+        const n = evt.target;
+        cy.elements().not(n.closedNeighborhood()).addClass("dimmed");
+        n.addClass("hover");
+        const summary = n.data("summary");
+        if (summary) { const pos = n.renderedPosition(); setTooltip({ x: pos.x, y: pos.y - 30, text: summary }); }
       });
-      cy.on("mouseout", "node", (evt) => { evt.target.removeClass("hover"); setTooltip(null); });
+      cy.on("mouseout", "node", () => { cy.elements().removeClass("dimmed hover"); setTooltip(null); });
       cy.on("cxttap", "node", (evt) => {
         evt.originalEvent.preventDefault();
         const pos = evt.target.renderedPosition();
@@ -92,8 +98,8 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
       cy.on("tap", () => setCtxMenu(null));
       const fitHandler = () => cy.animate({ fit: { eles: cy.elements(), padding: 50 }, duration: 400 });
       window.addEventListener("nexus:fit", fitHandler);
+      fitHandlerRef.current = fitHandler;
       cyRef.current = cy;
-      return () => { window.removeEventListener("nexus:fit", fitHandler); cy.destroy(); cyRef.current = null; };
     }
 
     const cy = cyRef.current;
@@ -159,6 +165,8 @@ function graphStyles(): cytoscape.StylesheetStyle[] {
       "font-family": "'SF Mono', 'Fira Code', monospace",
       width: "label", height: (ele: cytoscape.NodeSingular) => 28 + Math.min(ele.data("deg"), 8) * 2,
       padding: "6px", "overlay-opacity": 0,
+      "transition-property": "opacity, border-color, border-opacity, color",
+      "transition-duration": 200,
     } as unknown as cytoscape.Css.Node },
     { selector: "node:active", style: { "overlay-opacity": 0 } as cytoscape.Css.Node },
     { selector: "edge", style: {
@@ -168,13 +176,15 @@ function graphStyles(): cytoscape.StylesheetStyle[] {
       color: "#4a5a6a", "text-rotation": "autorotate", "text-margin-y": -8,
       "text-background-color": "#0a0a0b", "text-background-opacity": 0.9, "text-background-padding": "2px",
       "overlay-opacity": 0,
+      "transition-property": "opacity, line-color, target-arrow-color",
+      "transition-duration": 200,
     } as cytoscape.Css.Edge },
     { selector: "edge[rel='part_of'], edge[rel='similar_to']", style: { "line-style": "dashed", "line-dash-pattern": [6, 3] } as cytoscape.Css.Edge },
-    { selector: "edge:hover", style: { "line-color": "#4a6a8a", "target-arrow-color": "#4a6a8a", color: "#6a8aaa" } as cytoscape.Css.Edge },
+    { selector: ".dimmed", style: { opacity: 0.12 } as any },
+    { selector: "node.hover", style: { "border-opacity": 1, "border-width": 1.5, color: "#e2e8f0" } as cytoscape.Css.Node },
     { selector: "node:selected", style: {
       "border-width": 1.5, "border-color": "#e2e8f0", "border-opacity": 0.9, "background-opacity": 0.9, color: "#e2e8f0",
     } as cytoscape.Css.Node },
-    { selector: "node.hover", style: { "border-opacity": 0.8, color: "#cbd5e1" } as cytoscape.Css.Node },
   ];
 }
 
