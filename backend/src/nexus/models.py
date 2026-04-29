@@ -15,7 +15,6 @@ class Concept:
     source: str = "manual"
     embedding: bytes | None = None
     notes: str | None = None
-    setup: str | None = None
     created_at: str = ""
     updated_at: str = ""
 
@@ -33,7 +32,6 @@ class Concept:
             source=row.get("source", "manual"),
             embedding=row.get("embedding"),
             notes=row.get("notes"),
-            setup=row.get("setup"),
             created_at=row.get("created_at", ""),
             updated_at=row.get("updated_at", ""),
         )
@@ -58,29 +56,6 @@ class Edge:
             relationship=row["relationship"],
             description=row.get("description"),
             weight=row.get("weight", 1.0),
-            created_at=row.get("created_at", ""),
-        )
-
-
-@dataclass
-class Resource:
-    id: str
-    concept_id: str
-    url: str | None = None
-    title: str | None = None
-    content_summary: str | None = None
-    type: str | None = None
-    created_at: str = ""
-
-    @classmethod
-    def from_row(cls, row: dict) -> Resource:
-        return cls(
-            id=row["id"],
-            concept_id=row["concept_id"],
-            url=row.get("url"),
-            title=row.get("title"),
-            content_summary=row.get("content_summary"),
-            type=row.get("type"),
             created_at=row.get("created_at", ""),
         )
 

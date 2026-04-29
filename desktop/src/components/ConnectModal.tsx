@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAddEdge, useConcepts } from "../hooks/useApi";
+import { slugify } from "../types";
 
 const RELATIONSHIPS = ["related_to", "uses", "depends_on", "similar_to", "part_of"];
 
@@ -34,7 +35,7 @@ export default function ConnectModal({ sourceId, sourceName, onClose }: Props) {
         className="w-full max-w-sm bg-[#0f0f10] border border-white/[0.08] rounded-xl shadow-2xl shadow-black/50 p-5"
       >
         <h2 className="text-sm font-semibold text-gray-100 mb-3">
-          Connect from {sourceName.toLowerCase().replace(/\s+/g, "_")}
+          Connect from {slugify(sourceName)}
         </h2>
 
         <label className="block mb-3">

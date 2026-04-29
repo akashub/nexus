@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import struct
 
@@ -16,7 +17,7 @@ def is_available() -> bool:
     try:
         r = httpx.get(f"{OLLAMA_URL}/api/tags", timeout=3.0)
         return r.status_code == 200
-    except httpx.ConnectError:
+    except httpx.HTTPError:
         return False
 
 
@@ -42,8 +43,6 @@ def generate_stream(prompt: str, *, model: str | None = None, system: str | None
         payload["system"] = system
     with httpx.stream("POST", f"{OLLAMA_URL}/api/generate", json=payload, timeout=_TIMEOUT) as r:
         r.raise_for_status()
-        import json
-
         for line in r.iter_lines():
             if line:
                 chunk = json.loads(line)
@@ -70,14 +69,9 @@ def embed(text: str, *, model: str | None = None) -> bytes | None:
         return None
 
 
-def embedding_to_list(data: bytes) -> list[float]:
-    count = len(data) // 4
-    return list(struct.unpack(f"{count}f", data))
-
-
 def cosine_similarity(a: bytes, b: bytes) -> float:
-    va = embedding_to_list(a)
-    vb = embedding_to_list(b)
+    va = list(struct.unpack(f"{len(a) // 4}f", a))
+    vb = list(struct.unpack(f"{len(b) // 4}f", b))
     dot = sum(x * y for x, y in zip(va, vb, strict=False))
     na = sum(x * x for x in va) ** 0.5
     nb = sum(x * x for x in vb) ** 0.5

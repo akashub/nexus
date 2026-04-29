@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
-import time
 
 import click
 
@@ -42,7 +41,6 @@ def enrich_concept(conn: sqlite3.Connection, concept_id: str) -> None:
     docs = _fetch_docs(c.name)
     fields = _generate_all(c.name, docs, c.category)
 
-    time.sleep(1)
     embedding = _generate_embedding(c.name, fields.get("description"))
 
     if embedding and not c.embedding:

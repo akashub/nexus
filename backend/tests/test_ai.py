@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import httpx
 import pytest
 
-from nexus.ai import cosine_similarity, embed, embedding_to_list, generate, is_available
+from nexus.ai import cosine_similarity, embed, generate, is_available
 
 
 class TestIsAvailable:
@@ -63,11 +63,6 @@ class TestEmbed:
 
 
 class TestEmbeddingOps:
-    def test_embedding_to_list(self):
-        data = struct.pack("3f", 1.0, 2.0, 3.0)
-        result = embedding_to_list(data)
-        assert result == pytest.approx([1.0, 2.0, 3.0])
-
     def test_cosine_similarity_identical(self):
         vec = struct.pack("3f", 1.0, 0.0, 0.0)
         assert cosine_similarity(vec, vec) == pytest.approx(1.0)

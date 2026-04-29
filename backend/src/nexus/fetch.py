@@ -41,33 +41,6 @@ def query_docs(library_id: str, topic: str | None = None) -> str | None:
         return None
 
 
-def fetch_web(url: str) -> str | None:
-    try:
-        r = httpx.get(
-            url,
-            timeout=_TIMEOUT,
-            follow_redirects=True,
-            headers={"User-Agent": "Nexus/0.1"},
-        )
-        r.raise_for_status()
-        text = r.text
-        if "<html" in text.lower():
-            return _extract_text_from_html(text)
-        return text[:10000]
-    except httpx.HTTPError:
-        return None
-
-
-def _extract_text_from_html(html: str) -> str:
-    import re
-
-    for tag in ["script", "style", "nav", "header", "footer"]:
-        html = re.sub(f"<{tag}[^>]*>.*?</{tag}>", "", html, flags=re.DOTALL | re.IGNORECASE)
-    text = re.sub(r"<[^>]+>", " ", html)
-    text = re.sub(r"\s+", " ", text).strip()
-    return text[:10000]
-
-
 def fetch_context(name: str, topic: str | None = None) -> str | None:
     lib_id = resolve_library(name)
     if lib_id:

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
+import { API } from "./useApi";
 
-const API_URL = "http://127.0.0.1:7777";
 const POLL_INTERVAL = 2000;
 const MAX_POLLS = 15;
 
@@ -16,7 +16,7 @@ export function useBackend() {
     async function poll() {
       while (!cancelled && attempts < MAX_POLLS) {
         try {
-          const res = await fetch(`${API_URL}/api/stats`);
+          const res = await fetch(`${API}/stats`);
           if (res.ok) {
             setStatus("ready");
             return;

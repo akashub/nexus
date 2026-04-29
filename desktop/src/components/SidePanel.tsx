@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useConcept, useConcepts, useEdges, useEnrichConcept, useUpdateConcept } from "../hooks/useApi";
+import { slugify } from "../types";
 import ConnectModal from "./ConnectModal";
 
 interface Props {
@@ -27,7 +28,7 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
 
   const nameById = (id: string) => {
     const c = allConcepts?.find((c) => c.id === id);
-    return c ? c.name.toLowerCase().replace(/\s+/g, "_") : id.slice(0, 8);
+    return c ? slugify(c.name) : id.slice(0, 8);
   };
 
   const outgoing = edges?.filter((e) => e.source_id === conceptId) || [];
@@ -37,7 +38,7 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
     <div className="w-80 shrink-0 border-l border-white/[0.08] bg-[#111113] p-4 overflow-y-auto flex flex-col">
       <div className="flex items-start justify-between mb-2">
         <h2 className="text-base font-medium text-gray-100">
-          {concept ? concept.name.toLowerCase().replace(/\s+/g, "_") : "loading..."}
+          {concept ? slugify(concept.name) : "loading..."}
         </h2>
         <button onClick={onClose} className="text-gray-600 hover:text-gray-300 text-lg leading-none">&times;</button>
       </div>

@@ -47,23 +47,23 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
     for sql_file in sorted(MIGRATIONS_DIR.glob("*.sql")):
         if sql_file.name in applied:
             continue
-        conn.executescript(sql_file.read_text())
-        conn.execute("INSERT INTO _migrations (name) VALUES (?)", (sql_file.name,))
-        conn.commit()
+        script = sql_file.read_text()
+        script += f"\nINSERT INTO _migrations (name) VALUES ('{sql_file.name}');\n"
+        conn.executescript(script)
 
 
 def add_concept(
     conn: sqlite3.Connection, name: str, *, description: str | None = None,
     summary: str | None = None, category: str | None = None,
     tags: list[str] | None = None, source: str = "manual",
-    embedding: bytes | None = None, notes: str | None = None, setup: str | None = None,
+    embedding: bytes | None = None, notes: str | None = None,
 ) -> Concept:
     cid = str(uuid.uuid4())
     tags_json = json.dumps(tags or [])
     conn.execute(
         "INSERT INTO concepts (id, name, description, summary, category, tags, "
-        "source, embedding, notes, setup) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (cid, name, description, summary, category, tags_json, source, embedding, notes, setup),
+        "source, embedding, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (cid, name, description, summary, category, tags_json, source, embedding, notes),
     )
     conn.commit()
     return get_concept(conn, cid)
@@ -93,7 +93,7 @@ def list_concepts(
 
 _UPDATABLE_COLUMNS = frozenset({
     "name", "description", "summary", "category", "tags",
-    "source", "embedding", "notes", "setup",
+    "source", "embedding", "notes",
 })
 
 

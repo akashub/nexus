@@ -53,3 +53,7 @@ export interface EdgeCreate {
   relationship?: string;
   description?: string;
 }
+
+export function slugify(name: string): string {
+  return name.toLowerCase().replace(/\s+/g, "_");
+}

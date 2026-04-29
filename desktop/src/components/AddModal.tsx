@@ -10,7 +10,7 @@ export default function AddModal({ onClose }: Props) {
   const [category, setCategory] = useState("");
   const [tags, setTags] = useState("");
   const [notes, setNotes] = useState("");
-  const [enrich, setEnrich] = useState(false);
+  const [shouldEnrich, setShouldEnrich] = useState(false);
   const [enrichingId, setEnrichingId] = useState<string | null>(null);
   const addConcept = useAddConcept();
   const { data: enrichingConcept } = useConcept(enrichingId ?? "", enrichingId ? 2000 : undefined);
@@ -34,9 +34,9 @@ export default function AddModal({ onClose }: Props) {
         category: category || undefined,
         tags: tags ? tags.split(",").map((t) => t.trim()) : undefined,
         notes: notes || undefined,
-        no_enrich: !enrich,
+        no_enrich: !shouldEnrich,
       },
-      { onSuccess: (data) => enrich ? setEnrichingId(data.id) : onClose() },
+      { onSuccess: (data) => shouldEnrich ? setEnrichingId(data.id) : onClose() },
     );
   }
 
@@ -97,8 +97,8 @@ export default function AddModal({ onClose }: Props) {
         <label className="flex items-center gap-2 mb-4 text-sm text-gray-400">
           <input
             type="checkbox"
-            checked={enrich}
-            onChange={(e) => setEnrich(e.target.checked)}
+            checked={shouldEnrich}
+            onChange={(e) => setShouldEnrich(e.target.checked)}
             className="accent-blue-500"
           />
           Enrich with AI

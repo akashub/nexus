@@ -67,6 +67,8 @@ export default function ChatPanel({ onClose }: Props) {
           scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight);
         }
       }
+      const tail = decoder.decode();
+      if (tail) update((e) => ({ ...e, answer: e.answer + tail }));
       update((e) => ({ ...e, streaming: false }));
       qc.invalidateQueries({ queryKey: ["conversations"] });
     } catch (err) {

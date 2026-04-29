@@ -1,6 +1,7 @@
 import cytoscape from "cytoscape";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDeleteConcept, useEnrichConcept } from "../hooks/useApi";
+import { slugify } from "../types";
 import type { GraphData } from "../types";
 
 export const CATEGORY_COLORS: Record<string, string> = {
@@ -36,7 +37,7 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
     return [
       ...nodes.map((n) => ({
         data: {
-          id: n.id, label: " ●  " + n.name.toLowerCase().replace(/\s+/g, "_"),
+          id: n.id, label: " ●  " + slugify(n.name),
           category: n.category, summary: n.summary || n.description || "",
           deg: degree[n.id] || 0,
         },

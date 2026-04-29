@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from nexus.db import get_connection, init_db
+from nexus.models import Concept, Edge
 
 
 @asynccontextmanager
@@ -72,30 +73,20 @@ class AskRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
 
 
-def concept_to_dict(c) -> dict:
+def concept_dict(c: Concept) -> dict:
     return {
-        "id": c.id,
-        "name": c.name,
-        "description": c.description,
-        "summary": c.summary,
-        "category": c.category,
-        "tags": c.tags,
-        "source": c.source,
-        "notes": c.notes,
-        "created_at": c.created_at,
-        "updated_at": c.updated_at,
+        "id": c.id, "name": c.name, "description": c.description,
+        "summary": c.summary, "category": c.category, "tags": c.tags,
+        "source": c.source, "notes": c.notes,
+        "created_at": c.created_at, "updated_at": c.updated_at,
     }
 
 
-def edge_to_dict(e) -> dict:
+def edge_dict(e: Edge) -> dict:
     return {
-        "id": e.id,
-        "source_id": e.source_id,
-        "target_id": e.target_id,
-        "relationship": e.relationship,
-        "description": e.description,
-        "weight": e.weight,
-        "created_at": e.created_at,
+        "id": e.id, "source_id": e.source_id, "target_id": e.target_id,
+        "relationship": e.relationship, "description": e.description,
+        "weight": e.weight, "created_at": e.created_at,
     }
 
 

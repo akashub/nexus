@@ -1,4 +1,5 @@
 import { useRecentConcepts, useStats } from "../hooks/useApi";
+import { slugify } from "../types";
 
 const CATEGORIES = ["devtool", "framework", "concept", "pattern", "language"];
 
@@ -13,8 +14,6 @@ export default function LeftSidebar({ onSelectNode, selectedId, categoryFilter, 
   const { data: stats } = useStats();
   const { data: recent } = useRecentConcepts();
 
-  const totalCount = stats ? stats.concept_count : 0;
-
   return (
     <div className="w-44 shrink-0 border-r border-white/[0.06] flex flex-col overflow-hidden">
       <div className="px-3 pt-3 pb-2">
@@ -27,7 +26,7 @@ export default function LeftSidebar({ onSelectNode, selectedId, categoryFilter, 
         >
           <span>•</span>
           <span className="flex-1">all</span>
-          <span className="text-[10px] text-gray-700">{totalCount}</span>
+          <span className="text-[10px] text-gray-700">{stats?.concept_count ?? 0}</span>
         </button>
         {CATEGORIES.map((cat) => {
           const count = stats?.categories[cat] || 0;
@@ -59,7 +58,7 @@ export default function LeftSidebar({ onSelectNode, selectedId, categoryFilter, 
               }`}
             >
               <span>•</span>
-              <span className="truncate">{c.name.toLowerCase().replace(/\s+/g, "_")}</span>
+              <span className="truncate">{slugify(c.name)}</span>
             </button>
           ))
         ) : (
