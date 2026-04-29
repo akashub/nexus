@@ -35,19 +35,15 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
   const buildElements = useCallback((d: GraphData): cytoscape.ElementDefinition[] => {
     const nodes = categoryFilter ? d.nodes.filter((n) => n.category === categoryFilter) : d.nodes;
     const nodeIds = new Set(nodes.map((n) => n.id));
-    const degree: Record<string, number> = {};
+    const deg: Record<string, number> = {};
     d.edges.filter((e) => nodeIds.has(e.source_id) && nodeIds.has(e.target_id)).forEach((e) => {
-      degree[e.source_id] = (degree[e.source_id] || 0) + 1;
-      degree[e.target_id] = (degree[e.target_id] || 0) + 1;
+      deg[e.source_id] = (deg[e.source_id] || 0) + 1; deg[e.target_id] = (deg[e.target_id] || 0) + 1;
     });
     return [
-      ...nodes.map((n) => ({
-        data: {
-          id: n.id, label: " ●  " + slugify(n.name),
-          category: n.category, summary: n.summary || n.description || "",
-          deg: degree[n.id] || 0,
-        },
-      })),
+      ...nodes.map((n) => ({ data: {
+        id: n.id, label: slugify(n.name), category: n.category,
+        summary: n.summary || n.description || "", deg: deg[n.id] || 0, enriching: !!n.enrich_status,
+      } })),
       ...d.edges.filter((e) => nodeIds.has(e.source_id) && nodeIds.has(e.target_id)).map((e) => ({
         data: { id: e.id, source: e.source_id, target: e.target_id, label: e.relationship || "", rel: e.relationship || "" },
       })),
@@ -57,6 +53,13 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
   useEffect(() => () => {
     if (fitHandlerRef.current) window.removeEventListener("nexus:fit", fitHandlerRef.current);
     if (cyRef.current) { cyRef.current.destroy(); cyRef.current = null; }
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => cyRef.current?.nodes().forEach((n) => {
+      n.data("enriching") ? n.toggleClass("enriching-pulse") : n.removeClass("enriching-pulse");
+    }), 800);
+    return () => clearInterval(id);
   }, []);
 
   useEffect(() => {
@@ -73,8 +76,9 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
         elements: buildElements(data),
         style: graphStyles(),
         layout: {
-          name: "cose", animate: true, animationDuration: 800, nodeDimensionsIncludeLabels: true,
-          nodeRepulsion: () => 8000, idealEdgeLength: () => 140, gravity: 0.35, fit: true, padding: 50,
+          name: "cose", animate: true, animationDuration: 1200, nodeDimensionsIncludeLabels: true,
+          nodeRepulsion: () => 10000, idealEdgeLength: () => 120, gravity: 0.25,
+          fit: true, padding: 60, randomize: false,
         },
         minZoom: 0.3, maxZoom: 3, wheelSensitivity: 0.3,
       });
@@ -96,6 +100,13 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
         setCtxMenu({ x: pos.x, y: pos.y, nodeId: evt.target.id() });
       });
       cy.on("tap", () => setCtxMenu(null));
+      cy.on("dragfree", "node", (evt) => {
+        const pos = evt.target.position();
+        evt.target.neighborhood("node").forEach((nb: cytoscape.NodeSingular) => {
+          const p = nb.position();
+          nb.animate({ position: { x: p.x + (pos.x - p.x) * 0.04, y: p.y + (pos.y - p.y) * 0.04 } } as any, { duration: 400 } as any);
+        });
+      });
       const fitHandler = () => cy.animate({ fit: { eles: cy.elements(), padding: 50 }, duration: 400 });
       window.addEventListener("nexus:fit", fitHandler);
       fitHandlerRef.current = fitHandler;
@@ -108,7 +119,8 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
       if (node.length) {
         node.data("category", n.category);
         node.data("summary", n.summary || n.description || "");
-        node.data("label", " ●  " + slugify(n.name));
+        node.data("label", slugify(n.name));
+        node.data("enriching", !!n.enrich_status);
       }
     }
   }, [data, onSelectNode, buildElements, categoryFilter]);
@@ -156,43 +168,33 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
 }
 
 function graphStyles(): cytoscape.StylesheetStyle[] {
+  const cc = (e: cytoscape.NodeSingular) => CATEGORY_COLORS[e.data("category")] || DEFAULT_COLOR;
+  const sz = (e: cytoscape.NodeSingular) => 22 + Math.min(e.data("deg"), 8) * 3.5;
   return [
     { selector: "node", style: {
-      shape: "round-rectangle", label: "data(label)", "text-valign": "center", "text-halign": "center",
-      "background-color": "#0a0a0b", "background-opacity": 0.8, "border-width": 1,
-      "border-color": (ele: cytoscape.NodeSingular) => CATEGORY_COLORS[ele.data("category")] || DEFAULT_COLOR,
-      "border-opacity": 0.6, color: "#9ca3af", "font-size": "10px",
-      "font-family": "'SF Mono', 'Fira Code', monospace",
-      width: "label", height: (ele: cytoscape.NodeSingular) => 28 + Math.min(ele.data("deg"), 8) * 2,
-      padding: "6px", "overlay-opacity": 0,
-      "transition-property": "opacity, border-color, border-opacity, color",
-      "transition-duration": 200,
+      shape: "ellipse", label: "data(label)", "text-valign": "bottom", "text-halign": "center", "text-margin-y": 5,
+      "background-color": cc, "background-opacity": 0.15, "border-width": 1.5, "border-color": cc,
+      "border-opacity": 0.6, color: "#9ca3af", "font-size": "9px", "font-family": "'SF Mono', 'Fira Code', monospace",
+      width: sz, height: sz, "overlay-opacity": 0,
+      "transition-property": "opacity, border-color, border-opacity, border-width, background-opacity", "transition-duration": 200,
     } as unknown as cytoscape.Css.Node },
     { selector: "node:active", style: { "overlay-opacity": 0 } as cytoscape.Css.Node },
     { selector: "edge", style: {
-      "curve-style": "bezier", "target-arrow-shape": "triangle", "arrow-scale": 0.7,
-      "line-color": "#2a3a4a", "target-arrow-color": "#2a3a4a", width: 1.2, "line-opacity": 0.6,
-      label: "data(label)", "font-size": "8px", "font-family": "'SF Mono', 'Fira Code', monospace",
-      color: "#4a5a6a", "text-rotation": "autorotate", "text-margin-y": -8,
-      "text-background-color": "#0a0a0b", "text-background-opacity": 0.9, "text-background-padding": "2px",
-      "overlay-opacity": 0,
-      "transition-property": "opacity, line-color, target-arrow-color",
-      "transition-duration": 200,
+      "curve-style": "bezier", "target-arrow-shape": "triangle", "arrow-scale": 0.6,
+      "line-color": "#1e2d3d", "target-arrow-color": "#1e2d3d", width: 1, "line-opacity": 0.5,
+      label: "data(label)", "font-size": "7px", "font-family": "'SF Mono', 'Fira Code', monospace",
+      color: "#3a4a5a", "text-rotation": "autorotate", "text-margin-y": -8, "text-background-color": "#0a0a0b",
+      "text-background-opacity": 0.9, "text-background-padding": "2px", "overlay-opacity": 0,
+      "transition-property": "opacity, line-color, target-arrow-color", "transition-duration": 200,
     } as cytoscape.Css.Edge },
     { selector: "edge[rel='part_of'], edge[rel='similar_to']", style: { "line-style": "dashed", "line-dash-pattern": [6, 3] } as cytoscape.Css.Edge },
-    { selector: ".dimmed", style: { opacity: 0.12 } as any },
-    { selector: "node.hover", style: { "border-opacity": 1, "border-width": 1.5, color: "#e2e8f0" } as cytoscape.Css.Node },
-    { selector: "node:selected", style: {
-      "border-width": 1.5, "border-color": "#e2e8f0", "border-opacity": 0.9, "background-opacity": 0.9, color: "#e2e8f0",
-    } as cytoscape.Css.Node },
+    { selector: ".dimmed", style: { opacity: 0.1 } as any },
+    { selector: "node.hover", style: { "border-opacity": 1, "border-width": 2, "background-opacity": 0.3, color: "#e2e8f0" } as cytoscape.Css.Node },
+    { selector: "node.enriching-pulse", style: { "border-width": 3, "border-opacity": 1, "background-opacity": 0.35 } as cytoscape.Css.Node },
+    { selector: "node:selected", style: { "border-width": 2, "border-color": "#e2e8f0", "border-opacity": 0.9, "background-opacity": 0.25, color: "#e2e8f0" } as cytoscape.Css.Node },
   ];
 }
 
-function FabBtn({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button onClick={onClick}
-      className="w-8 h-8 border border-white/[0.1] rounded-md bg-[#0a0a0b]/80 text-gray-500 hover:text-gray-300 hover:border-white/[0.15] text-sm transition-colors">
-      {label}
-    </button>
-  );
-}
+const FabBtn = ({ label, onClick }: { label: string; onClick: () => void }) => (
+  <button onClick={onClick} className="w-8 h-8 border border-white/[0.1] rounded-md bg-[#0a0a0b]/80 text-gray-500 hover:text-gray-300 hover:border-white/[0.15] text-sm transition-colors">{label}</button>
+);
