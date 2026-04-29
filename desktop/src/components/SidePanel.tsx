@@ -3,6 +3,14 @@ import { useConcept, useConcepts, useEdges, useEnrichConcept, useUpdateConcept }
 import { slugify } from "../types";
 import ConnectModal from "./ConnectModal";
 
+const STATUS_LABELS: Record<string, string> = {
+  fetching_docs: "fetching docs from context7...",
+  generating: "generating description with AI...",
+  fetching_quickstart: "pulling quickstart examples...",
+  embedding: "generating embeddings...",
+  connecting: "finding related concepts...",
+};
+
 interface Props {
   conceptId: string;
   onClose: () => void;
@@ -10,7 +18,8 @@ interface Props {
 }
 
 export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
-  const { data: concept, isLoading, isError } = useConcept(conceptId);
+  const [polling, setPolling] = useState(false);
+  const { data: concept, isLoading, isError } = useConcept(conceptId, polling ? 1000 : undefined);
   const { data: edges } = useEdges(conceptId);
   const { data: allConcepts } = useConcepts();
   const enrich = useEnrichConcept();
@@ -25,6 +34,17 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
       setNoteDraft(concept.notes ?? "");
     }
   }, [concept, conceptId]);
+
+  useEffect(() => { setPolling(false); }, [conceptId]);
+
+  useEffect(() => {
+    if (polling && concept && !concept.enrich_status) setPolling(false);
+  }, [polling, concept]);
+
+  const handleEnrich = () => {
+    enrich.mutate(conceptId);
+    setPolling(true);
+  };
 
   const nameById = (id: string) => {
     const c = allConcepts?.find((c) => c.id === id);
@@ -54,22 +74,18 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
             </span>
           )}
 
-          {concept.description ? (
-            <PanelSection title="description">
-              <p className="text-[11px] text-gray-400 leading-relaxed">{concept.description}</p>
-            </PanelSection>
-          ) : (
-            <PanelSection title="description">
-              <p className="text-[11px] text-gray-600 mb-2">no description yet</p>
-              <button
-                onClick={() => enrich.mutate(conceptId)}
-                disabled={enrich.isPending}
-                className="px-2.5 py-1 text-[10px] text-blue-400 border border-blue-500/20 rounded hover:bg-blue-500/10 disabled:opacity-50 transition-colors"
-              >
-                {enrich.isPending ? "enriching..." : "enrich with AI"}
-              </button>
-            </PanelSection>
+          {concept.enrich_status && (
+            <div className="flex items-center gap-2 text-[11px] text-blue-400/80 mb-3">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+              {STATUS_LABELS[concept.enrich_status] || concept.enrich_status}
+            </div>
           )}
+
+          <PanelSection title="description">
+            {concept.description
+              ? <p className="text-[11px] text-gray-400 leading-relaxed">{concept.description}</p>
+              : <p className="text-[11px] text-gray-600">no description yet</p>}
+          </PanelSection>
 
           {concept.quickstart && (
             <PanelSection title="quickstart">
@@ -139,24 +155,18 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
           <PanelSection title="source">
             <p className="text-[10px] text-gray-700">
               {concept.source === "manual" ? "added manually" : `enriched via ${concept.source}`}
-              {" · "}
-              {getTimeAgo(concept.created_at)}
+              {" · "}{getTimeAgo(concept.created_at)}
             </p>
           </PanelSection>
 
           <div className="mt-auto pt-3 flex gap-2">
-            <button
-              onClick={() => setShowConnect(true)}
-              className="flex-1 px-3 py-1.5 text-[11px] text-gray-400 border border-white/[0.1] rounded hover:bg-white/[0.04] transition-colors"
-            >
+            <button onClick={() => setShowConnect(true)}
+              className="flex-1 px-3 py-1.5 text-[11px] text-gray-400 border border-white/[0.1] rounded hover:bg-white/[0.04] transition-colors">
               connect &rarr;
             </button>
-            <button
-              onClick={() => enrich.mutate(conceptId)}
-              disabled={enrich.isPending}
-              className="flex-1 px-3 py-1.5 text-[11px] text-gray-400 border border-white/[0.1] rounded hover:bg-white/[0.04] disabled:opacity-50 transition-colors"
-            >
-              {enrich.isPending ? "enriching..." : "research"}
+            <button onClick={handleEnrich} disabled={enrich.isPending || !!concept.enrich_status}
+              className="flex-1 px-3 py-1.5 text-[11px] text-gray-400 border border-white/[0.1] rounded hover:bg-white/[0.04] disabled:opacity-50 transition-colors">
+              {concept.enrich_status ? "enriching..." : "enrich"}
             </button>
           </div>
         </>
@@ -184,6 +194,5 @@ function getTimeAgo(dateStr: string): string {
   if (mins < 60) return `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }

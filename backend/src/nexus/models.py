@@ -18,6 +18,7 @@ class Concept:
     quickstart: str | None = None
     doc_url: str | None = None
     context7_id: str | None = None
+    enrich_status: str | None = None
     created_at: str = ""
     updated_at: str = ""
 
@@ -38,6 +39,7 @@ class Concept:
             quickstart=row.get("quickstart"),
             doc_url=row.get("doc_url"),
             context7_id=row.get("context7_id"),
+            enrich_status=row.get("enrich_status"),
             created_at=row.get("created_at", ""),
             updated_at=row.get("updated_at", ""),
         )

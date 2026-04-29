@@ -79,7 +79,7 @@ def concept_dict(c: Concept) -> dict:
         "summary": c.summary, "category": c.category, "tags": c.tags,
         "source": c.source, "notes": c.notes,
         "quickstart": c.quickstart, "doc_url": c.doc_url,
-        "context7_id": c.context7_id,
+        "context7_id": c.context7_id, "enrich_status": c.enrich_status,
         "created_at": c.created_at, "updated_at": c.updated_at,
     }
 

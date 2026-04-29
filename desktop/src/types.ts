@@ -10,6 +10,7 @@ export interface Concept {
   quickstart: string | null;
   doc_url: string | null;
   context7_id: string | null;
+  enrich_status: string | null;
   created_at: string;
   updated_at: string;
 }

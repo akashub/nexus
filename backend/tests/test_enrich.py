@@ -76,7 +76,7 @@ class TestEnrichConcept:
             ):
                 enrich_concept(conn, c.id)
             updated = get_concept(conn, c.id)
-            assert updated.description == "Existing"
+            assert updated.description == "A generated description."
             assert updated.category == "devtool"
         finally:
             conn.close()

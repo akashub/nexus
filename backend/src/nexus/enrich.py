@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import sqlite3
@@ -26,6 +27,12 @@ Respond in EXACTLY this JSON format, nothing else:
  "summary": "one-line summary under 15 words",\
  "category": "one of: {categories}"}}"""
 
+_AI_FIELDS = {"description", "summary", "quickstart", "context7_id", "doc_url", "embedding"}
+
+
+def _set_status(conn: sqlite3.Connection, cid: str, status: str | None) -> None:
+    update_concept(conn, cid, enrich_status=status)
+
 
 def enrich_concept(conn: sqlite3.Connection, concept_id: str) -> None:
     if not is_available():
@@ -37,54 +44,54 @@ def enrich_concept(conn: sqlite3.Connection, concept_id: str) -> None:
         return
 
     click.echo(f"  Enriching {c.name}...")
+    _set_status(conn, concept_id, "fetching_docs")
 
-    docs_result = _fetch_docs(c.name)
-    docs_text = docs_result.text[:3000] if docs_result else None
-    fields = _generate_all(c.name, docs_text, c.category)
+    docs_result = fetch_context(c.name)
+    fields: dict = {}
 
     if docs_result:
+        click.echo(f"  Found docs ({len(docs_result.text)} chars)")
         if docs_result.library_id:
             fields["context7_id"] = docs_result.library_id
         if docs_result.doc_url:
             fields["doc_url"] = docs_result.doc_url
-        quickstart = _fetch_quickstart(docs_result.library_id)
-        if quickstart:
-            fields["quickstart"] = quickstart[:5000]
+    else:
+        click.echo("  No docs found, using LLM knowledge only.")
 
-    embedding = _generate_embedding(c.name, fields.get("description"))
+    _set_status(conn, concept_id, "generating")
+    docs_text = docs_result.text[:3000] if docs_result else None
+    llm_fields = _generate_all(c.name, docs_text, c.category)
+    fields.update(llm_fields)
 
-    if embedding and not c.embedding:
-        fields["embedding"] = embedding
-    filtered: dict = {}
+    if docs_result and docs_result.library_id:
+        _set_status(conn, concept_id, "fetching_quickstart")
+        qs = fetch_quickstart(docs_result.library_id)
+        if qs:
+            fields["quickstart"] = qs[:5000]
+
+    _set_status(conn, concept_id, "embedding")
+    new_embedding = embed(f"{c.name}: {fields.get('description', c.name)}")
+    if new_embedding:
+        fields["embedding"] = new_embedding
+
+    final: dict = {}
     for k, v in fields.items():
-        if v and not getattr(c, k, None):
-            filtered[k] = v
-    if filtered:
-        filtered["source"] = "ollama"
-        update_concept(conn, concept_id, **filtered)
-        click.echo(f"  Updated: {', '.join(filtered.keys())}")
+        if not v:
+            continue
+        if k in _AI_FIELDS or not getattr(c, k, None):
+            final[k] = v
 
+    if final:
+        final["source"] = "ollama"
+        final["enrich_status"] = None
+        update_concept(conn, concept_id, **final)
+        click.echo(f"  Updated: {', '.join(k for k in final if k != 'enrich_status')}")
+    else:
+        _set_status(conn, concept_id, None)
+
+    _set_status(conn, concept_id, "connecting")
     _suggest_connections(conn, concept_id)
-
-
-def _fetch_docs(name: str):
-    click.echo("  Fetching docs via Context7...")
-    result = fetch_context(name)
-    if result:
-        click.echo(f"  Found docs ({len(result.text)} chars)")
-        return result
-    click.echo("  No docs found, using LLM knowledge only.")
-    return None
-
-
-def _fetch_quickstart(library_id: str | None) -> str | None:
-    if not library_id:
-        return None
-    click.echo("  Fetching quickstart...")
-    qs = fetch_quickstart(library_id)
-    if qs:
-        click.echo(f"  Found quickstart ({len(qs)} chars)")
-    return qs
+    _set_status(conn, concept_id, None)
 
 
 def _generate_all(name: str, docs: str | None, existing_cat: str | None) -> dict:
@@ -113,11 +120,6 @@ def _generate_all(name: str, docs: str | None, existing_cat: str | None) -> dict
         return {}
 
 
-def _generate_embedding(name: str, description: str | None) -> bytes | None:
-    text = f"{name}: {description}" if description else name
-    return embed(text)
-
-
 def _suggest_connections(conn: sqlite3.Connection, concept_id: str) -> None:
     c = get_concept(conn, concept_id)
     if not c or not c.embedding:
@@ -132,14 +134,8 @@ def _suggest_connections(conn: sqlite3.Connection, concept_id: str) -> None:
             candidates.append((other, sim))
 
     candidates.sort(key=lambda x: x[1], reverse=True)
-    top = candidates[:3]
-
-    if not top:
-        return
-
-    click.echo("  Suggested connections:")
-    for other, sim in top:
-        click.echo(f"    {c.name} --[related_to]--> {other.name}  (similarity: {sim:.2f})")
+    for other, sim in candidates[:3]:
+        click.echo(f"    {c.name} --[related_to]--> {other.name}  (sim: {sim:.2f})")
 
 
 def enrich_background(concept_id: str) -> None:
@@ -148,5 +144,7 @@ def enrich_background(concept_id: str) -> None:
         enrich_concept(conn, concept_id)
     except Exception:
         log.exception("Background enrichment failed for concept %s", concept_id)
+        with contextlib.suppress(Exception):
+            _set_status(conn, concept_id, None)
     finally:
         conn.close()
