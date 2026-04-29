@@ -1,14 +1,11 @@
 import cytoscape from "cytoscape";
+import { forceCenter, forceCollide, forceLink, forceManyBody, forceSimulation, type SimulationNodeDatum } from "d3-force";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDeleteConcept, useEnrichConcept } from "../hooks/useApi";
 import { slugify } from "../types";
 import type { GraphData } from "../types";
-
-export const CATEGORY_COLORS: Record<string, string> = {
-  devtool: "#8b7bb8", framework: "#5b8cb8", concept: "#5ba88b",
-  pattern: "#b89060", language: "#b86b6b",
-};
-export const DEFAULT_COLOR = "#4a5568";
+import { graphStyles } from "./graphStyles";
+export { CATEGORY_COLORS } from "./graphStyles";
 
 interface Props {
   data: GraphData | undefined;
@@ -16,6 +13,8 @@ interface Props {
   selectedId: string | null;
   categoryFilter: string | null;
 }
+
+interface SimNode extends SimulationNodeDatum { id: string }
 
 function structuralHash(d: GraphData, filter: string | null): string {
   const ids = filter ? d.nodes.filter((n) => n.category === filter).map((n) => n.id) : d.nodes.map((n) => n.id);
@@ -25,6 +24,7 @@ function structuralHash(d: GraphData, filter: string | null): string {
 export default function GraphView({ data, onSelectNode, selectedId, categoryFilter }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
+  const simRef = useRef<ReturnType<typeof forceSimulation<SimNode>> | null>(null);
   const lastStructHash = useRef("");
   const fitHandlerRef = useRef<(() => void) | null>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null);
@@ -51,6 +51,7 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
   }, [categoryFilter]);
 
   useEffect(() => () => {
+    if (simRef.current) simRef.current.stop();
     if (fitHandlerRef.current) window.removeEventListener("nexus:fit", fitHandlerRef.current);
     if (cyRef.current) { cyRef.current.destroy(); cyRef.current = null; }
   }, []);
@@ -68,20 +69,42 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
 
     if (hash !== lastStructHash.current || !cyRef.current) {
       lastStructHash.current = hash;
+      if (simRef.current) simRef.current.stop();
       if (fitHandlerRef.current) window.removeEventListener("nexus:fit", fitHandlerRef.current);
       if (cyRef.current) cyRef.current.destroy();
 
       const cy = cytoscape({
-        container: containerRef.current,
-        elements: buildElements(data),
-        style: graphStyles(),
-        layout: {
-          name: "cose", animate: true, animationDuration: 1200, nodeDimensionsIncludeLabels: true,
-          nodeRepulsion: () => 10000, idealEdgeLength: () => 120, gravity: 0.25,
-          fit: true, padding: 60, randomize: false,
-        },
+        container: containerRef.current, elements: buildElements(data),
+        style: graphStyles(), layout: { name: "preset" },
         minZoom: 0.3, maxZoom: 3, wheelSensitivity: 0.3,
       });
+
+      const w = containerRef.current.clientWidth, h = containerRef.current.clientHeight;
+      const filtered = categoryFilter ? data.nodes.filter((n) => n.category === categoryFilter) : data.nodes;
+      const nIds = new Set(filtered.map((n) => n.id));
+      const simNodes: SimNode[] = filtered.map((n) => ({
+        id: n.id, x: w / 2 + (Math.random() - 0.5) * w * 0.6, y: h / 2 + (Math.random() - 0.5) * h * 0.6,
+      }));
+      const simLinks = data.edges.filter((e) => nIds.has(e.source_id) && nIds.has(e.target_id))
+        .map((e) => ({ source: e.source_id, target: e.target_id }));
+      const nodeMap = new Map(simNodes.map((n) => [n.id, n]));
+      let fitted = false;
+
+      const sim = forceSimulation(simNodes)
+        .force("charge", forceManyBody().strength(-200))
+        .force("link", forceLink(simLinks).id((d: any) => d.id).distance(120))
+        .force("center", forceCenter(w / 2, h / 2))
+        .force("collide", forceCollide(30))
+        .alphaDecay(0.02)
+        .on("tick", () => {
+          cy.batch(() => simNodes.forEach((sn) => {
+            if (sn.x != null && sn.y != null) cy.getElementById(sn.id).position({ x: sn.x, y: sn.y });
+          }));
+          if (!fitted && sim.alpha() < 0.05) {
+            cy.animate({ fit: { eles: cy.elements(), padding: 60 }, duration: 600 });
+            fitted = true;
+          }
+        });
 
       cy.on("tap", "node", (evt) => onSelectNode(evt.target.id()));
       cy.on("tap", (evt) => { if (evt.target === cy) onSelectNode(null); });
@@ -100,23 +123,25 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
         setCtxMenu({ x: pos.x, y: pos.y, nodeId: evt.target.id() });
       });
       cy.on("tap", () => setCtxMenu(null));
+      cy.on("grab", "node", (evt) => {
+        sim.alphaTarget(0.3).restart();
+        const sn = nodeMap.get(evt.target.id());
+        if (sn) { sn.fx = evt.target.position().x; sn.fy = evt.target.position().y; }
+      });
       cy.on("drag", "node", (evt) => {
-        const pos = evt.target.position();
-        cy.nodes().not(evt.target).forEach((o: cytoscape.NodeSingular) => {
-          const p = o.position(), dx = p.x - pos.x, dy = p.y - pos.y, d = Math.sqrt(dx * dx + dy * dy);
-          if (d < 70 && d > 0) { const f = (70 - d) * 0.25; o.position({ x: p.x + dx / d * f, y: p.y + dy / d * f }); }
-        });
+        const sn = nodeMap.get(evt.target.id());
+        if (sn) { sn.fx = evt.target.position().x; sn.fy = evt.target.position().y; }
       });
-      cy.on("dragfree", "node", (evt) => {
-        const pos = evt.target.position();
-        evt.target.neighborhood("node").forEach((nb: cytoscape.NodeSingular) => {
-          const p = nb.position();
-          nb.animate({ position: { x: p.x + (pos.x - p.x) * 0.04, y: p.y + (pos.y - p.y) * 0.04 } } as any, { duration: 400 } as any);
-        });
+      cy.on("free", "node", (evt) => {
+        sim.alphaTarget(0);
+        const sn = nodeMap.get(evt.target.id());
+        if (sn) { sn.fx = null; sn.fy = null; }
       });
+
       const fitHandler = () => cy.animate({ fit: { eles: cy.elements(), padding: 50 }, duration: 400 });
       window.addEventListener("nexus:fit", fitHandler);
       fitHandlerRef.current = fitHandler;
+      simRef.current = sim;
       cyRef.current = cy;
     }
 
@@ -163,34 +188,6 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
       </div>
     </div>
   );
-}
-
-function graphStyles(): cytoscape.StylesheetStyle[] {
-  const cc = (e: cytoscape.NodeSingular) => CATEGORY_COLORS[e.data("category")] || DEFAULT_COLOR;
-  const sz = (e: cytoscape.NodeSingular) => 22 + Math.min(e.data("deg"), 8) * 3.5;
-  return [
-    { selector: "node", style: {
-      shape: "ellipse", label: "data(label)", "text-valign": "bottom", "text-halign": "center", "text-margin-y": 5,
-      "background-color": cc, "background-opacity": 0.15, "border-width": 1.5, "border-color": cc,
-      "border-opacity": 0.6, color: "#9ca3af", "font-size": "9px", "font-family": "'SF Mono', 'Fira Code', monospace",
-      width: sz, height: sz, "overlay-opacity": 0,
-      "transition-property": "opacity, border-color, border-opacity, border-width, background-opacity", "transition-duration": 200,
-    } as unknown as cytoscape.Css.Node },
-    { selector: "node:active", style: { "overlay-opacity": 0 } as cytoscape.Css.Node },
-    { selector: "edge", style: {
-      "curve-style": "bezier", "target-arrow-shape": "triangle", "arrow-scale": 0.6,
-      "line-color": "#1e2d3d", "target-arrow-color": "#1e2d3d", width: 1, "line-opacity": 0.5,
-      label: "data(label)", "font-size": "7px", "font-family": "'SF Mono', 'Fira Code', monospace",
-      color: "#3a4a5a", "text-rotation": "autorotate", "text-margin-y": -8, "text-background-color": "#0a0a0b",
-      "text-background-opacity": 0.9, "text-background-padding": "2px", "overlay-opacity": 0,
-      "transition-property": "opacity, line-color, target-arrow-color", "transition-duration": 200,
-    } as cytoscape.Css.Edge },
-    { selector: "edge[rel='part_of'], edge[rel='similar_to']", style: { "line-style": "dashed", "line-dash-pattern": [6, 3] } as cytoscape.Css.Edge },
-    { selector: ".dimmed", style: { opacity: 0.1 } as any },
-    { selector: "node.hover", style: { "border-opacity": 1, "border-width": 2, "background-opacity": 0.3, color: "#e2e8f0" } as cytoscape.Css.Node },
-    { selector: "node.enriching-pulse", style: { "border-width": 3, "border-opacity": 1, "background-opacity": 0.35 } as cytoscape.Css.Node },
-    { selector: "node:selected", style: { "border-width": 2, "border-color": "#e2e8f0", "border-opacity": 0.9, "background-opacity": 0.25, color: "#e2e8f0" } as cytoscape.Css.Node },
-  ];
 }
 
 const FabBtn = ({ label, onClick }: { label: string; onClick: () => void }) => (
