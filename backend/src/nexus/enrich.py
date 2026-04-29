@@ -22,8 +22,10 @@ _SYSTEM = (
 
 _ENRICH_PROMPT = """Analyze '{name}' for a developer's knowledge graph.
 {context}
+Focus on WHAT '{name}' IS and WHY a developer would use it.
+Do NOT summarize installation steps, onboarding docs, or setup instructions.
 Respond in EXACTLY this JSON format, nothing else:
-{{"description": "2-3 sentence technical description",\
+{{"description": "2-3 sentence technical description of what it is and its key capabilities",\
  "summary": "one-line summary under 15 words",\
  "category": "one of: {categories}"}}"""
 

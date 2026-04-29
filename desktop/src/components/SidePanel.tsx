@@ -18,8 +18,9 @@ interface Props {
 }
 
 export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
-  const [polling, setPolling] = useState(false);
-  const { data: concept, isLoading, isError } = useConcept(conceptId, polling ? 1000 : undefined);
+  const { data: concept, isLoading, isError } = useConcept(
+    conceptId, (q: any) => q.state.data?.enrich_status ? 1000 : false,
+  );
   const { data: edges } = useEdges(conceptId);
   const { data: allConcepts } = useConcepts();
   const enrich = useEnrichConcept();
@@ -35,16 +36,6 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
     }
   }, [concept, conceptId]);
 
-  useEffect(() => { setPolling(false); }, [conceptId]);
-
-  useEffect(() => {
-    if (polling && concept && !concept.enrich_status) setPolling(false);
-  }, [polling, concept]);
-
-  const handleEnrich = () => {
-    enrich.mutate(conceptId);
-    setPolling(true);
-  };
 
   const nameById = (id: string) => {
     const c = allConcepts?.find((c) => c.id === id);
@@ -88,11 +79,7 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
           </PanelSection>
 
           {concept.quickstart && (
-            <PanelSection title="quickstart">
-              <pre className="w-full bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2 text-[10px] text-gray-400 leading-relaxed overflow-x-auto whitespace-pre-wrap font-mono max-h-48 overflow-y-auto">
-                {concept.quickstart}
-              </pre>
-            </PanelSection>
+            <PanelSection title="quickstart"><QuickstartContent text={concept.quickstart} /></PanelSection>
           )}
 
           {concept.doc_url && (
@@ -164,7 +151,7 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
               className="flex-1 px-3 py-1.5 text-[11px] text-gray-400 border border-white/[0.1] rounded hover:bg-white/[0.04] transition-colors">
               connect &rarr;
             </button>
-            <button onClick={handleEnrich} disabled={enrich.isPending || !!concept.enrich_status}
+            <button onClick={() => enrich.mutate(conceptId)} disabled={enrich.isPending || !!concept.enrich_status}
               className="flex-1 px-3 py-1.5 text-[11px] text-gray-400 border border-white/[0.1] rounded hover:bg-white/[0.04] disabled:opacity-50 transition-colors">
               {concept.enrich_status ? "enriching..." : "enrich"}
             </button>
@@ -188,11 +175,24 @@ function PanelSection({ title, children }: { title: string; children: React.Reac
   );
 }
 
-function getTimeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
+function QuickstartContent({ text }: { text: string }) {
+  return (
+    <div className="space-y-2 max-h-64 overflow-y-auto">{text.split(/(```[\s\S]*?```)/g).filter(Boolean).map((part, i) => {
+      const m = part.match(/^```\w*\n?([\s\S]*?)```$/);
+      if (m) return (
+        <div key={i} className="relative group">
+          <pre className="w-full bg-white/[0.03] border border-white/[0.06] rounded px-3 py-2 text-[10px] text-gray-400 leading-relaxed overflow-x-auto whitespace-pre-wrap font-mono">{m[1].trim()}</pre>
+          <button onClick={() => navigator.clipboard.writeText(m[1].trim())}
+            className="absolute top-1 right-1 px-1.5 py-0.5 text-[9px] text-gray-600 hover:text-gray-300 bg-white/[0.06] rounded opacity-0 group-hover:opacity-100 transition-opacity">copy</button>
+        </div>
+      );
+      return part.trim() ? <p key={i} className="text-[11px] text-gray-400 leading-relaxed">{part.trim()}</p> : null;
+    })}</div>
+  );
+}
+
+function getTimeAgo(d: string): string {
+  const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000);
+  if (m < 60) return `${m}m ago`;
+  return m < 1440 ? `${Math.floor(m / 60)}h ago` : `${Math.floor(m / 1440)}d ago`;
 }

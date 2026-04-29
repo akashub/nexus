@@ -23,12 +23,12 @@ export function useConcepts(category?: string) {
   });
 }
 
-export function useConcept(id: string, refetchInterval?: number) {
+export function useConcept(id: string, refetchInterval?: number | false | ((query: { state: { data?: Concept } }) => number | false)) {
   return useQuery({
     queryKey: ["concept", id],
     queryFn: () => apiFetch<Concept>(`/concepts/${id}`),
     enabled: !!id,
-    refetchInterval,
+    refetchInterval: refetchInterval as any,
   });
 }
 
