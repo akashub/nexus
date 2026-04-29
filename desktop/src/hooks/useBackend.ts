@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { API } from "./useApi";
 
-const POLL_INTERVAL = 2000;
-const MAX_POLLS = 15;
+const POLL_INTERVAL = 500;
+const MAX_POLLS = 30;
 
 export type BackendStatus = "connecting" | "ready" | "error";
 
