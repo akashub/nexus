@@ -66,7 +66,7 @@ def embed(text: str, *, model: str | None = None) -> bytes | None:
         if not vec:
             return None
         return struct.pack(f"{len(vec)}f", *vec)
-    except (httpx.HTTPError, KeyError):
+    except (httpx.HTTPError, KeyError, IndexError):
         return None
 
 

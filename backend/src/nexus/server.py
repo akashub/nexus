@@ -6,7 +6,7 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from nexus.db import get_connection, init_db
 
@@ -46,30 +46,30 @@ ConnDep = Annotated[sqlite3.Connection, Depends(_get_conn)]
 
 
 class ConceptCreate(BaseModel):
-    name: str
-    category: str | None = None
-    tags: list[str] | None = None
-    notes: str | None = None
+    name: str = Field(min_length=1, max_length=200)
+    category: str | None = Field(default=None, max_length=50)
+    tags: list[str] | None = Field(default=None, max_length=50)
+    notes: str | None = Field(default=None, max_length=5000)
     no_enrich: bool = False
 
 
 class ConceptUpdate(BaseModel):
-    description: str | None = None
-    summary: str | None = None
-    category: str | None = None
-    tags: list[str] | None = None
-    notes: str | None = None
+    description: str | None = Field(default=None, max_length=5000)
+    summary: str | None = Field(default=None, max_length=500)
+    category: str | None = Field(default=None, max_length=50)
+    tags: list[str] | None = Field(default=None, max_length=50)
+    notes: str | None = Field(default=None, max_length=5000)
 
 
 class EdgeCreate(BaseModel):
-    source_id: str
-    target_id: str
-    relationship: str = "related_to"
-    description: str | None = None
+    source_id: str = Field(max_length=36)
+    target_id: str = Field(max_length=36)
+    relationship: str = Field(default="related_to", max_length=100)
+    description: str | None = Field(default=None, max_length=1000)
 
 
 class AskRequest(BaseModel):
-    question: str
+    question: str = Field(min_length=1, max_length=2000)
 
 
 def concept_to_dict(c) -> dict:

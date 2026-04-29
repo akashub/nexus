@@ -85,10 +85,7 @@ def get_concept(conn: sqlite3.Connection, id_or_name: str) -> Concept | None:
 
 
 def list_concepts(
-    conn: sqlite3.Connection,
-    *,
-    limit: int = 100,
-    category: str | None = None,
+    conn: sqlite3.Connection, *, limit: int = 100, category: str | None = None,
 ) -> list[Concept]:
     query = "SELECT * FROM concepts"
     params: list = []
@@ -101,7 +98,16 @@ def list_concepts(
     return [Concept.from_row(dict(r)) for r in rows]
 
 
+_UPDATABLE_COLUMNS = frozenset({
+    "name", "description", "summary", "category", "tags",
+    "source", "embedding", "notes", "setup",
+})
+
+
 def update_concept(conn: sqlite3.Connection, cid: str, **fields) -> Concept | None:
+    fields = {k: v for k, v in fields.items() if k in _UPDATABLE_COLUMNS}
+    if not fields:
+        return get_concept(conn, cid)
     if "tags" in fields and isinstance(fields["tags"], list):
         fields["tags"] = json.dumps(fields["tags"])
     sets = ", ".join(f"{k} = ?" for k in fields)
@@ -154,8 +160,7 @@ def get_all_edges(conn: sqlite3.Connection, limit: int = 5000) -> list[Edge]:
 
 
 def count_edges(conn: sqlite3.Connection) -> int:
-    row = conn.execute("SELECT COUNT(*) as cnt FROM edges").fetchone()
-    return row["cnt"]
+    return conn.execute("SELECT COUNT(*) as cnt FROM edges").fetchone()["cnt"]
 
 
 def delete_edge(conn: sqlite3.Connection, eid: str) -> bool:
@@ -165,17 +170,14 @@ def delete_edge(conn: sqlite3.Connection, eid: str) -> bool:
 
 
 def add_conversation(
-    conn: sqlite3.Connection,
-    question: str,
-    answer: str,
+    conn: sqlite3.Connection, question: str, answer: str,
     concept_ids: list[str] | None = None,
 ) -> Conversation:
     cid = str(uuid.uuid4())
     related = json.dumps(concept_ids or [])
     conn.execute(
         "INSERT INTO conversations (id, question, answer, related_concepts) "
-        "VALUES (?, ?, ?, ?)",
-        (cid, question, answer, related),
+        "VALUES (?, ?, ?, ?)", (cid, question, answer, related),
     )
     conn.commit()
     row = conn.execute("SELECT * FROM conversations WHERE id = ?", (cid,)).fetchone()
@@ -185,10 +187,8 @@ def add_conversation(
 def search_fts(conn: sqlite3.Connection, query: str) -> list[Concept]:
     try:
         rows = conn.execute(
-            "SELECT c.* FROM concepts_fts f "
-            "JOIN concepts c ON c.rowid = f.rowid "
-            "WHERE concepts_fts MATCH ? ORDER BY rank",
-            (query,),
+            "SELECT c.* FROM concepts_fts f JOIN concepts c ON c.rowid = f.rowid "
+            "WHERE concepts_fts MATCH ? ORDER BY rank", (query,),
         ).fetchall()
     except sqlite3.OperationalError:
         rows = conn.execute(

@@ -53,7 +53,7 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
 
   useEffect(() => {
     if (!containerRef.current || !data) return;
-    const hash = data.nodes.map((n) => n.id).sort().join(",") + "|" + data.edges.map((e) => e.id).sort().join(",") + "|" + (categoryFilter || "");
+    const hash = data.nodes.map((n) => `${n.id}:${n.name}:${n.category || ""}:${n.updated_at}`).sort().join(",") + "|" + data.edges.map((e) => e.id).sort().join(",") + "|" + (categoryFilter || "");
     if (hash === lastDataHash.current && cyRef.current) return;
     lastDataHash.current = hash;
     if (cyRef.current) cyRef.current.destroy();

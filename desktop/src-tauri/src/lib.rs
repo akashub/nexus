@@ -16,7 +16,33 @@ impl Drop for BackendProcess {
 fn read_backend_dir() -> Option<String> {
     let home = std::env::var("HOME").ok()?;
     let path = format!("{home}/.nexus/backend_dir");
-    fs::read_to_string(path).ok().map(|s| s.trim().to_string())
+    let dir = fs::read_to_string(path).ok().map(|s| s.trim().to_string())?;
+    if dir.is_empty() || dir.contains("..") {
+        return None;
+    }
+    let p = std::path::Path::new(&dir);
+    if p.is_absolute() && p.is_dir() {
+        Some(dir)
+    } else {
+        None
+    }
+}
+
+fn spawn_backend(dir: Option<String>) -> Option<Child> {
+    match dir {
+        Some(d) => Command::new("uv")
+            .args(["run", "--project", &d, "nexus", "serve", "--port", "7777"])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .ok(),
+        None => Command::new("nexus")
+            .args(["serve", "--port", "7777"])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .ok(),
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -25,17 +51,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
-            let cmd = if let Some(dir) = read_backend_dir() {
-                format!("uv run --project '{dir}' nexus serve --port 7777")
-            } else {
-                "nexus serve --port 7777".to_string()
-            };
-            let child = Command::new("zsh")
-                .args(["-lc", &cmd])
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
-                .spawn()
-                .ok();
+            let child = spawn_backend(read_backend_dir());
             app.manage(BackendProcess(Mutex::new(child)));
             Ok(())
         })

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+import logging
+
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 
 from nexus.db import (
     add_concept,
@@ -26,11 +28,15 @@ from nexus.server import (
     edge_to_dict,
 )
 
+log = logging.getLogger(__name__)
+
 router = APIRouter()
 
 
 @router.get("/concepts")
-def list_concepts_route(conn: ConnDep, category: str | None = None, limit: int = 100):
+def list_concepts_route(
+    conn: ConnDep, category: str | None = None, limit: int = Query(default=100, ge=1, le=1000),
+):
     concepts = list_concepts(conn, limit=limit, category=category)
     return [concept_to_dict(c) for c in concepts]
 
@@ -62,7 +68,7 @@ def _enrich_background(concept_id: str) -> None:
     try:
         enrich_concept(conn, concept_id)
     except Exception:
-        pass
+        log.exception("Background enrichment failed for concept %s", concept_id)
     finally:
         conn.close()
 
@@ -116,7 +122,7 @@ def delete_edge_route(edge_id: str, conn: ConnDep):
 
 
 @router.get("/search")
-def search_route(q: str, conn: ConnDep, semantic: bool = False):
+def search_route(conn: ConnDep, q: str = Query(max_length=500), semantic: bool = False):
     if semantic:
         from nexus.ai import cosine_similarity, embed
 
@@ -138,18 +144,19 @@ def ask_route(body: AskRequest, conn: ConnDep):
     if not is_available():
         raise HTTPException(503, "Ollama is not running")
     related = search_fts(conn, body.question)[:5]
-    context_parts = []
-    for c in related:
-        entry = f"- {c.name}"
-        if c.description:
-            entry += f": {c.description}"
-        context_parts.append(entry)
-    ctx = "\n".join(context_parts) or "No relevant concepts found."
+    ctx = "\n".join(
+        f"- {c.name}: {c.description}" if c.description else f"- {c.name}"
+        for c in related
+    ) or "No relevant concepts found."
     prompt = (
         f"Knowledge graph context:\n{ctx}\n\n"
         f"Question: {body.question}\n\nAnswer using the context above."
     )
-    answer = generate(prompt)
+    try:
+        answer = generate(prompt)
+    except Exception as exc:
+        log.exception("AI generation failed for question: %.100s", body.question)
+        raise HTTPException(503, "AI generation failed — is Ollama running?") from exc
     concept_ids = [c.id for c in related]
     add_conversation(conn, body.question, answer, concept_ids)
     return {"question": body.question, "answer": answer, "concepts_used": concept_ids}
@@ -189,5 +196,4 @@ def enrich_concept_route(concept_id: str, conn: ConnDep, background_tasks: Backg
 @router.get("/ai/status")
 def ai_status_route():
     from nexus.ai import is_available
-
     return {"available": is_available()}
