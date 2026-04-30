@@ -23,6 +23,7 @@ _SYSTEM = (
 _ENRICH_PROMPT = """Analyze '{name}' for a developer's knowledge graph.
 {context}
 Focus on WHAT '{name}' IS and WHY a developer would use it.
+If workflow context is provided, incorporate HOW it's used in this developer's projects.
 Do NOT summarize installation steps, onboarding docs, or setup instructions.
 Respond in EXACTLY this JSON format, nothing else:
 {{"description": "2-3 sentence technical description of what it is and its key capabilities",\
@@ -46,8 +47,13 @@ def enrich_concept(conn: sqlite3.Connection, concept_id: str) -> None:
         return
 
     click.echo(f"  Enriching {c.name}...")
-    _set_status(conn, concept_id, "fetching_docs")
 
+    _set_status(conn, concept_id, "fetching_context")
+    eagle_ctx = _fetch_eagle_mem_context(c.name)
+    if eagle_ctx:
+        click.echo(f"  Eagle Mem context ({len(eagle_ctx)} chars)")
+
+    _set_status(conn, concept_id, "fetching_docs")
     docs_result = fetch_context(c.name)
     fields: dict = {}
 
@@ -57,12 +63,12 @@ def enrich_concept(conn: sqlite3.Connection, concept_id: str) -> None:
             fields["context7_id"] = docs_result.library_id
         if docs_result.doc_url:
             fields["doc_url"] = docs_result.doc_url
-    else:
+    elif not eagle_ctx:
         click.echo("  No docs found, using LLM knowledge only.")
 
     _set_status(conn, concept_id, "generating")
     docs_text = docs_result.text[:3000] if docs_result else None
-    llm_fields = _generate_all(c.name, docs_text, c.category)
+    llm_fields = _generate_all(c.name, docs_text, c.category, eagle_ctx)
     fields.update(llm_fields)
 
     if docs_result and docs_result.library_id:
@@ -96,8 +102,24 @@ def enrich_concept(conn: sqlite3.Connection, concept_id: str) -> None:
     _set_status(conn, concept_id, None)
 
 
-def _generate_all(name: str, docs: str | None, existing_cat: str | None) -> dict:
-    context = f"Reference docs:\n{docs}" if docs else "No docs available, use your knowledge."
+def _fetch_eagle_mem_context(name: str) -> str | None:
+    try:
+        from nexus.scanners.eagle_mem import get_enrichment_context
+        return get_enrichment_context(name)
+    except Exception:
+        return None
+
+
+def _generate_all(
+    name: str, docs: str | None, existing_cat: str | None,
+    eagle_ctx: str | None = None,
+) -> dict:
+    parts: list[str] = []
+    if eagle_ctx:
+        parts.append(f"Workflow context (how this developer uses it):\n{eagle_ctx[:1500]}")
+    if docs:
+        parts.append(f"Technical docs:\n{docs}")
+    context = "\n\n".join(parts) if parts else "No docs available, use your knowledge."
     prompt = _ENRICH_PROMPT.format(
         name=name, context=context, categories=", ".join(CATEGORIES),
     )
