@@ -2,7 +2,57 @@ from __future__ import annotations
 
 import click
 
-from nexus.db import add_conversation, get_concept, get_connection, get_edges, search_fts
+from nexus.db import (
+    add_conversation,
+    get_concept,
+    get_connection,
+    get_edges,
+    list_concepts,
+    search_fts,
+)
+
+
+def _find_related(conn, question: str, limit: int = 5):
+    results = search_fts(conn, question)[:limit]
+    if len(results) >= limit:
+        return results
+    from nexus.ai import cosine_similarity, embed
+    qvec = embed(question)
+    if not qvec:
+        return results
+    seen = {c.id for c in results}
+    scored = [
+        (c, cosine_similarity(qvec, c.embedding))
+        for c in list_concepts(conn, limit=200) if c.embedding and c.id not in seen
+    ]
+    scored.sort(key=lambda x: x[1], reverse=True)
+    results.extend(c for c, s in scored[:limit - len(results)] if s > 0.3)
+    return results
+
+
+def _build_context(conn, concepts) -> str:
+    parts = []
+    for c in concepts:
+        entry = f"- {c.name}"
+        if c.category:
+            entry += f" [{c.category}]"
+        if c.description:
+            entry += f": {c.description}"
+        edges = get_edges(conn, c.id)
+        conns = []
+        for e in edges:
+            other_id = e.target_id if e.source_id == c.id else e.source_id
+            other = get_concept(conn, other_id)
+            if not other:
+                continue
+            if e.source_id == c.id:
+                conns.append(f"{c.name} --[{e.relationship}]--> {other.name}")
+            else:
+                conns.append(f"{other.name} --[{e.relationship}]--> {c.name}")
+        if conns:
+            entry += f"\n  Connections: {'; '.join(conns)}"
+        parts.append(entry)
+    return "\n".join(parts) if parts else "No relevant concepts found."
 
 
 @click.command("ask")
@@ -16,25 +66,8 @@ def ask_cmd(question: str) -> None:
 
     conn = get_connection()
     try:
-        related = search_fts(conn, question)[:5]
-        context_parts = []
-        for c in related:
-            edges = get_edges(conn, c.id)
-            conns = []
-            for e in edges:
-                t = get_concept(conn, e.target_id)
-                if t and e.source_id == c.id:
-                    conns.append(f"{c.name} --[{e.relationship}]--> {t.name}")
-            entry = f"- {c.name}"
-            if c.category:
-                entry += f" [{c.category}]"
-            if c.description:
-                entry += f": {c.description}"
-            if conns:
-                entry += f"\n  Connections: {'; '.join(conns)}"
-            context_parts.append(entry)
-
-        ctx = "\n".join(context_parts) if context_parts else "No relevant concepts found."
+        related = _find_related(conn, question)
+        ctx = _build_context(conn, related)
         prompt = (
             f"Knowledge graph context:\n{ctx}\n\n"
             f"Question: {question}\n\n"

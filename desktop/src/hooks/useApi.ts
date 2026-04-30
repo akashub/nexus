@@ -23,7 +23,7 @@ export function useConcepts(category?: string) {
   });
 }
 
-export function useConcept(id: string, refetchInterval?: number | false | ((query: { state: { data?: Concept } }) => number | false)) {
+export function useConcept(id: string, refetchInterval?: number | false | ((q: any) => number | false)) {
   return useQuery({
     queryKey: ["concept", id],
     queryFn: () => apiFetch<Concept>(`/concepts/${id}`),

@@ -5,6 +5,7 @@ import logging
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
+from nexus.cli_ask import _build_context, _find_related
 from nexus.db import add_conversation, list_concepts, search_fts
 from nexus.server import AskRequest, ConnDep, concept_dict
 
@@ -33,11 +34,8 @@ def ask_route(body: AskRequest, conn: ConnDep):
     from nexus.ai import generate_stream, is_available
     if not is_available():
         raise HTTPException(503, "Ollama is not running")
-    related = search_fts(conn, body.question)[:5]
-    ctx = "\n".join(
-        f"- {c.name}: {c.description}" if c.description else f"- {c.name}"
-        for c in related
-    ) or "No relevant concepts found."
+    related = _find_related(conn, body.question)
+    ctx = _build_context(conn, related)
     prompt = (
         f"Knowledge graph context:\n{ctx}\n\n"
         f"Question: {body.question}\n\nAnswer using the context above."

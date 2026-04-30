@@ -6,6 +6,16 @@ import uuid
 
 from nexus.models import Concept, Conversation, Edge
 
+_STOP = frozenset({
+    "a", "an", "the", "is", "are", "was", "were", "be", "been", "being", "have",
+    "has", "had", "do", "does", "did", "will", "would", "could", "should", "may",
+    "might", "can", "shall", "to", "of", "in", "for", "on", "with", "at", "by",
+    "from", "as", "into", "about", "between", "through", "and", "but", "or", "not",
+    "no", "so", "if", "then", "than", "how", "what", "which", "who", "this", "that",
+    "it", "its", "my", "your", "i", "you", "he", "she", "we", "they", "me", "him",
+    "us", "them", "why", "when", "where", "relate", "related",
+})
+
 _UPDATABLE_COLUMNS = frozenset({
     "name", "description", "summary", "category", "tags",
     "source", "embedding", "notes", "quickstart", "doc_url", "context7_id",
@@ -166,11 +176,20 @@ def list_conversations(conn: sqlite3.Connection, limit: int = 20) -> list[Conver
     return [Conversation.from_row(dict(r)) for r in rows]
 
 
+def _prepare_fts(query: str) -> str:
+    tokens = [w.strip("?.,!;:'\"()") for w in query.lower().split()]
+    tokens = [t for t in tokens if t and t not in _STOP and len(t) > 1]
+    if not tokens:
+        return query
+    return " OR ".join(f'"{t}"' for t in tokens)
+
+
 def search_fts(conn: sqlite3.Connection, query: str) -> list[Concept]:
+    fts_q = _prepare_fts(query)
     try:
         rows = conn.execute(
             "SELECT c.* FROM concepts_fts f JOIN concepts c ON c.rowid = f.rowid "
-            "WHERE concepts_fts MATCH ? ORDER BY rank", (query,),
+            "WHERE concepts_fts MATCH ? ORDER BY rank", (fts_q,),
         ).fetchall()
     except sqlite3.OperationalError:
         escaped = query.replace("%", "").replace("_", "").replace("[", "")
