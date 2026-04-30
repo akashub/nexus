@@ -50,6 +50,9 @@ def sync_scan_results(
             if verbose:
                 click.echo(f"  claimed: {sc.name}")
             continue
+        if global_existing:
+            stats["skipped"] += 1
+            continue
 
         c = add_concept(
             conn, sc.name, category=sc.category_hint,
