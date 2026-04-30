@@ -4,8 +4,8 @@ export type Theme = "dark" | "light" | "system";
 type Resolved = "dark" | "light";
 
 const KEY = "nexus-theme";
-const ThemeCtx = createContext<{ theme: Theme; resolved: Resolved; cycle: () => void }>({
-  theme: "dark", resolved: "dark", cycle: () => {},
+const ThemeCtx = createContext<{ theme: Theme; resolved: Resolved; cycle: () => void; set: (t: Theme) => void }>({
+  theme: "dark", resolved: "dark", cycle: () => {}, set: () => {},
 });
 
 function getSystem(): Resolved {
@@ -34,7 +34,7 @@ export function useThemeProvider() {
   }, [theme]);
 
   const cycle = () => setTheme((t) => t === "dark" ? "light" : t === "light" ? "system" : "dark");
-  return { theme, resolved, cycle };
+  return { theme, resolved, cycle, set: setTheme };
 }
 
 export const ThemeProvider = ThemeCtx.Provider;

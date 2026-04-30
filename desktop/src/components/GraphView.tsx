@@ -5,6 +5,7 @@ import { useDeleteConcept, useEnrichConcept } from "../hooks/useApi";
 import { useTheme } from "../hooks/useTheme";
 import { slugify } from "../types";
 import type { GraphData } from "../types";
+import { addGroupLabels, bindEvents } from "./graphEvents";
 import { graphStyles } from "./graphStyles";
 export { CATEGORY_COLORS } from "./graphStyles";
 
@@ -24,28 +25,31 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
   const fitHandlerRef = useRef<(() => void) | null>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null);
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
+  const [graphFind, setGraphFind] = useState<string | null>(null);
+  const findRef = useRef<HTMLInputElement>(null);
   const deleteConcept = useDeleteConcept();
   const enrich = useEnrichConcept();
   const { resolved } = useTheme();
   const isDark = resolved === "dark";
 
+  const filterEdges = useCallback((d: GraphData, nodeIds: Set<string>) => d.edges.filter((e) =>
+    nodeIds.has(e.source_id) && nodeIds.has(e.target_id) && !(e.relationship === "related_to" && e.weight > 0 && e.weight < 0.68),
+  ), []);
+
   const buildElements = useCallback((d: GraphData): cytoscape.ElementDefinition[] => {
     const nodes = categoryFilter ? d.nodes.filter((n) => n.category === categoryFilter) : d.nodes;
     const nodeIds = new Set(nodes.map((n) => n.id));
+    const edges = filterEdges(d, nodeIds);
     const deg: Record<string, number> = {};
-    d.edges.filter((e) => nodeIds.has(e.source_id) && nodeIds.has(e.target_id)).forEach((e) => {
-      deg[e.source_id] = (deg[e.source_id] || 0) + 1; deg[e.target_id] = (deg[e.target_id] || 0) + 1;
-    });
+    edges.forEach((e) => { deg[e.source_id] = (deg[e.source_id] || 0) + 1; deg[e.target_id] = (deg[e.target_id] || 0) + 1; });
     return [
       ...nodes.map((n) => ({ data: {
-        id: n.id, label: slugify(n.name), category: n.category,
+        id: n.id, label: slugify(n.name), category: n.category || "other", sgroup: n.semantic_group || "",
         summary: n.summary || n.description || "", deg: deg[n.id] || 0, enriching: !!n.enrich_status,
       } })),
-      ...d.edges.filter((e) => nodeIds.has(e.source_id) && nodeIds.has(e.target_id)).map((e) => ({
-        data: { id: e.id, source: e.source_id, target: e.target_id, label: e.relationship || "", rel: e.relationship || "" },
-      })),
+      ...edges.map((e) => ({ data: { id: e.id, source: e.source_id, target: e.target_id, label: e.relationship || "", rel: e.relationship || "" } })),
     ];
-  }, [categoryFilter]);
+  }, [categoryFilter, filterEdges]);
 
   useEffect(() => () => {
     if (simRef.current) simRef.current.stop();
@@ -60,9 +64,25 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
     return () => clearInterval(id);
   }, []);
 
+  useEffect(() => { if (cyRef.current) cyRef.current.style().fromJson(graphStyles(isDark)).update(); }, [isDark]);
+
   useEffect(() => {
-    if (cyRef.current) cyRef.current.style().fromJson(graphStyles(isDark)).update();
-  }, [isDark]);
+    const h = (e: KeyboardEvent) => { if (e.metaKey && e.key === "f") { e.preventDefault(); setGraphFind((v) => v === null ? "" : null); } };
+    window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h);
+  }, []);
+  useEffect(() => { if (graphFind !== null) findRef.current?.focus(); }, [graphFind]);
+  useEffect(() => {
+    const cy = cyRef.current; if (!cy) return;
+    cy.elements().removeClass("search-hit search-dim");
+    if (!graphFind) return;
+    const q = graphFind.toLowerCase();
+    const hits = cy.nodes().filter((n: cytoscape.NodeSingular) => !n.hasClass("cat-label") && n.data("label")?.includes(q));
+    if (hits.length) {
+      hits.addClass("search-hit"); cy.elements().not(hits).not(".cat-label").addClass("search-dim");
+      hits.connectedEdges().removeClass("search-dim");
+      cy.animate({ fit: { eles: hits, padding: 80 }, duration: 400 });
+    }
+  }, [graphFind]);
 
   useEffect(() => {
     if (!containerRef.current || !data) return;
@@ -83,43 +103,25 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
       const simNodes: SimNode[] = filtered.map((n) => ({
         id: n.id, x: w / 2 + (Math.random() - 0.5) * w * 0.3, y: h / 2 + (Math.random() - 0.5) * h * 0.3,
       }));
-      const simLinks = data.edges.filter((e) => nIds.has(e.source_id) && nIds.has(e.target_id))
-        .map((e) => ({ source: e.source_id, target: e.target_id }));
+      const simLinks = filterEdges(data, nIds).map((e) => ({ source: e.source_id, target: e.target_id }));
       const nodeMap = new Map(simNodes.map((n) => [n.id, n]));
-      let fitted = false;
+      let labelsAdded = false;
       const sim = forceSimulation(simNodes)
-        .force("charge", forceManyBody().strength(-120))
-        .force("link", forceLink(simLinks).id((d: any) => d.id).distance(80).strength(0.3))
-        .force("center", forceCenter(w / 2, h / 2).strength(0.1))
-        .force("collide", forceCollide(20))
+        .force("charge", forceManyBody().strength(-250))
+        .force("link", forceLink(simLinks).id((d: any) => d.id).distance(120).strength(0.25))
+        .force("center", forceCenter(w / 2, h / 2).strength(0.05))
+        .force("collide", forceCollide(35))
         .alphaDecay(0.02)
         .on("tick", () => {
           cy.batch(() => simNodes.forEach((sn) => {
             if (sn.x != null && sn.y != null) cy.getElementById(sn.id).position({ x: sn.x, y: sn.y });
           }));
-          if (!fitted && sim.alpha() < 0.05) { cy.animate({ fit: { eles: cy.elements(), padding: 60 }, duration: 600 }); fitted = true; }
+          if (!labelsAdded && sim.alpha() < 0.05) {
+            cy.animate({ fit: { eles: cy.elements(), padding: 60 }, duration: 600 });
+            addGroupLabels(cy); labelsAdded = true;
+          }
         });
-      cy.on("tap", "node", (evt) => onSelectNode(evt.target.id()));
-      cy.on("tap", (evt) => { if (evt.target === cy) onSelectNode(null); });
-      cy.on("dbltap", "node", (evt) => window.dispatchEvent(new CustomEvent("nexus:edit", { detail: evt.target.id() })));
-      cy.on("mouseover", "node", (evt) => {
-        const n = evt.target;
-        cy.elements().not(n.closedNeighborhood()).addClass("dimmed"); n.addClass("hover");
-        const summary = n.data("summary");
-        if (summary) { const pos = n.renderedPosition(); setTooltip({ x: pos.x, y: pos.y - 30, text: summary }); }
-      });
-      cy.on("mouseout", "node", () => { cy.elements().removeClass("dimmed hover"); setTooltip(null); });
-      cy.on("cxttap", "node", (evt) => {
-        evt.originalEvent.preventDefault();
-        const pos = evt.target.renderedPosition(); setCtxMenu({ x: pos.x, y: pos.y, nodeId: evt.target.id() });
-      });
-      cy.on("tap", () => setCtxMenu(null));
-      cy.on("grab", "node", (evt) => {
-        sim.alphaTarget(0.3).restart();
-        const sn = nodeMap.get(evt.target.id()); if (sn) { sn.fx = evt.target.position().x; sn.fy = evt.target.position().y; }
-      });
-      cy.on("drag", "node", (evt) => { const sn = nodeMap.get(evt.target.id()); if (sn) { sn.fx = evt.target.position().x; sn.fy = evt.target.position().y; } });
-      cy.on("free", "node", (evt) => { sim.alphaTarget(0); const sn = nodeMap.get(evt.target.id()); if (sn) { sn.fx = null; sn.fy = null; } });
+      bindEvents(cy, sim, nodeMap, onSelectNode, setTooltip, setCtxMenu);
       const fitHandler = () => cy.animate({ fit: { eles: cy.elements(), padding: 50 }, duration: 400 });
       window.addEventListener("nexus:fit", fitHandler);
       fitHandlerRef.current = fitHandler; simRef.current = sim; cyRef.current = cy;
@@ -127,7 +129,11 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
     const cy = cyRef.current;
     for (const n of data.nodes) {
       const node = cy.getElementById(n.id);
-      if (node.length) { node.data("category", n.category); node.data("summary", n.summary || n.description || ""); node.data("label", slugify(n.name)); node.data("enriching", !!n.enrich_status); }
+      if (node.length) {
+        node.data("category", n.category); node.data("sgroup", n.semantic_group || "");
+        node.data("summary", n.summary || n.description || ""); node.data("label", slugify(n.name));
+        node.data("enriching", !!n.enrich_status);
+      }
     }
   }, [data, onSelectNode, buildElements, categoryFilter, isDark]);
 
@@ -139,7 +145,7 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
   return (
     <div className="relative w-full h-full">
       <div ref={containerRef} className="w-full h-full" />
-      {tooltip && <div className="absolute pointer-events-none px-2 py-1 bg-[var(--nx-surface)] border border-[var(--nx-border-strong)] rounded text-[11px] text-[var(--nx-text-2)] max-w-[200px] truncate z-10"
+      {tooltip && <div className="absolute pointer-events-none px-2 py-1 bg-[var(--nx-surface)] border border-[var(--nx-border-strong)] rounded text-xs text-[var(--nx-text-2)] max-w-[220px] truncate z-10"
         style={{ left: tooltip.x, top: tooltip.y, transform: "translate(-50%, -100%)" }}>{tooltip.text}</div>}
       {ctxMenu && (
         <div className="absolute z-20 bg-[var(--nx-surface)] border border-[var(--nx-border-strong)] rounded-lg shadow-lg py-1 min-w-[120px]"
@@ -155,6 +161,11 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
             </button>
           ))}
         </div>
+      )}
+      {graphFind !== null && (
+        <input ref={findRef} value={graphFind} onChange={(e) => setGraphFind(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Escape") { setGraphFind(null); } }}
+          placeholder="Find in graph..." className="absolute top-3 left-1/2 -translate-x-1/2 z-20 w-64 px-3 py-1.5 bg-[var(--nx-surface)] border border-[var(--nx-border-strong)] rounded-lg text-sm text-[var(--nx-text)] outline-none placeholder:text-[var(--nx-text-4)]" />
       )}
       <div className="absolute bottom-3 right-3 flex gap-1.5">
         <FabBtn label="+" onClick={() => window.dispatchEvent(new CustomEvent("nexus:add"))} />

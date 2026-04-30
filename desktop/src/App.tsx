@@ -10,7 +10,7 @@ import SearchBar from "./components/SearchBar";
 import SidePanel from "./components/SidePanel";
 import { useGlobalGraph, useGraph, useOllamaStatus, useStats } from "./hooks/useApi";
 import { useBackend } from "./hooks/useBackend";
-import { useTheme } from "./hooks/useTheme";
+import { useTheme, type Theme } from "./hooks/useTheme";
 import type { Project } from "./types";
 
 export default function App() {
@@ -26,7 +26,7 @@ export default function App() {
   const { data: globalGraph } = useGlobalGraph();
   const { data: stats } = useStats();
   const { data: aiStatus } = useOllamaStatus();
-  const { theme, cycle } = useTheme();
+  const { theme, set: setTheme } = useTheme();
 
   const handleSelectProjectById = useCallback((id: string) => {
     const proj = globalGraph?.nodes.find((n) => n.id === id);
@@ -69,7 +69,9 @@ export default function App() {
     );
   }
 
-  const themeLabel = theme === "dark" ? "dark" : theme === "light" ? "light" : "auto";
+  const THEMES: { value: Theme; label: string }[] = [
+    { value: "dark", label: "dark" }, { value: "light", label: "light" }, { value: "system", label: "auto" },
+  ];
 
   return (
     <div className="flex flex-col h-screen bg-[var(--nx-bg)] text-[var(--nx-text)]">
@@ -87,9 +89,14 @@ export default function App() {
           )}
         </div>
         <div className="flex items-center gap-3 text-[11px] text-[var(--nx-text-3)]">
-          <button onClick={cycle} className="px-1.5 py-0.5 border border-[var(--nx-border)] rounded hover:bg-[var(--nx-hover)] transition-colors">
-            {themeLabel}
-          </button>
+          <div className="flex border border-[var(--nx-border)] rounded overflow-hidden">
+            {THEMES.map((t) => (
+              <button key={t.value} onClick={() => setTheme(t.value)}
+                className={`px-2 py-0.5 transition-colors ${theme === t.value ? "bg-[var(--nx-hover)] text-[var(--nx-text)]" : "text-[var(--nx-text-4)] hover:text-[var(--nx-text-3)]"}`}>
+                {t.label}
+              </button>
+            ))}
+          </div>
           <div className="flex items-center gap-1.5">
             <div className={`w-1.5 h-1.5 rounded-full ${aiStatus?.available ? "bg-emerald-500" : "bg-gray-500"}`} />
             <span>ollama</span>

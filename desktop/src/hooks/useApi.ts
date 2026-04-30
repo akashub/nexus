@@ -176,12 +176,7 @@ export function useStats() {
 }
 
 export function useOllamaStatus() {
-  return useQuery({
-    queryKey: ["ai-status"],
-    queryFn: () => apiFetch<{ available: boolean }>("/ai/status"),
-    refetchInterval: 60000,
-    staleTime: 60000,
-  });
+  return useQuery({ queryKey: ["ai-status"], queryFn: () => apiFetch<{ available: boolean }>("/ai/status"), refetchInterval: 60000, staleTime: 60000 });
 }
 
 export function useConversations(limit = 20) {
@@ -192,8 +187,11 @@ export function useConversations(limit = 20) {
 }
 
 export function useRecentConcepts(limit = 8) {
-  return useQuery({
-    queryKey: ["concepts", "recent", limit],
-    queryFn: () => apiFetch<Concept[]>(`/concepts?limit=${limit}`),
-  });
+  return useQuery({ queryKey: ["concepts", "recent", limit], queryFn: () => apiFetch<Concept[]>(`/concepts?limit=${limit}`) });
+}
+
+export interface ConceptContext { usage_context: string; usage_summary: string; install_commands: string[]; claude_memories: string[]; }
+
+export function useConceptContext(id: string) {
+  return useQuery({ queryKey: ["context", id], queryFn: () => apiFetch<ConceptContext>(`/concepts/${id}/context`), enabled: !!id, staleTime: 300000 });
 }
