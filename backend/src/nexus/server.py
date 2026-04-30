@@ -101,7 +101,7 @@ def concept_dict(c: Concept) -> dict:
         "source": c.source, "notes": c.notes,
         "quickstart": c.quickstart, "doc_url": c.doc_url,
         "context7_id": c.context7_id, "enrich_status": c.enrich_status,
-        "project_id": c.project_id,
+        "project_id": c.project_id, "semantic_group": c.semantic_group,
         "created_at": c.created_at, "updated_at": c.updated_at,
     }
 

@@ -47,6 +47,7 @@ class Concept:
     context7_id: str | None = None
     enrich_status: str | None = None
     project_id: str | None = None
+    semantic_group: str | None = None
     setup_commands: list[str] = field(default_factory=list)
     config_files: list[dict] = field(default_factory=list)
     created_at: str = ""
@@ -69,6 +70,7 @@ class Concept:
             doc_url=row.get("doc_url"), context7_id=row.get("context7_id"),
             enrich_status=row.get("enrich_status"),
             project_id=row.get("project_id"),
+            semantic_group=row.get("semantic_group"),
             setup_commands=setup, config_files=config,
             created_at=row.get("created_at", ""),
             updated_at=row.get("updated_at", ""),

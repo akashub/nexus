@@ -23,6 +23,7 @@ export interface Concept {
   context7_id: string | null;
   enrich_status: string | null;
   project_id: string | null;
+  semantic_group: string | null;
   setup_commands: string[];
   config_files: { path: string; content: string }[];
   created_at: string;

@@ -20,6 +20,7 @@ _UPDATABLE_COLUMNS = frozenset({
     "name", "description", "summary", "category", "tags",
     "source", "embedding", "notes", "quickstart", "doc_url", "context7_id",
     "enrich_status", "project_id", "setup_commands", "config_files",
+    "semantic_group",
 })
 
 

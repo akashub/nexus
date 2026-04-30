@@ -74,12 +74,8 @@ def add_cmd(
 @main.command("connect")
 @click.argument("source")
 @click.argument("target")
-@click.option(
-    "--type", "-t", "rel_type", default="related_to",
-    type=click.Choice(VALID_RELATIONSHIPS),
-    help="Relationship type.",
-)
-@click.option("--description", "-d", default=None, help="Why they're connected.")
+@click.option("--type", "-t", "rel_type", default="related_to", type=click.Choice(VALID_RELATIONSHIPS))
+@click.option("--description", "-d", default=None)
 def connect_cmd(source: str, target: str, rel_type: str, description: str | None) -> None:
     """Create a directed edge: SOURCE -> TARGET."""
     conn = get_connection()
@@ -98,23 +94,16 @@ def connect_cmd(source: str, target: str, rel_type: str, description: str | None
 @click.option("--format", "fmt", type=click.Choice(["table", "json"]), default="table")
 def list_cmd(category: str | None, limit: int, fmt: str) -> None:
     """List all concepts."""
-    import json
-
     conn = get_connection()
-    try:
-        concepts = list_concepts(conn, limit=limit, category=category)
-    finally:
-        conn.close()
+    try: concepts = list_concepts(conn, limit=limit, category=category)
+    finally: conn.close()
     if not concepts:
-        click.echo("No concepts yet. Add one with: nexus add <name>")
-        return
+        click.echo("No concepts yet. Add one with: nexus add <name>"); return
     if fmt == "json":
-        data = [{"name": c.name, "category": c.category, "id": c.id} for c in concepts]
-        click.echo(json.dumps(data, indent=2))
-        return
+        import json
+        click.echo(json.dumps([{"name": c.name, "category": c.category, "id": c.id} for c in concepts], indent=2)); return
     for c in concepts:
-        cat = f" [{c.category}]" if c.category else ""
-        click.echo(f"  {c.name}{cat}")
+        click.echo(f"  {c.name} [{c.category}]" if c.category else f"  {c.name}")
 
 
 @main.command("search")
@@ -124,33 +113,60 @@ def search_cmd(query: str, semantic: bool) -> None:
     """Search concepts by keyword or semantic similarity."""
     conn = get_connection()
     try:
-        if semantic:
+        if not semantic:
+            results = search_fts(conn, query)
+        else:
             from nexus.ai import cosine_similarity, embed
-
             qvec = embed(query)
             if not qvec:
-                click.echo("Embedding model unavailable. Falling back to FTS.")
-                results = search_fts(conn, query)
+                click.echo("Embedding model unavailable. Falling back to FTS."); results = search_fts(conn, query)
             else:
                 all_c = list_concepts(conn, limit=200)
-                scored = sorted(
-                    ((c, cosine_similarity(qvec, c.embedding))
-                     for c in all_c if c.embedding),
-                    key=lambda x: x[1], reverse=True,
-                )
+                scored = sorted(((c, cosine_similarity(qvec, c.embedding)) for c in all_c if c.embedding), key=lambda x: x[1], reverse=True)
                 results = [c for c, s in scored[:10] if s > 0.3]
-        else:
-            results = search_fts(conn, query)
-    finally:
-        conn.close()
+    finally: conn.close()
     if not results:
-        click.echo(f"No results for: {query}")
-        return
+        click.echo(f"No results for: {query}"); return
     click.echo(f"Found {len(results)} result(s):")
     for c in results:
-        cat = f" [{c.category}]" if c.category else ""
-        desc = f" — {c.description[:80]}" if c.description else ""
+        cat, desc = f" [{c.category}]" if c.category else "", f" — {c.description[:80]}" if c.description else ""
         click.echo(f"  {c.name}{cat}{desc}")
+
+
+@main.command("enrich-relationships")
+@click.option("--project", "-p", default=None, help="Project ID to scope inference.")
+@click.option("--verbose", "-v", is_flag=True)
+def enrich_rels_cmd(project: str | None, verbose: bool) -> None:
+    """Infer relationships between concepts using embeddings + AI."""
+    from nexus.db import get_project
+    from nexus.infer import infer_relationships
+    conn = get_connection()
+    try:
+        p_name, p_path = None, None
+        if project:
+            p = get_project(conn, project)
+            if p: p_name, p_path = p.name, p.path
+        stats = infer_relationships(conn, project_id=project, project_name=p_name, project_path=p_path, verbose=verbose)
+        click.echo(f"Done: {stats['inferred']} inferred, {stats['skipped']} skipped, {stats['errors']} errors")
+    finally: conn.close()
+
+
+@main.command("cluster")
+@click.option("--project", "-p", default=None, help="Project ID.")
+@click.option("--verbose", "-v", is_flag=True)
+def cluster_cmd(project: str | None, verbose: bool) -> None:
+    """Assign semantic groups to concepts using AI."""
+    from nexus.cluster import cluster_concepts
+    from nexus.db import get_project
+    conn = get_connection()
+    try:
+        p_name = None
+        if project:
+            p = get_project(conn, project)
+            if p: p_name = p.name
+        stats = cluster_concepts(conn, project_id=project, project_name=p_name, verbose=verbose)
+        click.echo(f"Done: {stats['clustered']} in {stats['groups']} groups")
+    finally: conn.close()
 
 
 main.add_command(ask_cmd)
@@ -167,6 +183,5 @@ main.add_command(project_group)
 def serve_cmd(port: int, host: str) -> None:
     """Start the Nexus API server."""
     import uvicorn
-
     click.echo(f"Starting Nexus server on {host}:{port}")
     uvicorn.run("nexus.server:app", host=host, port=port, reload=False)
