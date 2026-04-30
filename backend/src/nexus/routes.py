@@ -60,7 +60,7 @@ def create_concept_route(body: ConceptCreate, conn: ConnDep, background_tasks: B
     )
     if not body.no_enrich:
         from nexus.enrich import enrich_background
-        background_tasks.add_task(enrich_background, c.id)
+        background_tasks.add_task(enrich_background, c.id, body.source_mode)
     return concept_dict(c)
 
 
@@ -170,9 +170,9 @@ def concept_context_route(concept_id: str, conn: ConnDep):
 
 
 @router.post("/concepts/{concept_id}/enrich")
-def enrich_concept_route(concept_id: str, conn: ConnDep, background_tasks: BackgroundTasks):
+def enrich_concept_route(concept_id: str, conn: ConnDep, background_tasks: BackgroundTasks, mode: str = "auto"):
     if not get_concept(conn, concept_id):
         raise HTTPException(404, f"Concept not found: {concept_id}")
     from nexus.enrich import enrich_background
-    background_tasks.add_task(enrich_background, concept_id)
-    return {"status": "enriching", "concept_id": concept_id}
+    background_tasks.add_task(enrich_background, concept_id, mode)
+    return {"status": "enriching", "concept_id": concept_id, "mode": mode}

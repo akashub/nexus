@@ -65,6 +65,7 @@ class ConceptCreate(BaseModel):
     notes: str | None = Field(default=None, max_length=5000)
     project_id: str | None = None
     no_enrich: bool = False
+    source_mode: str = Field(default="auto", pattern="^(auto|all|context7|pypi|npm|github|libraries)$")
 
 
 class ConceptUpdate(BaseModel):

@@ -37,7 +37,7 @@ def _set_status(conn: sqlite3.Connection, cid: str, status: str | None) -> None:
     update_concept(conn, cid, enrich_status=status)
 
 
-def enrich_concept(conn: sqlite3.Connection, concept_id: str) -> None:
+def enrich_concept(conn: sqlite3.Connection, concept_id: str, mode: str = "auto") -> None:
     if not is_available():
         click.echo("  Ollama not running — skipping enrichment.")
         return
@@ -46,7 +46,7 @@ def enrich_concept(conn: sqlite3.Connection, concept_id: str) -> None:
     if not c:
         return
 
-    click.echo(f"  Enriching {c.name}...")
+    click.echo(f"  Enriching {c.name} (source={mode})...")
 
     _set_status(conn, concept_id, "fetching_context")
     eagle_ctx = _fetch_eagle_mem_context(c.name)
@@ -54,7 +54,7 @@ def enrich_concept(conn: sqlite3.Connection, concept_id: str) -> None:
         click.echo(f"  Eagle Mem context ({len(eagle_ctx)} chars)")
 
     _set_status(conn, concept_id, "fetching_docs")
-    docs_result = fetch_context(c.name)
+    docs_result = fetch_context(c.name, mode=mode)
     fields: dict = {}
 
     if docs_result:
@@ -162,10 +162,10 @@ def _suggest_connections(conn: sqlite3.Connection, concept_id: str) -> None:
         click.echo(f"    {c.name} --[related_to]--> {other.name}  (sim: {sim:.2f})")
 
 
-def enrich_background(concept_id: str) -> None:
+def enrich_background(concept_id: str, mode: str = "auto") -> None:
     conn = get_connection()
     try:
-        enrich_concept(conn, concept_id)
+        enrich_concept(conn, concept_id, mode=mode)
     except Exception:
         log.exception("Background enrichment failed for concept %s", concept_id)
         with contextlib.suppress(Exception):

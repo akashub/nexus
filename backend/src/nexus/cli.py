@@ -51,8 +51,9 @@ def db_init() -> None:
 @click.option("--tags", "-t", default=None, help="Comma-separated tags.")
 @click.option("--notes", "-n", default=None, help="Personal notes.")
 @click.option("--no-enrich", is_flag=True, help="Skip AI enrichment.")
+@click.option("--source", "-s", default="auto", type=click.Choice(["auto", "all", "context7", "pypi", "npm", "github", "libraries"]), help="Doc source.")
 def add_cmd(
-    name: str, category: str | None, tags: str | None, notes: str | None, no_enrich: bool,
+    name: str, category: str | None, tags: str | None, notes: str | None, no_enrich: bool, source: str,
 ) -> None:
     """Add a concept to your knowledge graph."""
     tag_list = [t.strip() for t in tags.split(",")] if tags else None
@@ -65,8 +66,7 @@ def add_cmd(
         click.echo(f"Added: {c.name} ({c.id[:8]})")
         if not no_enrich:
             from nexus.enrich import enrich_concept
-
-            enrich_concept(conn, c.id)
+            enrich_concept(conn, c.id, mode=source)
     finally:
         conn.close()
 
