@@ -6,6 +6,7 @@ import click
 
 from nexus.db import (
     add_project,
+    count_concepts,
     delete_project,
     get_connection,
     get_project,
@@ -37,9 +38,9 @@ def project_list_cmd(fmt: str) -> None:
             click.echo(json.dumps(data, indent=2))
             return
         for p in projects:
-            concepts = list_concepts(conn, project_id=p.id, limit=10000)
+            n = count_concepts(conn, project_id=p.id)
             path = f"  {p.path}" if p.path else ""
-            click.echo(f"  {p.name} ({len(concepts)} concepts){path}")
+            click.echo(f"  {p.name} ({n} concepts){path}")
     finally:
         conn.close()
 
@@ -51,6 +52,8 @@ def project_list_cmd(fmt: str) -> None:
 def project_add_cmd(name: str, path: str | None, description: str | None) -> None:
     """Register a new project."""
     resolved = str(Path(path).resolve()) if path else None
+    if resolved and not Path(resolved).is_dir():
+        raise click.ClickException(f"Directory does not exist: {resolved}")
     conn = get_connection()
     try:
         existing = get_project(conn, name)
@@ -82,20 +85,19 @@ def project_show_cmd(name: str) -> None:
         for c in concepts:
             key = c.category or "uncategorized"
             cats[key] = cats.get(key, 0) + 1
+        click.echo(f"Project: {p.name}")
+        if p.path:
+            click.echo(f"  Path: {p.path}")
+        if p.description:
+            click.echo(f"  Description: {p.description}")
+        click.echo(f"  Concepts: {len(concepts)}")
+        if cats:
+            breakdown = ", ".join(f"{v} {k}" for k, v in sorted(cats.items()))
+            click.echo(f"  Categories: {breakdown}")
+        if p.last_scanned_at:
+            click.echo(f"  Last scanned: {p.last_scanned_at}")
     finally:
         conn.close()
-
-    click.echo(f"Project: {p.name}")
-    if p.path:
-        click.echo(f"  Path: {p.path}")
-    if p.description:
-        click.echo(f"  Description: {p.description}")
-    click.echo(f"  Concepts: {len(concepts)}")
-    if cats:
-        breakdown = ", ".join(f"{v} {k}" for k, v in sorted(cats.items()))
-        click.echo(f"  Categories: {breakdown}")
-    if p.last_scanned_at:
-        click.echo(f"  Last scanned: {p.last_scanned_at}")
 
 
 @project_group.command("remove")

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AddModal from "./components/AddModal";
 import ChatPanel from "./components/ChatPanel";
 import GlobalGraphView from "./components/GlobalGraphView";
@@ -23,6 +23,11 @@ export default function App() {
   const { data: globalGraph } = useGlobalGraph();
   const { data: stats } = useStats();
   const { data: aiStatus } = useOllamaStatus();
+
+  const handleSelectProject = useCallback((id: string) => {
+    const proj = globalGraph?.nodes.find((n) => n.id === id);
+    if (proj) setActiveProject(proj);
+  }, [globalGraph]);
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -113,10 +118,7 @@ export default function App() {
             {activeProject ? (
               <GraphView data={graph} onSelectNode={setSelectedId} selectedId={selectedId} categoryFilter={categoryFilter} />
             ) : (
-              <GlobalGraphView data={globalGraph} onSelectProject={(id) => {
-                const proj = globalGraph?.nodes.find((n) => n.id === id);
-                if (proj) setActiveProject(proj);
-              }} />
+              <GlobalGraphView data={globalGraph} onSelectProject={handleSelectProject} />
             )}
           </main>
 

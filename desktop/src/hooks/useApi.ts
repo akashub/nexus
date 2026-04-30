@@ -111,10 +111,10 @@ export function useSearch(query: string, semantic = false) {
 }
 
 export function useGraph(projectId?: string | null) {
-  const params = projectId ? `?project_id=${projectId}` : "";
   return useQuery({
     queryKey: ["graph", projectId ?? "all"],
-    queryFn: () => apiFetch<GraphData>(`/graph${params}`),
+    queryFn: () => apiFetch<GraphData>(`/graph?project_id=${projectId}`),
+    enabled: !!projectId,
   });
 }
 

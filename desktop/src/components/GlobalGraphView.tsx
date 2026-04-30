@@ -34,6 +34,8 @@ function globalStyles(): cytoscape.StylesheetStyle[] {
 export default function GlobalGraphView({ data, onSelectProject }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
+  const selectRef = useRef(onSelectProject);
+  selectRef.current = onSelectProject;
 
   const buildElements = useCallback((d: GlobalGraphData): cytoscape.ElementDefinition[] => {
     return [
@@ -43,9 +45,9 @@ export default function GlobalGraphView({ data, onSelectProject }: Props) {
           size: 40 + Math.min(n.concept_count, 30) * 2,
         },
       })),
-      ...d.edges.map((e, i) => ({
+      ...d.edges.map((e) => ({
         data: {
-          id: `ge-${i}`, source: e.source_id, target: e.target_id,
+          id: `ge-${e.source_id}-${e.target_id}`, source: e.source_id, target: e.target_id,
           label: `${e.weight} shared`, w: Math.min(1 + e.weight * 0.5, 5),
         },
       })),
@@ -64,7 +66,7 @@ export default function GlobalGraphView({ data, onSelectProject }: Props) {
         minZoom: 0.3, maxZoom: 3,
       });
 
-      cyRef.current.on("tap", "node", (evt) => onSelectProject(evt.target.id()));
+      cyRef.current.on("tap", "node", (evt) => selectRef.current(evt.target.id()));
       cyRef.current.on("mouseover", "node", (evt) => {
         evt.target.addClass("hover");
         containerRef.current!.style.cursor = "pointer";
@@ -82,7 +84,7 @@ export default function GlobalGraphView({ data, onSelectProject }: Props) {
     cy.fit(undefined, 40);
 
     return () => { cyRef.current?.destroy(); cyRef.current = null; };
-  }, [data, buildElements, onSelectProject]);
+  }, [data, buildElements]);
 
   if (!data || data.nodes.length === 0) {
     return (
@@ -97,5 +99,14 @@ export default function GlobalGraphView({ data, onSelectProject }: Props) {
     );
   }
 
-  return <div ref={containerRef} className="w-full h-full" />;
+  return (
+    <div className="relative w-full h-full">
+      <div ref={containerRef} className="w-full h-full" />
+      {data.unassigned_count > 0 && (
+        <div className="absolute bottom-3 left-3 text-[10px] text-gray-600">
+          {data.unassigned_count} unassigned concept{data.unassigned_count !== 1 ? "s" : ""}
+        </div>
+      )}
+    </div>
+  );
 }
