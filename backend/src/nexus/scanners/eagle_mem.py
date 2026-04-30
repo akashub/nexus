@@ -86,13 +86,16 @@ def get_enrichment_context(concept_name: str) -> str | None:
         ("summaries", "decisions"),
         ("claude_memories", "content"),
     ]
+    escaped = (
+        concept_name.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    )
     try:
         for table, col in queries:
             try:
                 rows = conn.execute(
-                    f"SELECT {col} FROM {table} WHERE {col} LIKE ? "  # noqa: S608
+                    f"SELECT {col} FROM {table} WHERE {col} LIKE ? ESCAPE '\\' "  # noqa: S608
                     "ORDER BY rowid DESC LIMIT 5",
-                    (f"%{concept_name}%",),
+                    (f"%{escaped}%",),
                 ).fetchall()
                 for row in rows:
                     if row[0]:
