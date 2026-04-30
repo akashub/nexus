@@ -9,7 +9,7 @@ from nexus.models import Concept, Conversation, Edge
 _UPDATABLE_COLUMNS = frozenset({
     "name", "description", "summary", "category", "tags",
     "source", "embedding", "notes", "quickstart", "doc_url", "context7_id",
-    "enrich_status", "project_id",
+    "enrich_status", "project_id", "setup_commands", "config_files",
 })
 
 
@@ -75,8 +75,9 @@ def update_concept(conn: sqlite3.Connection, cid: str, **fields) -> Concept | No
     fields = {k: v for k, v in fields.items() if k in _UPDATABLE_COLUMNS}
     if not fields:
         return get_concept(conn, cid)
-    if "tags" in fields and isinstance(fields["tags"], list):
-        fields["tags"] = json.dumps(fields["tags"])
+    for key in ("tags", "setup_commands", "config_files"):
+        if key in fields and isinstance(fields[key], list):
+            fields[key] = json.dumps(fields[key])
     sets = ", ".join(f"{k} = ?" for k in fields)
     vals = list(fields.values()) + [cid]
     conn.execute(

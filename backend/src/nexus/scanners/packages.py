@@ -48,6 +48,7 @@ def _scan_single_npm(pkg_file: Path, result: ScanResult) -> None:
             continue
         result.concepts.append(ScannedConcept(
             name=name, source="package_scan", category_hint="framework",
+            setup_command=f"npm install {name}",
         ))
         seen.add(name.lower())
 
@@ -56,7 +57,7 @@ def _scan_single_npm(pkg_file: Path, result: ScanResult) -> None:
             continue
         result.concepts.append(ScannedConcept(
             name=name, source="package_scan", category_hint="devtool",
-            is_dev_dep=True,
+            is_dev_dep=True, setup_command=f"npm install -D {name}",
         ))
         seen.add(name.lower())
 
@@ -150,6 +151,7 @@ def _parse_pyproject(path: Path, result: ScanResult) -> None:
             if name and not name.startswith("#"):
                 result.concepts.append(ScannedConcept(
                     name=name, source="package_scan", category_hint="framework",
+                    setup_command=f"uv add {name}",
                 ))
 
 
@@ -166,4 +168,5 @@ def _parse_requirements(path: Path, result: ScanResult) -> None:
         if name:
             result.concepts.append(ScannedConcept(
                 name=name, source="package_scan", category_hint="framework",
+                setup_command=f"pip install {name}",
             ))

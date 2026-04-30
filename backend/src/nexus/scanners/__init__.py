@@ -10,6 +10,7 @@ class ScannedConcept:
     category_hint: str | None = None
     context: str | None = None
     is_dev_dep: bool = False
+    setup_command: str | None = None
 
 
 @dataclass

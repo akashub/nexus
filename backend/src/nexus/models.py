@@ -47,6 +47,8 @@ class Concept:
     context7_id: str | None = None
     enrich_status: str | None = None
     project_id: str | None = None
+    setup_commands: list[str] = field(default_factory=list)
+    config_files: list[dict] = field(default_factory=list)
     created_at: str = ""
     updated_at: str = ""
 
@@ -54,6 +56,10 @@ class Concept:
     def from_row(cls, row: dict) -> Concept:
         tags_raw = row.get("tags") or "[]"
         tags = json.loads(tags_raw) if isinstance(tags_raw, str) else tags_raw
+        setup_raw = row.get("setup_commands") or "[]"
+        setup = json.loads(setup_raw) if isinstance(setup_raw, str) else setup_raw
+        config_raw = row.get("config_files") or "[]"
+        config = json.loads(config_raw) if isinstance(config_raw, str) else config_raw
         return cls(
             id=row["id"], name=row["name"],
             description=row.get("description"), summary=row.get("summary"),
@@ -63,6 +69,7 @@ class Concept:
             doc_url=row.get("doc_url"), context7_id=row.get("context7_id"),
             enrich_status=row.get("enrich_status"),
             project_id=row.get("project_id"),
+            setup_commands=setup, config_files=config,
             created_at=row.get("created_at", ""),
             updated_at=row.get("updated_at", ""),
         )

@@ -31,14 +31,21 @@ def sync_scan_results(
     stats = {"added": 0, "skipped": 0, "edges_added": 0}
 
     for sc in result.concepts:
+        setup = [sc.setup_command] if sc.setup_command else []
         existing = get_concept_by_name_and_project(conn, sc.name, project.id)
         if existing:
+            if setup and not existing.setup_commands:
+                from nexus.db import update_concept
+                update_concept(conn, existing.id, setup_commands=setup)
             stats["skipped"] += 1
             continue
         global_existing = get_concept(conn, sc.name)
         if global_existing and not global_existing.project_id:
             from nexus.db import update_concept
-            update_concept(conn, global_existing.id, project_id=project.id)
+            update_concept(
+                conn, global_existing.id, project_id=project.id,
+                **({"setup_commands": setup} if setup else {}),
+            )
             stats["skipped"] += 1
             if verbose:
                 click.echo(f"  claimed: {sc.name}")
@@ -48,6 +55,9 @@ def sync_scan_results(
             conn, sc.name, category=sc.category_hint,
             source=sc.source, project_id=project.id,
         )
+        if setup:
+            from nexus.db import update_concept
+            update_concept(conn, c.id, setup_commands=setup)
         stats["added"] += 1
         if verbose:
             click.echo(f"  + {sc.name} ({sc.source})")

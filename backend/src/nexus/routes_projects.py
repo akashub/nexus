@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 from collections import defaultdict
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 
 from nexus.db import (
     add_project,
@@ -86,6 +86,19 @@ def scan_project_route(
 
     background_tasks.add_task(_run_scan)
     return {"status": "scanning", "project_id": project_id}
+
+
+@router.post("/projects/{project_id}/replicate")
+def replicate_project_route(
+    project_id: str, conn: ConnDep, context: str | None = Query(default=None),
+):
+    from nexus.replicate import generate_setup_script, list_installable
+    if not get_project(conn, project_id):
+        raise HTTPException(404, f"Project not found: {project_id}")
+    return {
+        "script": generate_setup_script(conn, project_id, context_query=context),
+        "installable": list_installable(conn, project_id),
+    }
 
 
 @router.get("/graph/global")
