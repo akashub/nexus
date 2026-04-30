@@ -9,6 +9,7 @@ import SearchBar from "./components/SearchBar";
 import SidePanel from "./components/SidePanel";
 import { useGlobalGraph, useGraph, useOllamaStatus, useStats } from "./hooks/useApi";
 import { useBackend } from "./hooks/useBackend";
+import { useTheme } from "./hooks/useTheme";
 import type { Project } from "./types";
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
   const { data: globalGraph } = useGlobalGraph();
   const { data: stats } = useStats();
   const { data: aiStatus } = useOllamaStatus();
+  const { theme, cycle } = useTheme();
 
   const handleSelectProject = useCallback((id: string) => {
     const proj = globalGraph?.nodes.find((n) => n.id === id);
@@ -53,36 +55,41 @@ export default function App() {
 
   if (backendStatus === "connecting") {
     return (
-      <div className="flex items-center justify-center h-screen bg-[#0a0a0b] text-gray-100">
+      <div className="flex items-center justify-center h-screen bg-[var(--nx-bg)] text-[var(--nx-text)]">
         <div className="text-center">
           <Logo size={48} />
-          <p className="text-gray-500 text-sm mt-4">connecting to backend...</p>
-          <p className="text-gray-700 text-xs mt-1">
-            run <code className="text-gray-500 bg-white/[0.04] px-1.5 py-0.5 rounded">nexus serve</code> if not started
+          <p className="text-[var(--nx-text-3)] text-sm mt-4">connecting to backend...</p>
+          <p className="text-[var(--nx-text-4)] text-xs mt-1">
+            run <code className="text-[var(--nx-text-3)] bg-[var(--nx-input)] px-1.5 py-0.5 rounded">nexus serve</code> if not started
           </p>
         </div>
       </div>
     );
   }
 
+  const themeLabel = theme === "dark" ? "dark" : theme === "light" ? "light" : "auto";
+
   return (
-    <div className="flex flex-col h-screen bg-[#0a0a0b] text-gray-100">
-      <header className="flex items-center justify-between px-4 h-10 border-b border-white/[0.06] shrink-0">
+    <div className="flex flex-col h-screen bg-[var(--nx-bg)] text-[var(--nx-text)]">
+      <header className="flex items-center justify-between px-4 h-10 border-b border-[var(--nx-border)] shrink-0">
         <div className="flex items-center gap-2">
           <Logo size={18} />
-          <button onClick={() => { setActiveProject(null); setSelectedId(null); }} className="text-xs tracking-[0.2em] text-gray-400 uppercase hover:text-gray-200 transition-colors">
+          <button onClick={() => { setActiveProject(null); setSelectedId(null); }} className="text-xs tracking-[0.2em] text-[var(--nx-text-2)] uppercase hover:text-[var(--nx-text)] transition-colors">
             nexus
           </button>
           {activeProject && (
             <>
-              <span className="text-xs text-gray-700">/</span>
-              <span className="text-xs text-gray-300">{activeProject.name}</span>
+              <span className="text-xs text-[var(--nx-text-4)]">/</span>
+              <span className="text-xs text-[var(--nx-text)]">{activeProject.name}</span>
             </>
           )}
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-gray-600">
+        <div className="flex items-center gap-3 text-[11px] text-[var(--nx-text-3)]">
+          <button onClick={cycle} className="px-1.5 py-0.5 border border-[var(--nx-border)] rounded hover:bg-[var(--nx-hover)] transition-colors">
+            {themeLabel}
+          </button>
           <div className="flex items-center gap-1.5">
-            <div className={`w-1.5 h-1.5 rounded-full ${aiStatus?.available ? "bg-emerald-500" : "bg-gray-600"}`} />
+            <div className={`w-1.5 h-1.5 rounded-full ${aiStatus?.available ? "bg-emerald-500" : "bg-gray-500"}`} />
             <span>ollama</span>
           </div>
           {stats && <span>{stats.concept_count} nodes &middot; {stats.edge_count} edges</span>}
@@ -91,29 +98,18 @@ export default function App() {
 
       <div className="flex flex-1 overflow-hidden">
         {activeProject && (
-          <LeftSidebar
-            onSelectNode={setSelectedId}
-            selectedId={selectedId}
-            categoryFilter={categoryFilter}
-            onCategoryFilter={setCategoryFilter}
-          />
+          <LeftSidebar onSelectNode={setSelectedId} selectedId={selectedId} categoryFilter={categoryFilter} onCategoryFilter={setCategoryFilter} />
         )}
-
         <div className="flex-1 min-w-0 flex flex-col">
-          <div className="flex items-center gap-2 px-3 py-1.5 border-b border-white/[0.06] shrink-0">
-            <input
-              readOnly
-              onClick={() => setShowSearch(true)}
-              placeholder="search..."
-              className="w-36 px-2 py-1 text-[11px] text-gray-600 bg-white/[0.03] border border-white/[0.06] rounded cursor-pointer hover:bg-white/[0.06] transition-colors"
-            />
-            <span className="text-[10px] text-gray-700 ml-0.5">⌘K</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[var(--nx-border)] shrink-0">
+            <input readOnly onClick={() => setShowSearch(true)} placeholder="search..."
+              className="w-36 px-2 py-1 text-[11px] text-[var(--nx-text-3)] bg-[var(--nx-input)] border border-[var(--nx-border)] rounded cursor-pointer hover:bg-[var(--nx-hover)] transition-colors" />
+            <span className="text-[11px] text-[var(--nx-text-4)] ml-0.5">⌘K</span>
             <Shortcut label="add" keys="⌘N" onClick={() => setShowAdd(true)} />
             <Shortcut label="ask" keys="⌘/" onClick={() => setShowChat((v) => !v)} />
             <div className="flex-1" />
             {activeProject && <Shortcut label="fit" onClick={() => window.dispatchEvent(new CustomEvent("nexus:fit"))} />}
           </div>
-
           <main className="flex-1 relative">
             {activeProject ? (
               <GraphView data={graph} onSelectNode={setSelectedId} selectedId={selectedId} categoryFilter={categoryFilter} />
@@ -121,9 +117,8 @@ export default function App() {
               <GlobalGraphView data={globalGraph} onSelectProject={handleSelectProject} />
             )}
           </main>
-
           {activeProject && (
-            <div className="flex items-center px-3 py-1 border-t border-white/[0.06] shrink-0 text-[10px] text-gray-700">
+            <div className="flex items-center px-3 py-1 border-t border-[var(--nx-border)] shrink-0 text-[11px] text-[var(--nx-text-4)]">
               <div className="flex-1" />
               <div className="flex items-center gap-3">
                 {Object.entries(CATEGORY_COLORS).map(([cat, color]) => (
@@ -136,13 +131,9 @@ export default function App() {
             </div>
           )}
         </div>
-
-        {selectedId && activeProject && (
-          <SidePanel conceptId={selectedId} onClose={() => setSelectedId(null)} onNavigate={setSelectedId} />
-        )}
+        {selectedId && activeProject && <SidePanel conceptId={selectedId} onClose={() => setSelectedId(null)} onNavigate={setSelectedId} />}
         {showChat && !selectedId && <ChatPanel onClose={() => setShowChat(false)} />}
       </div>
-
       {showSearch && <SearchBar onSelect={setSelectedId} onClose={() => setShowSearch(false)} />}
       {showAdd && <AddModal onClose={() => setShowAdd(false)} />}
     </div>
@@ -151,11 +142,9 @@ export default function App() {
 
 function Shortcut({ label, keys, onClick }: { label: string; keys?: string; onClick?: () => void }) {
   return (
-    <button
-      onClick={onClick}
-      className="px-2 py-0.5 text-[10px] text-gray-600 border border-white/[0.08] rounded hover:bg-white/[0.06] hover:text-gray-400 transition-colors"
-    >
-      {keys && <span className="mr-1 text-gray-700">{keys}</span>}
+    <button onClick={onClick}
+      className="px-2 py-0.5 text-[11px] text-[var(--nx-text-3)] border border-[var(--nx-border)] rounded hover:bg-[var(--nx-hover)] hover:text-[var(--nx-text-2)] transition-colors">
+      {keys && <span className="mr-1 text-[var(--nx-text-4)]">{keys}</span>}
       {label}
     </button>
   );

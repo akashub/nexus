@@ -32,21 +32,21 @@ function parseSection(raw: string): SectionData {
 
 function Section({ data }: { data: SectionData }) {
   return (
-    <div className="border border-white/[0.06] rounded-lg p-2.5">
-      {data.title && <h4 className="text-[11px] text-gray-300 font-medium mb-1">{data.title}</h4>}
-      {data.text && <p className="text-[10px] text-gray-500 mb-2 leading-relaxed">{data.text}</p>}
+    <div className="border border-[var(--nx-border)] rounded-lg p-2.5">
+      {data.title && <h4 className="text-xs text-[var(--nx-text)] font-medium mb-1">{data.title}</h4>}
+      {data.text && <p className="text-[11px] text-[var(--nx-text-3)] mb-2 leading-relaxed">{data.text}</p>}
       {data.codeBlocks.map((block, i) => (
         <div key={i} className="relative group mb-1.5 last:mb-0">
-          <pre className="bg-white/[0.03] border border-white/[0.06] rounded px-2.5 py-2 text-[10px] text-gray-400 leading-relaxed overflow-x-auto whitespace-pre-wrap font-mono">
+          <pre className="bg-[var(--nx-input)] border border-[var(--nx-border)] rounded px-2.5 py-2 text-[11px] text-[var(--nx-text-2)] leading-relaxed overflow-x-auto whitespace-pre-wrap font-mono">
             {block.code}</pre>
           <button onClick={() => navigator.clipboard.writeText(block.code)}
-            className="absolute top-1 right-1 px-1.5 py-0.5 text-[9px] text-gray-600 hover:text-gray-300 bg-white/[0.06] rounded opacity-0 group-hover:opacity-100 transition-opacity">
+            className="absolute top-1 right-1 px-1.5 py-0.5 text-[10px] text-[var(--nx-text-4)] hover:text-[var(--nx-text)] bg-[var(--nx-hover)] rounded opacity-0 group-hover:opacity-100 transition-opacity">
             copy</button>
         </div>
       ))}
       {data.source && (
         <a href={data.source} target="_blank" rel="noopener noreferrer"
-          className="block text-[9px] text-gray-700 hover:text-gray-500 mt-1.5 truncate">{data.source}</a>
+          className="block text-[10px] text-[var(--nx-text-4)] hover:text-[var(--nx-text-3)] mt-1.5 truncate">{data.source}</a>
       )}
     </div>
   );

@@ -2,18 +2,13 @@ import cytoscape from "cytoscape";
 import { forceCenter, forceCollide, forceLink, forceManyBody, forceSimulation, type SimulationNodeDatum } from "d3-force";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDeleteConcept, useEnrichConcept } from "../hooks/useApi";
+import { useTheme } from "../hooks/useTheme";
 import { slugify } from "../types";
 import type { GraphData } from "../types";
 import { graphStyles } from "./graphStyles";
 export { CATEGORY_COLORS } from "./graphStyles";
 
-interface Props {
-  data: GraphData | undefined;
-  onSelectNode: (id: string | null) => void;
-  selectedId: string | null;
-  categoryFilter: string | null;
-}
-
+interface Props { data: GraphData | undefined; onSelectNode: (id: string | null) => void; selectedId: string | null; categoryFilter: string | null; }
 interface SimNode extends SimulationNodeDatum { id: string }
 
 function structuralHash(d: GraphData, filter: string | null): string {
@@ -31,6 +26,8 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
   const deleteConcept = useDeleteConcept();
   const enrich = useEnrichConcept();
+  const { resolved } = useTheme();
+  const isDark = resolved === "dark";
 
   const buildElements = useCallback((d: GraphData): cytoscape.ElementDefinition[] => {
     const nodes = categoryFilter ? d.nodes.filter((n) => n.category === categoryFilter) : d.nodes;
@@ -64,21 +61,22 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
   }, []);
 
   useEffect(() => {
+    if (cyRef.current) cyRef.current.style().fromJson(graphStyles(isDark)).update();
+  }, [isDark]);
+
+  useEffect(() => {
     if (!containerRef.current || !data) return;
     const hash = structuralHash(data, categoryFilter);
-
     if (hash !== lastStructHash.current || !cyRef.current) {
       lastStructHash.current = hash;
       if (simRef.current) simRef.current.stop();
       if (fitHandlerRef.current) window.removeEventListener("nexus:fit", fitHandlerRef.current);
       if (cyRef.current) cyRef.current.destroy();
-
       const cy = cytoscape({
         container: containerRef.current, elements: buildElements(data),
-        style: graphStyles(), layout: { name: "preset" },
+        style: graphStyles(isDark), layout: { name: "preset" },
         minZoom: 0.3, maxZoom: 3, wheelSensitivity: 0.3,
       });
-
       const w = containerRef.current.clientWidth, h = containerRef.current.clientHeight;
       const filtered = categoryFilter ? data.nodes.filter((n) => n.category === categoryFilter) : data.nodes;
       const nIds = new Set(filtered.map((n) => n.id));
@@ -89,7 +87,6 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
         .map((e) => ({ source: e.source_id, target: e.target_id }));
       const nodeMap = new Map(simNodes.map((n) => [n.id, n]));
       let fitted = false;
-
       const sim = forceSimulation(simNodes)
         .force("charge", forceManyBody().strength(-120))
         .force("link", forceLink(simLinks).id((d: any) => d.id).distance(80).strength(0.3))
@@ -100,62 +97,39 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
           cy.batch(() => simNodes.forEach((sn) => {
             if (sn.x != null && sn.y != null) cy.getElementById(sn.id).position({ x: sn.x, y: sn.y });
           }));
-          if (!fitted && sim.alpha() < 0.05) {
-            cy.animate({ fit: { eles: cy.elements(), padding: 60 }, duration: 600 });
-            fitted = true;
-          }
+          if (!fitted && sim.alpha() < 0.05) { cy.animate({ fit: { eles: cy.elements(), padding: 60 }, duration: 600 }); fitted = true; }
         });
-
       cy.on("tap", "node", (evt) => onSelectNode(evt.target.id()));
       cy.on("tap", (evt) => { if (evt.target === cy) onSelectNode(null); });
       cy.on("dbltap", "node", (evt) => window.dispatchEvent(new CustomEvent("nexus:edit", { detail: evt.target.id() })));
       cy.on("mouseover", "node", (evt) => {
         const n = evt.target;
-        cy.elements().not(n.closedNeighborhood()).addClass("dimmed");
-        n.addClass("hover");
+        cy.elements().not(n.closedNeighborhood()).addClass("dimmed"); n.addClass("hover");
         const summary = n.data("summary");
         if (summary) { const pos = n.renderedPosition(); setTooltip({ x: pos.x, y: pos.y - 30, text: summary }); }
       });
       cy.on("mouseout", "node", () => { cy.elements().removeClass("dimmed hover"); setTooltip(null); });
       cy.on("cxttap", "node", (evt) => {
         evt.originalEvent.preventDefault();
-        const pos = evt.target.renderedPosition();
-        setCtxMenu({ x: pos.x, y: pos.y, nodeId: evt.target.id() });
+        const pos = evt.target.renderedPosition(); setCtxMenu({ x: pos.x, y: pos.y, nodeId: evt.target.id() });
       });
       cy.on("tap", () => setCtxMenu(null));
       cy.on("grab", "node", (evt) => {
         sim.alphaTarget(0.3).restart();
-        const sn = nodeMap.get(evt.target.id());
-        if (sn) { sn.fx = evt.target.position().x; sn.fy = evt.target.position().y; }
+        const sn = nodeMap.get(evt.target.id()); if (sn) { sn.fx = evt.target.position().x; sn.fy = evt.target.position().y; }
       });
-      cy.on("drag", "node", (evt) => {
-        const sn = nodeMap.get(evt.target.id());
-        if (sn) { sn.fx = evt.target.position().x; sn.fy = evt.target.position().y; }
-      });
-      cy.on("free", "node", (evt) => {
-        sim.alphaTarget(0);
-        const sn = nodeMap.get(evt.target.id());
-        if (sn) { sn.fx = null; sn.fy = null; }
-      });
-
+      cy.on("drag", "node", (evt) => { const sn = nodeMap.get(evt.target.id()); if (sn) { sn.fx = evt.target.position().x; sn.fy = evt.target.position().y; } });
+      cy.on("free", "node", (evt) => { sim.alphaTarget(0); const sn = nodeMap.get(evt.target.id()); if (sn) { sn.fx = null; sn.fy = null; } });
       const fitHandler = () => cy.animate({ fit: { eles: cy.elements(), padding: 50 }, duration: 400 });
       window.addEventListener("nexus:fit", fitHandler);
-      fitHandlerRef.current = fitHandler;
-      simRef.current = sim;
-      cyRef.current = cy;
+      fitHandlerRef.current = fitHandler; simRef.current = sim; cyRef.current = cy;
     }
-
     const cy = cyRef.current;
     for (const n of data.nodes) {
       const node = cy.getElementById(n.id);
-      if (node.length) {
-        node.data("category", n.category);
-        node.data("summary", n.summary || n.description || "");
-        node.data("label", slugify(n.name));
-        node.data("enriching", !!n.enrich_status);
-      }
+      if (node.length) { node.data("category", n.category); node.data("summary", n.summary || n.description || ""); node.data("label", slugify(n.name)); node.data("enriching", !!n.enrich_status); }
     }
-  }, [data, onSelectNode, buildElements, categoryFilter]);
+  }, [data, onSelectNode, buildElements, categoryFilter, isDark]);
 
   useEffect(() => {
     const cy = cyRef.current; if (!cy) return; cy.nodes().unselect();
@@ -165,10 +139,10 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
   return (
     <div className="relative w-full h-full">
       <div ref={containerRef} className="w-full h-full" />
-      {tooltip && <div className="absolute pointer-events-none px-2 py-1 bg-[#1a1a1c] border border-white/[0.1] rounded text-[10px] text-gray-400 max-w-[200px] truncate z-10"
+      {tooltip && <div className="absolute pointer-events-none px-2 py-1 bg-[var(--nx-surface)] border border-[var(--nx-border-strong)] rounded text-[11px] text-[var(--nx-text-2)] max-w-[200px] truncate z-10"
         style={{ left: tooltip.x, top: tooltip.y, transform: "translate(-50%, -100%)" }}>{tooltip.text}</div>}
       {ctxMenu && (
-        <div className="absolute z-20 bg-[#1a1a1c] border border-white/[0.1] rounded-lg shadow-lg py-1 min-w-[120px]"
+        <div className="absolute z-20 bg-[var(--nx-surface)] border border-[var(--nx-border-strong)] rounded-lg shadow-lg py-1 min-w-[120px]"
           style={{ left: ctxMenu.x, top: ctxMenu.y }}>
           {[
             { label: "enrich", action: () => { enrich.mutate(ctxMenu.nodeId); onSelectNode(ctxMenu.nodeId); setCtxMenu(null); } },
@@ -176,7 +150,7 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
             { label: "delete", action: () => { deleteConcept.mutate(ctxMenu.nodeId); onSelectNode(null); setCtxMenu(null); } },
           ].map((item) => (
             <button key={item.label} onClick={item.action}
-              className={`block w-full text-left px-3 py-1.5 text-[11px] hover:bg-white/[0.06] ${item.label === "delete" ? "text-red-400/80" : "text-gray-400"}`}>
+              className={`block w-full text-left px-3 py-1.5 text-xs hover:bg-[var(--nx-hover)] ${item.label === "delete" ? "text-red-400" : "text-[var(--nx-text-2)]"}`}>
               {item.label}
             </button>
           ))}
@@ -191,5 +165,5 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
 }
 
 const FabBtn = ({ label, onClick }: { label: string; onClick: () => void }) => (
-  <button onClick={onClick} className="w-8 h-8 border border-white/[0.1] rounded-md bg-[#0a0a0b]/80 text-gray-500 hover:text-gray-300 hover:border-white/[0.15] text-sm transition-colors">{label}</button>
+  <button onClick={onClick} className="w-8 h-8 border border-[var(--nx-border-strong)] rounded-md bg-[var(--nx-bg)] text-[var(--nx-text-3)] hover:text-[var(--nx-text)] hover:border-[var(--nx-border-strong)] text-sm transition-colors">{label}</button>
 );

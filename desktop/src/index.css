@@ -1,31 +1,55 @@
 @import "tailwindcss";
 
+:root {
+  --nx-bg: #0a0a0b;
+  --nx-surface: #111113;
+  --nx-input: rgba(255,255,255,0.05);
+  --nx-hover: rgba(255,255,255,0.07);
+  --nx-overlay: rgba(0,0,0,0.8);
+  --nx-border: rgba(255,255,255,0.08);
+  --nx-border-strong: rgba(255,255,255,0.14);
+  --nx-text: #e2e8f0;
+  --nx-text-2: #b0bec5;
+  --nx-text-3: #78909c;
+  --nx-text-4: #546e7a;
+  --nx-accent: #60a5fa;
+  --nx-accent-bg: rgba(96,165,250,0.12);
+  --nx-selection: rgba(96,165,250,0.25);
+  --nx-scrollbar: rgba(255,255,255,0.08);
+  --nx-scrollbar-hover: rgba(255,255,255,0.14);
+}
+
+[data-theme="light"] {
+  --nx-bg: #fafafa;
+  --nx-surface: #ffffff;
+  --nx-input: rgba(0,0,0,0.04);
+  --nx-hover: rgba(0,0,0,0.05);
+  --nx-overlay: rgba(0,0,0,0.4);
+  --nx-border: rgba(0,0,0,0.1);
+  --nx-border-strong: rgba(0,0,0,0.18);
+  --nx-text: #1e293b;
+  --nx-text-2: #475569;
+  --nx-text-3: #64748b;
+  --nx-text-4: #94a3b8;
+  --nx-accent: #3b82f6;
+  --nx-accent-bg: rgba(59,130,246,0.08);
+  --nx-selection: rgba(59,130,246,0.2);
+  --nx-scrollbar: rgba(0,0,0,0.08);
+  --nx-scrollbar-hover: rgba(0,0,0,0.14);
+}
+
 body {
   margin: 0;
-  background: #0a0a0b;
-  color: #e5e7eb;
+  background: var(--nx-bg);
+  color: var(--nx-text);
   font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', 'Menlo', monospace;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
-::selection {
-  background: rgba(96, 165, 250, 0.25);
-}
+::selection { background: var(--nx-selection); }
 
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.14);
-}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--nx-scrollbar); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--nx-scrollbar-hover); }
