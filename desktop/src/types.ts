@@ -1,3 +1,14 @@
+export interface Project {
+  id: string;
+  name: string;
+  path: string | null;
+  description: string | null;
+  last_scanned_at: string | null;
+  concept_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Concept {
   id: string;
   name: string;
@@ -11,6 +22,9 @@ export interface Concept {
   doc_url: string | null;
   context7_id: string | null;
   enrich_status: string | null;
+  project_id: string | null;
+  setup_commands: string[];
+  config_files: { path: string; content: string }[];
   created_at: string;
   updated_at: string;
 }
@@ -30,10 +44,17 @@ export interface GraphData {
   edges: Edge[];
 }
 
+export interface GlobalGraphData {
+  nodes: (Project & { concept_count: number })[];
+  edges: { source_id: string; target_id: string; weight: number; relationship: string }[];
+  unassigned_count: number;
+}
+
 export interface Stats {
   concept_count: number;
   edge_count: number;
   categories: Record<string, number>;
+  project_count: number;
 }
 
 export interface Conversation {
@@ -49,6 +70,7 @@ export interface ConceptCreate {
   tags?: string[];
   notes?: string;
   no_enrich?: boolean;
+  project_id?: string;
 }
 
 export interface EdgeCreate {

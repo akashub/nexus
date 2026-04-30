@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import AddModal from "./components/AddModal";
 import ChatPanel from "./components/ChatPanel";
+import GlobalGraphView from "./components/GlobalGraphView";
 import GraphView, { CATEGORY_COLORS } from "./components/GraphView";
 import LeftSidebar from "./components/LeftSidebar";
 import Logo from "./components/Logo";
 import SearchBar from "./components/SearchBar";
 import SidePanel from "./components/SidePanel";
-import { useGraph, useOllamaStatus, useStats } from "./hooks/useApi";
+import { useGlobalGraph, useGraph, useOllamaStatus, useStats } from "./hooks/useApi";
 import { useBackend } from "./hooks/useBackend";
+import type { Project } from "./types";
 
 export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -15,8 +17,10 @@ export default function App() {
   const [showAdd, setShowAdd] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [activeProject, setActiveProject] = useState<Project | null>(null);
   const backendStatus = useBackend();
-  const { data: graph } = useGraph();
+  const { data: graph } = useGraph(activeProject?.id);
+  const { data: globalGraph } = useGlobalGraph();
   const { data: stats } = useStats();
   const { data: aiStatus } = useOllamaStatus();
 
@@ -61,7 +65,15 @@ export default function App() {
       <header className="flex items-center justify-between px-4 h-10 border-b border-white/[0.06] shrink-0">
         <div className="flex items-center gap-2">
           <Logo size={18} />
-          <span className="text-xs tracking-[0.2em] text-gray-400 uppercase">nexus</span>
+          <button onClick={() => { setActiveProject(null); setSelectedId(null); }} className="text-xs tracking-[0.2em] text-gray-400 uppercase hover:text-gray-200 transition-colors">
+            nexus
+          </button>
+          {activeProject && (
+            <>
+              <span className="text-xs text-gray-700">/</span>
+              <span className="text-xs text-gray-300">{activeProject.name}</span>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-3 text-[11px] text-gray-600">
           <div className="flex items-center gap-1.5">
@@ -73,12 +85,14 @@ export default function App() {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <LeftSidebar
-          onSelectNode={setSelectedId}
-          selectedId={selectedId}
-          categoryFilter={categoryFilter}
-          onCategoryFilter={setCategoryFilter}
-        />
+        {activeProject && (
+          <LeftSidebar
+            onSelectNode={setSelectedId}
+            selectedId={selectedId}
+            categoryFilter={categoryFilter}
+            onCategoryFilter={setCategoryFilter}
+          />
+        )}
 
         <div className="flex-1 min-w-0 flex flex-col">
           <div className="flex items-center gap-2 px-3 py-1.5 border-b border-white/[0.06] shrink-0">
@@ -92,27 +106,36 @@ export default function App() {
             <Shortcut label="add" keys="⌘N" onClick={() => setShowAdd(true)} />
             <Shortcut label="ask" keys="⌘/" onClick={() => setShowChat((v) => !v)} />
             <div className="flex-1" />
-            <Shortcut label="fit" onClick={() => window.dispatchEvent(new CustomEvent("nexus:fit"))} />
+            {activeProject && <Shortcut label="fit" onClick={() => window.dispatchEvent(new CustomEvent("nexus:fit"))} />}
           </div>
 
           <main className="flex-1 relative">
-            <GraphView data={graph} onSelectNode={setSelectedId} selectedId={selectedId} categoryFilter={categoryFilter} />
+            {activeProject ? (
+              <GraphView data={graph} onSelectNode={setSelectedId} selectedId={selectedId} categoryFilter={categoryFilter} />
+            ) : (
+              <GlobalGraphView data={globalGraph} onSelectProject={(id) => {
+                const proj = globalGraph?.nodes.find((n) => n.id === id);
+                if (proj) setActiveProject(proj);
+              }} />
+            )}
           </main>
 
-          <div className="flex items-center px-3 py-1 border-t border-white/[0.06] shrink-0 text-[10px] text-gray-700">
-            <div className="flex-1" />
-            <div className="flex items-center gap-3">
-              {Object.entries(CATEGORY_COLORS).map(([cat, color]) => (
-                <div key={cat} className="flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-                  <span>{cat}</span>
-                </div>
-              ))}
+          {activeProject && (
+            <div className="flex items-center px-3 py-1 border-t border-white/[0.06] shrink-0 text-[10px] text-gray-700">
+              <div className="flex-1" />
+              <div className="flex items-center gap-3">
+                {Object.entries(CATEGORY_COLORS).map(([cat, color]) => (
+                  <div key={cat} className="flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+                    <span>{cat}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
-        {selectedId && (
+        {selectedId && activeProject && (
           <SidePanel conceptId={selectedId} onClose={() => setSelectedId(null)} onNavigate={setSelectedId} />
         )}
         {showChat && !selectedId && <ChatPanel onClose={() => setShowChat(false)} />}

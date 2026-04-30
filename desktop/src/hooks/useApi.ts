@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Concept, ConceptCreate, Conversation, Edge, EdgeCreate, GraphData, Stats } from "../types";
+import type { Concept, ConceptCreate, Conversation, Edge, EdgeCreate, GlobalGraphData, GraphData, Project, Stats } from "../types";
 
 export const API = "http://127.0.0.1:7777/api";
 
@@ -110,10 +110,38 @@ export function useSearch(query: string, semantic = false) {
   });
 }
 
-export function useGraph() {
+export function useGraph(projectId?: string | null) {
+  const params = projectId ? `?project_id=${projectId}` : "";
   return useQuery({
-    queryKey: ["graph"],
-    queryFn: () => apiFetch<GraphData>("/graph"),
+    queryKey: ["graph", projectId ?? "all"],
+    queryFn: () => apiFetch<GraphData>(`/graph${params}`),
+  });
+}
+
+export function useGlobalGraph() {
+  return useQuery({
+    queryKey: ["graph", "global"],
+    queryFn: () => apiFetch<GlobalGraphData>("/graph/global"),
+  });
+}
+
+export function useProjects() {
+  return useQuery({
+    queryKey: ["projects"],
+    queryFn: () => apiFetch<Project[]>("/projects"),
+  });
+}
+
+export function useScanProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (projectId: string) =>
+      apiFetch<{ status: string }>(`/projects/${projectId}/scan`, { method: "POST" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["graph"] });
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["concepts"] });
+    },
   });
 }
 
