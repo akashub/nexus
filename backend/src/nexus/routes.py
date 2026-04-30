@@ -3,11 +3,9 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
-from fastapi.responses import StreamingResponse
 
 from nexus.db import (
     add_concept,
-    add_conversation,
     add_edge,
     count_edges,
     delete_concept,
@@ -17,11 +15,10 @@ from nexus.db import (
     get_edges,
     list_concepts,
     list_conversations,
-    search_fts,
+    list_projects,
     update_concept,
 )
 from nexus.server import (
-    AskRequest,
     ConceptCreate,
     ConceptUpdate,
     ConnDep,
@@ -38,8 +35,10 @@ router = APIRouter()
 @router.get("/concepts")
 def list_concepts_route(
     conn: ConnDep, category: str | None = None, limit: int = Query(default=100, ge=1, le=1000),
+    project_id: str | None = None,
 ):
-    return [concept_dict(c) for c in list_concepts(conn, limit=limit, category=category)]
+    concepts = list_concepts(conn, limit=limit, category=category, project_id=project_id)
+    return [concept_dict(c) for c in concepts]
 
 
 @router.get("/concepts/{concept_id}")
@@ -55,7 +54,10 @@ def create_concept_route(body: ConceptCreate, conn: ConnDep, background_tasks: B
     existing = get_concept(conn, body.name)
     if existing:
         raise HTTPException(409, f"Concept already exists: {body.name}")
-    c = add_concept(conn, body.name, category=body.category, tags=body.tags, notes=body.notes)
+    c = add_concept(
+        conn, body.name, category=body.category, tags=body.tags,
+        notes=body.notes, project_id=body.project_id,
+    )
     if not body.no_enrich:
         from nexus.enrich import enrich_background
         background_tasks.add_task(enrich_background, c.id)
@@ -104,54 +106,6 @@ def delete_edge_route(edge_id: str, conn: ConnDep):
     return {"deleted": edge_id}
 
 
-@router.get("/search")
-def search_route(conn: ConnDep, q: str = Query(max_length=500), semantic: bool = False):
-    if semantic:
-        from nexus.ai import cosine_similarity, embed
-        qvec = embed(q)
-        if qvec:
-            scored = [
-                (c, cosine_similarity(qvec, c.embedding))
-                for c in list_concepts(conn, limit=200) if c.embedding
-            ]
-            scored.sort(key=lambda x: x[1], reverse=True)
-            return [concept_dict(c) for c, s in scored[:10] if s > 0.3]
-    return [concept_dict(c) for c in search_fts(conn, q)]
-
-
-@router.post("/ask")
-def ask_route(body: AskRequest, conn: ConnDep):
-    from nexus.ai import generate_stream, is_available
-    if not is_available():
-        raise HTTPException(503, "Ollama is not running")
-    related = search_fts(conn, body.question)[:5]
-    ctx = "\n".join(
-        f"- {c.name}: {c.description}" if c.description else f"- {c.name}"
-        for c in related
-    ) or "No relevant concepts found."
-    prompt = (
-        f"Knowledge graph context:\n{ctx}\n\n"
-        f"Question: {body.question}\n\nAnswer using the context above."
-    )
-    concept_ids = [c.id for c in related]
-
-    def stream():
-        chunks = []
-        try:
-            for token in generate_stream(prompt):
-                chunks.append(token)
-                yield token
-        except Exception:
-            log.exception("AI generation failed for question: %.100s", body.question)
-            return
-        try:
-            add_conversation(conn, body.question, "".join(chunks), concept_ids)
-        except Exception:
-            log.exception("Failed to save conversation for question: %.100s", body.question)
-
-    return StreamingResponse(stream(), media_type="text/plain")
-
-
 @router.get("/conversations")
 def list_conversations_route(conn: ConnDep, limit: int = Query(default=20, ge=1, le=100)):
     return [{"id": c.id, "question": c.question, "answer": c.answer,
@@ -159,19 +113,28 @@ def list_conversations_route(conn: ConnDep, limit: int = Query(default=20, ge=1,
 
 
 @router.get("/graph")
-def graph_route(conn: ConnDep):
-    nodes = [concept_dict(c) for c in list_concepts(conn, limit=500)]
-    return {"nodes": nodes, "edges": [edge_dict(e) for e in get_all_edges(conn)]}
+def graph_route(conn: ConnDep, project_id: str | None = None):
+    concepts = list_concepts(conn, limit=500, project_id=project_id)
+    nodes = [concept_dict(c) for c in concepts]
+    node_ids = {c.id for c in concepts}
+    edges = [
+        edge_dict(e) for e in get_all_edges(conn)
+        if e.source_id in node_ids and e.target_id in node_ids
+    ]
+    return {"nodes": nodes, "edges": edges}
 
 
 @router.get("/stats")
-def stats_route(conn: ConnDep):
-    concepts = list_concepts(conn, limit=10000)
+def stats_route(conn: ConnDep, project_id: str | None = None):
+    concepts = list_concepts(conn, limit=10000, project_id=project_id)
     cats: dict[str, int] = {}
     for c in concepts:
         key = c.category or "uncategorized"
         cats[key] = cats.get(key, 0) + 1
-    return {"concept_count": len(concepts), "edge_count": count_edges(conn), "categories": cats}
+    return {
+        "concept_count": len(concepts), "edge_count": count_edges(conn),
+        "categories": cats, "project_count": len(list_projects(conn)),
+    }
 
 
 @router.post("/concepts/{concept_id}/enrich")
@@ -181,9 +144,3 @@ def enrich_concept_route(concept_id: str, conn: ConnDep, background_tasks: Backg
     from nexus.enrich import enrich_background
     background_tasks.add_task(enrich_background, concept_id)
     return {"status": "enriching", "concept_id": concept_id}
-
-
-@router.get("/ai/status")
-def ai_status_route():
-    from nexus.ai import is_available
-    return {"available": is_available()}

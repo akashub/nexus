@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from nexus.db import get_connection, init_db
-from nexus.models import Concept, Edge
+from nexus.models import Concept, Edge, Project
 
 
 @asynccontextmanager
@@ -46,11 +46,24 @@ def _get_conn():
 ConnDep = Annotated[sqlite3.Connection, Depends(_get_conn)]
 
 
+class ProjectCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    path: str | None = Field(default=None, max_length=500)
+    description: str | None = Field(default=None, max_length=2000)
+
+
+class ProjectUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    path: str | None = Field(default=None, max_length=500)
+    description: str | None = Field(default=None, max_length=2000)
+
+
 class ConceptCreate(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     category: str | None = Field(default=None, max_length=50)
     tags: list[str] | None = Field(default=None, max_length=50)
     notes: str | None = Field(default=None, max_length=5000)
+    project_id: str | None = None
     no_enrich: bool = False
 
 
@@ -73,6 +86,14 @@ class AskRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
 
 
+def project_dict(p: Project) -> dict:
+    return {
+        "id": p.id, "name": p.name, "path": p.path,
+        "description": p.description, "last_scanned_at": p.last_scanned_at,
+        "created_at": p.created_at, "updated_at": p.updated_at,
+    }
+
+
 def concept_dict(c: Concept) -> dict:
     return {
         "id": c.id, "name": c.name, "description": c.description,
@@ -80,6 +101,7 @@ def concept_dict(c: Concept) -> dict:
         "source": c.source, "notes": c.notes,
         "quickstart": c.quickstart, "doc_url": c.doc_url,
         "context7_id": c.context7_id, "enrich_status": c.enrich_status,
+        "project_id": c.project_id,
         "created_at": c.created_at, "updated_at": c.updated_at,
     }
 
@@ -93,5 +115,9 @@ def edge_dict(e: Edge) -> dict:
 
 
 from nexus.routes import router  # noqa: E402
+from nexus.routes_ai import router as ai_router  # noqa: E402
+from nexus.routes_projects import router as projects_router  # noqa: E402
 
 app.include_router(router, prefix="/api")
+app.include_router(ai_router, prefix="/api")
+app.include_router(projects_router, prefix="/api")

@@ -3,14 +3,14 @@ from __future__ import annotations
 import click
 
 from nexus.cli_ask import ask_cmd
+from nexus.cli_concept import remove_cmd, show_cmd
+from nexus.cli_scan import scan_cmd
 from nexus.db import (
     DB_PATH,
     add_concept,
     add_edge,
-    delete_concept,
     get_concept,
     get_connection,
-    get_edges,
     init_db,
     list_concepts,
     search_fts,
@@ -152,6 +152,10 @@ def search_cmd(query: str, semantic: bool) -> None:
 
 
 main.add_command(ask_cmd)
+main.add_command(scan_cmd)
+main.add_command(show_cmd)
+main.add_command(remove_cmd)
+
 
 @main.command("serve")
 @click.option("--port", "-p", default=7777, help="Port number.")
@@ -162,39 +166,3 @@ def serve_cmd(port: int, host: str) -> None:
 
     click.echo(f"Starting Nexus server on {host}:{port}")
     uvicorn.run("nexus.server:app", host=host, port=port, reload=False)
-
-
-@main.command("show")
-@click.argument("name")
-def show_cmd(name: str) -> None:
-    """Show full details for a concept."""
-    from nexus.display import print_concept_detail
-
-    conn = get_connection()
-    try:
-        c = _require_concept(conn, name)
-        edges = get_edges(conn, c.id)
-        print_concept_detail(conn, c, edges)
-    finally:
-        conn.close()
-
-
-@main.command("remove")
-@click.argument("name")
-@click.option("--yes", "-y", is_flag=True, help="Skip confirmation.")
-def remove_cmd(name: str, yes: bool) -> None:
-    """Remove a concept and its edges."""
-    conn = get_connection()
-    try:
-        c = _require_concept(conn, name)
-        edges = get_edges(conn, c.id)
-        if not yes:
-            msg = f"Delete '{c.name}'"
-            if edges:
-                msg += f" and {len(edges)} edge(s)"
-            msg += "?"
-            click.confirm(msg, abort=True)
-        delete_concept(conn, c.id)
-        click.echo(f"Removed: {c.name}")
-    finally:
-        conn.close()

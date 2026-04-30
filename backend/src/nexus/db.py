@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import json
 import sqlite3
 import uuid
 from pathlib import Path
 
-from nexus.models import Concept, Conversation, Edge
+from nexus.models import Project
 
 DB_DIR = Path.home() / ".nexus"
 DB_PATH = DB_DIR / "nexus.db"
@@ -48,150 +47,83 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
         if sql_file.name in applied:
             continue
         script = sql_file.read_text()
-        script += f"\nINSERT INTO _migrations (name) VALUES ('{sql_file.name}');\n"
         conn.executescript(script)
+        conn.execute("INSERT INTO _migrations (name) VALUES (?)", (sql_file.name,))
+        conn.commit()
 
 
-def add_concept(
-    conn: sqlite3.Connection, name: str, *, description: str | None = None,
-    summary: str | None = None, category: str | None = None,
-    tags: list[str] | None = None, source: str = "manual",
-    embedding: bytes | None = None, notes: str | None = None,
-) -> Concept:
-    cid = str(uuid.uuid4())
-    tags_json = json.dumps(tags or [])
+# --- Project CRUD ---
+
+def add_project(
+    conn: sqlite3.Connection, name: str, *, path: str | None = None,
+    description: str | None = None,
+) -> Project:
+    pid = str(uuid.uuid4())
     conn.execute(
-        "INSERT INTO concepts (id, name, description, summary, category, tags, "
-        "source, embedding, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (cid, name, description, summary, category, tags_json, source, embedding, notes),
+        "INSERT INTO projects (id, name, path, description) VALUES (?, ?, ?, ?)",
+        (pid, name, path, description),
     )
     conn.commit()
-    return get_concept(conn, cid)
+    return get_project(conn, pid)
 
 
-def get_concept(conn: sqlite3.Connection, id_or_name: str) -> Concept | None:
+def get_project(conn: sqlite3.Connection, id_or_name: str) -> Project | None:
     row = conn.execute(
-        "SELECT * FROM concepts WHERE id = ? OR name = ? COLLATE NOCASE",
+        "SELECT * FROM projects WHERE id = ? OR name = ? COLLATE NOCASE",
         (id_or_name, id_or_name),
     ).fetchone()
-    return Concept.from_row(dict(row)) if row else None
+    return Project.from_row(dict(row)) if row else None
 
 
-def list_concepts(
-    conn: sqlite3.Connection, *, limit: int = 100, category: str | None = None,
-) -> list[Concept]:
-    query = "SELECT * FROM concepts"
-    params: list = []
-    if category:
-        query += " WHERE category = ?"
-        params.append(category)
-    query += " ORDER BY created_at DESC LIMIT ?"
-    params.append(limit)
-    rows = conn.execute(query, params).fetchall()
-    return [Concept.from_row(dict(r)) for r in rows]
+def get_project_by_path(conn: sqlite3.Connection, path: str) -> Project | None:
+    row = conn.execute(
+        "SELECT * FROM projects WHERE path = ?", (path,),
+    ).fetchone()
+    return Project.from_row(dict(row)) if row else None
 
 
-_UPDATABLE_COLUMNS = frozenset({
-    "name", "description", "summary", "category", "tags",
-    "source", "embedding", "notes", "quickstart", "doc_url", "context7_id", "enrich_status",
-})
+def list_projects(conn: sqlite3.Connection) -> list[Project]:
+    rows = conn.execute(
+        "SELECT * FROM projects ORDER BY updated_at DESC",
+    ).fetchall()
+    return [Project.from_row(dict(r)) for r in rows]
 
 
-def update_concept(conn: sqlite3.Connection, cid: str, **fields) -> Concept | None:
-    fields = {k: v for k, v in fields.items() if k in _UPDATABLE_COLUMNS}
+def update_project(conn: sqlite3.Connection, pid: str, **fields) -> Project | None:
+    allowed = {"name", "path", "description", "last_scanned_at"}
+    fields = {k: v for k, v in fields.items() if k in allowed}
     if not fields:
-        return get_concept(conn, cid)
-    if "tags" in fields and isinstance(fields["tags"], list):
-        fields["tags"] = json.dumps(fields["tags"])
+        return get_project(conn, pid)
     sets = ", ".join(f"{k} = ?" for k in fields)
-    vals = list(fields.values()) + [cid]
+    vals = list(fields.values()) + [pid]
     conn.execute(
-        f"UPDATE concepts SET {sets}, updated_at = datetime('now') WHERE id = ?",
-        vals,
+        f"UPDATE projects SET {sets}, updated_at = datetime('now') WHERE id = ?", vals,
     )
     conn.commit()
-    return get_concept(conn, cid)
+    return get_project(conn, pid)
 
 
-def delete_concept(conn: sqlite3.Connection, cid: str) -> bool:
-    cur = conn.execute("DELETE FROM concepts WHERE id = ?", (cid,))
+def delete_project(conn: sqlite3.Connection, pid: str) -> bool:
+    cur = conn.execute("DELETE FROM projects WHERE id = ?", (pid,))
     conn.commit()
     return cur.rowcount > 0
 
 
-def add_edge(
-    conn: sqlite3.Connection,
-    source_id: str,
-    target_id: str,
-    relationship: str,
-    *,
-    description: str | None = None,
-    weight: float = 1.0,
-) -> Edge:
-    eid = str(uuid.uuid4())
-    conn.execute(
-        "INSERT INTO edges (id, source_id, target_id, relationship, description, weight) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
-        (eid, source_id, target_id, relationship, description, weight),
-    )
-    conn.commit()
-    row = conn.execute("SELECT * FROM edges WHERE id = ?", (eid,)).fetchone()
-    return Edge.from_row(dict(row))
-
-
-def get_edges(conn: sqlite3.Connection, concept_id: str) -> list[Edge]:
-    rows = conn.execute(
-        "SELECT * FROM edges WHERE source_id = ? OR target_id = ?", (concept_id, concept_id),
-    ).fetchall()
-    return [Edge.from_row(dict(r)) for r in rows]
-
-
-def get_all_edges(conn: sqlite3.Connection, limit: int = 5000) -> list[Edge]:
-    rows = conn.execute("SELECT * FROM edges LIMIT ?", (limit,)).fetchall()
-    return [Edge.from_row(dict(r)) for r in rows]
-
-
-def count_edges(conn: sqlite3.Connection) -> int:
-    return conn.execute("SELECT COUNT(*) as cnt FROM edges").fetchone()["cnt"]
-
-
-def delete_edge(conn: sqlite3.Connection, eid: str) -> bool:
-    cur = conn.execute("DELETE FROM edges WHERE id = ?", (eid,))
-    conn.commit()
-    return cur.rowcount > 0
-
-
-def add_conversation(
-    conn: sqlite3.Connection, question: str, answer: str,
-    concept_ids: list[str] | None = None,
-) -> Conversation:
-    cid = str(uuid.uuid4())
-    related = json.dumps(concept_ids or [])
-    conn.execute(
-        "INSERT INTO conversations (id, question, answer, related_concepts) "
-        "VALUES (?, ?, ?, ?)", (cid, question, answer, related),
-    )
-    conn.commit()
-    row = conn.execute("SELECT * FROM conversations WHERE id = ?", (cid,)).fetchone()
-    return Conversation.from_row(dict(row))
-
-
-def list_conversations(conn: sqlite3.Connection, limit: int = 20) -> list[Conversation]:
-    rows = conn.execute(
-        "SELECT * FROM conversations ORDER BY created_at DESC LIMIT ?", (limit,),
-    ).fetchall()
-    return [Conversation.from_row(dict(r)) for r in rows]
-
-
-def search_fts(conn: sqlite3.Connection, query: str) -> list[Concept]:
-    try:
-        rows = conn.execute(
-            "SELECT c.* FROM concepts_fts f JOIN concepts c ON c.rowid = f.rowid "
-            "WHERE concepts_fts MATCH ? ORDER BY rank", (query,),
-        ).fetchall()
-    except sqlite3.OperationalError:
-        rows = conn.execute(
-            "SELECT * FROM concepts WHERE name LIKE ? OR description LIKE ?",
-            (f"%{query}%", f"%{query}%"),
-        ).fetchall()
-    return [Concept.from_row(dict(r)) for r in rows]
+# Re-export concept/edge/conversation functions for backward compat
+from nexus.db_concepts import (  # noqa: E402, F401
+    add_concept,
+    add_conversation,
+    add_edge,
+    count_concepts,
+    count_edges,
+    delete_concept,
+    delete_edge,
+    get_all_edges,
+    get_concept,
+    get_concept_by_name_and_project,
+    get_edges,
+    list_concepts,
+    list_conversations,
+    search_fts,
+    update_concept,
+)

@@ -25,6 +25,7 @@ def runner(db_path: Path):
     with (
         patch("nexus.cli.get_connection", conn_fn),
         patch("nexus.cli_ask.get_connection", conn_fn),
+        patch("nexus.cli_concept.get_connection", conn_fn),
     ):
         yield CliRunner()
 

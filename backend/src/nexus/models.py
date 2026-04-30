@@ -3,6 +3,33 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 
+RELATIONSHIP_TYPES = frozenset({
+    "uses", "depends_on", "similar_to", "part_of", "related_to",
+    "sends_data_to", "triggers", "builds_into", "configured_by",
+    "tested_with", "wraps", "serves", "deployed_via", "replaces",
+})
+
+
+@dataclass
+class Project:
+    id: str
+    name: str
+    path: str | None = None
+    description: str | None = None
+    last_scanned_at: str | None = None
+    created_at: str = ""
+    updated_at: str = ""
+
+    @classmethod
+    def from_row(cls, row: dict) -> Project:
+        return cls(
+            id=row["id"], name=row["name"], path=row.get("path"),
+            description=row.get("description"),
+            last_scanned_at=row.get("last_scanned_at"),
+            created_at=row.get("created_at", ""),
+            updated_at=row.get("updated_at", ""),
+        )
+
 
 @dataclass
 class Concept:
@@ -19,6 +46,7 @@ class Concept:
     doc_url: str | None = None
     context7_id: str | None = None
     enrich_status: str | None = None
+    project_id: str | None = None
     created_at: str = ""
     updated_at: str = ""
 
@@ -27,19 +55,14 @@ class Concept:
         tags_raw = row.get("tags") or "[]"
         tags = json.loads(tags_raw) if isinstance(tags_raw, str) else tags_raw
         return cls(
-            id=row["id"],
-            name=row["name"],
-            description=row.get("description"),
-            summary=row.get("summary"),
-            category=row.get("category"),
-            tags=tags,
-            source=row.get("source", "manual"),
-            embedding=row.get("embedding"),
-            notes=row.get("notes"),
-            quickstart=row.get("quickstart"),
-            doc_url=row.get("doc_url"),
-            context7_id=row.get("context7_id"),
+            id=row["id"], name=row["name"],
+            description=row.get("description"), summary=row.get("summary"),
+            category=row.get("category"), tags=tags,
+            source=row.get("source", "manual"), embedding=row.get("embedding"),
+            notes=row.get("notes"), quickstart=row.get("quickstart"),
+            doc_url=row.get("doc_url"), context7_id=row.get("context7_id"),
             enrich_status=row.get("enrich_status"),
+            project_id=row.get("project_id"),
             created_at=row.get("created_at", ""),
             updated_at=row.get("updated_at", ""),
         )
