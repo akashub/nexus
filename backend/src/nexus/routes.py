@@ -137,6 +137,38 @@ def stats_route(conn: ConnDep, project_id: str | None = None):
     }
 
 
+@router.get("/concepts/{concept_id}/context")
+def concept_context_route(concept_id: str, conn: ConnDep):
+    c = get_concept(conn, concept_id)
+    if not c:
+        raise HTTPException(404, f"Concept not found: {concept_id}")
+    project = None
+    if c.project_id:
+        from nexus.db import get_project
+        project = get_project(conn, c.project_id)
+    from nexus.context import (
+        get_claude_memories,
+        get_concept_context,
+        get_install_commands,
+        summarize_usage,
+    )
+    p_name = project.name if project else ""
+    p_path = project.path if project else ""
+    usage = get_concept_context(p_name, p_path or "", c.name)
+    installs = get_install_commands(p_name, c.name) if p_name else []
+    memories = get_claude_memories(p_path or "")
+    import re
+    name_re = re.compile(r'\b' + re.escape(c.name.lower()) + r'\b')
+    relevant = [m for m in memories if name_re.search(m["content"].lower())]
+    summary = summarize_usage(c.name, usage)
+    return {
+        "usage_context": usage,
+        "usage_summary": summary,
+        "install_commands": installs,
+        "claude_memories": [m["content"][:300] for m in relevant[:3]],
+    }
+
+
 @router.post("/concepts/{concept_id}/enrich")
 def enrich_concept_route(concept_id: str, conn: ConnDep, background_tasks: BackgroundTasks):
     if not get_concept(conn, concept_id):

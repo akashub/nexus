@@ -7,29 +7,30 @@ from pathlib import Path
 from nexus.scanners import ScannedConcept, ScanResult
 
 EAGLE_MEM_DB = Path.home() / ".eagle-mem" / "memory.db"
+_CLAUDE_SKILLS = Path.home() / ".claude" / "skills"
+_CLAUDE_PLUGINS = Path.home() / ".claude" / "plugins" / "cache"
 
 
 def scan_eagle_mem(project_path: Path) -> ScanResult:
+    result = ScanResult()
+    seen: set[str] = set()
+    _scan_claude_tools(result, seen)
     if not EAGLE_MEM_DB.exists():
-        return ScanResult()
+        return result
     try:
         conn = sqlite3.connect(str(EAGLE_MEM_DB), timeout=3)
         conn.row_factory = sqlite3.Row
     except sqlite3.Error:
-        return ScanResult()
-
-    result = ScanResult()
+        return result
     project_name = project_path.name
-    seen: set[str] = set()
-
     try:
         _scan_summaries(conn, project_name, result, seen)
         _scan_observations(conn, project_name, result, seen)
+        scan_cli_tools(conn, project_name, result, seen)
     except sqlite3.Error:
         pass
     finally:
         conn.close()
-
     return result
 
 
@@ -108,6 +109,53 @@ def get_enrichment_context(concept_name: str) -> str | None:
     if not snippets:
         return None
     return "\n---\n".join(snippets)[:3000]
+
+
+_CLI_TOOLS = {
+    "railway": "devtool", "gh": "devtool", "eagle-mem": "devtool",
+    "docker": "devtool", "kubectl": "devtool", "vercel": "devtool",
+    "fly": "devtool", "terraform": "devtool", "ansible": "devtool",
+    "claude": "devtool", "cursor": "devtool", "copilot": "devtool",
+}
+
+
+def scan_cli_tools(
+    conn: sqlite3.Connection, project_name: str,
+    result: ScanResult, seen: set[str],
+) -> None:
+    try:
+        rows = conn.execute(
+            "SELECT tool_input_summary FROM observations "
+            "WHERE project = ? AND tool_name = 'Bash' "
+            "AND tool_input_summary IS NOT NULL "
+            "ORDER BY created_at DESC LIMIT 200",
+            (project_name,),
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return
+    for row in rows:
+        text = (row["tool_input_summary"] or "").lower()
+        for tool, cat in _CLI_TOOLS.items():
+            if tool in text and tool not in seen:
+                result.concepts.append(ScannedConcept(
+                    name=tool, source="eagle_mem", category_hint=cat,
+                ))
+                seen.add(tool)
+
+
+def _scan_claude_tools(result: ScanResult, seen: set[str]) -> None:
+    for base in (_CLAUDE_SKILLS, _CLAUDE_PLUGINS):
+        if not base.exists():
+            continue
+        for d in base.iterdir():
+            if not d.is_dir() or d.name.startswith("temp_"):
+                continue
+            name = d.name
+            if name not in seen:
+                result.concepts.append(ScannedConcept(
+                    name=name, source="eagle_mem", category_hint="devtool",
+                ))
+                seen.add(name)
 
 
 def _extract_tools_from_text(

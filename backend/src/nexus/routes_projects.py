@@ -101,6 +101,42 @@ def replicate_project_route(
     }
 
 
+@router.post("/projects/{project_id}/infer-relationships")
+def infer_relationships_route(
+    project_id: str, conn: ConnDep, background_tasks: BackgroundTasks,
+):
+    p = get_project(conn, project_id)
+    if not p:
+        raise HTTPException(404, f"Project not found: {project_id}")
+
+    def _run_infer():
+        from nexus.db import get_connection
+        from nexus.infer import infer_relationships
+        infer_conn = get_connection()
+        try:
+            infer_relationships(infer_conn, project_id=project_id, verbose=True)
+        finally:
+            infer_conn.close()
+
+    background_tasks.add_task(_run_infer)
+    return {"status": "inferring", "project_id": project_id}
+
+
+@router.post("/infer-relationships")
+def infer_all_relationships_route(conn: ConnDep, background_tasks: BackgroundTasks):
+    def _run_infer():
+        from nexus.db import get_connection
+        from nexus.infer import infer_relationships
+        infer_conn = get_connection()
+        try:
+            infer_relationships(infer_conn, verbose=True)
+        finally:
+            infer_conn.close()
+
+    background_tasks.add_task(_run_infer)
+    return {"status": "inferring"}
+
+
 @router.get("/graph/global")
 def global_graph_route(conn: ConnDep):
     projects = list_projects(conn)
