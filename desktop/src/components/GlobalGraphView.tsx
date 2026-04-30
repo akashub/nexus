@@ -21,8 +21,8 @@ export default function GlobalGraphView({ data, onSelectProject }: Props) {
     return [
       ...d.nodes.map((n) => ({
         data: {
-          id: n.id, label: `${n.name}\n(${n.concept_count})`,
-          size: 40 + Math.min(n.concept_count, 30) * 2,
+          id: n.id, label: n.name, count: n.concept_count,
+          size: 20 + Math.min(n.concept_count, 20) * 1,
         },
       })),
       ...d.edges.map((e) => ({

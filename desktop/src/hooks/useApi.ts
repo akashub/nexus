@@ -132,6 +132,29 @@ export function useProjects() {
   });
 }
 
+export function useAddProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { name: string; path?: string; description?: string }) =>
+      apiFetch<Project>("/projects", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["graph", "global"] });
+    },
+  });
+}
+
+export function useDeleteProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch("/projects/" + id, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["graph", "global"] });
+    },
+  });
+}
+
 export function useScanProject() {
   const qc = useQueryClient();
   return useMutation({

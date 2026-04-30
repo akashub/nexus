@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import AddModal from "./components/AddModal";
+import AddProjectModal from "./components/AddProjectModal";
 import ChatPanel from "./components/ChatPanel";
 import GlobalGraphView from "./components/GlobalGraphView";
 import GraphView, { CATEGORY_COLORS } from "./components/GraphView";
@@ -17,6 +18,7 @@ export default function App() {
   const [showSearch, setShowSearch] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showAddProject, setShowAddProject] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const backendStatus = useBackend();
@@ -26,7 +28,7 @@ export default function App() {
   const { data: aiStatus } = useOllamaStatus();
   const { theme, cycle } = useTheme();
 
-  const handleSelectProject = useCallback((id: string) => {
+  const handleSelectProjectById = useCallback((id: string) => {
     const proj = globalGraph?.nodes.find((n) => n.id === id);
     if (proj) setActiveProject(proj);
   }, [globalGraph]);
@@ -97,9 +99,14 @@ export default function App() {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        {activeProject && (
-          <LeftSidebar onSelectNode={setSelectedId} selectedId={selectedId} categoryFilter={categoryFilter} onCategoryFilter={setCategoryFilter} />
-        )}
+        <LeftSidebar
+          activeProject={activeProject}
+          onSelectProject={setActiveProject}
+          onBackToGlobal={() => { setActiveProject(null); setSelectedId(null); }}
+          onAddProject={() => setShowAddProject(true)}
+          onSelectNode={setSelectedId} selectedId={selectedId}
+          categoryFilter={categoryFilter} onCategoryFilter={setCategoryFilter}
+        />
         <div className="flex-1 min-w-0 flex flex-col">
           <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[var(--nx-border)] shrink-0">
             <input readOnly onClick={() => setShowSearch(true)} placeholder="search..."
@@ -114,7 +121,7 @@ export default function App() {
             {activeProject ? (
               <GraphView data={graph} onSelectNode={setSelectedId} selectedId={selectedId} categoryFilter={categoryFilter} />
             ) : (
-              <GlobalGraphView data={globalGraph} onSelectProject={handleSelectProject} />
+              <GlobalGraphView data={globalGraph} onSelectProject={handleSelectProjectById} />
             )}
           </main>
           {activeProject && (
@@ -136,6 +143,7 @@ export default function App() {
       </div>
       {showSearch && <SearchBar onSelect={setSelectedId} onClose={() => setShowSearch(false)} />}
       {showAdd && <AddModal onClose={() => setShowAdd(false)} />}
+      {showAddProject && <AddProjectModal onClose={() => setShowAddProject(false)} />}
     </div>
   );
 }

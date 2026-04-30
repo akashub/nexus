@@ -60,10 +60,10 @@ export function globalGraphStyles(dark = true) {
   const PC = "#5b8cb8";
   return [
     { selector: "node", style: {
-      shape: "ellipse", label: "data(label)", "text-valign": "bottom", "text-halign": "center", "text-margin-y": 8,
+      shape: "ellipse", label: "data(label)", "text-valign": "bottom", "text-halign": "center", "text-margin-y": 6,
       "background-color": PC, "background-opacity": 0.15, "border-width": 1.5, "border-color": PC,
-      "border-opacity": 0.6, color: t.nodeText, "font-size": "12px", "font-family": "'SF Mono', 'Fira Code', monospace",
-      width: "data(size)", height: "data(size)", "overlay-opacity": 0,
+      "border-opacity": 0.6, color: t.nodeText, "font-size": "11px", "font-family": "'SF Mono', 'Fira Code', monospace",
+      width: "data(size)", height: "data(size)", "overlay-opacity": 0, "text-max-width": "120px",
     } as unknown as cytoscape.Css.Node },
     { selector: "node:active", style: { "overlay-opacity": 0 } as cytoscape.Css.Node },
     { selector: "edge", style: {
