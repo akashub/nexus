@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import sqlite3
-from collections import defaultdict
-
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 
 from nexus.db import (
@@ -13,7 +10,7 @@ from nexus.db import (
     list_projects,
     update_project,
 )
-from nexus.models import Project
+from nexus.graph_helpers import compute_project_edges
 from nexus.server import ConnDep, ProjectCreate, ProjectUpdate, project_dict
 
 router = APIRouter()
@@ -176,26 +173,9 @@ def global_graph_route(conn: ConnDep):
     for p in projects:
         count = len(list_concepts(conn, project_id=p.id, limit=10000))
         nodes.append({**project_dict(p), "concept_count": count})
-    edges = _compute_project_edges(conn, projects)
+    edges = compute_project_edges(conn, projects)
     unassigned = list_concepts(conn, limit=10000)
     unassigned_count = sum(1 for c in unassigned if not c.project_id)
     return {"nodes": nodes, "edges": edges, "unassigned_count": unassigned_count}
 
 
-def _compute_project_edges(
-    conn: sqlite3.Connection, projects: list[Project],
-) -> list[dict]:
-    concept_projects: dict[str, set[str]] = defaultdict(set)
-    for p in projects:
-        for c in list_concepts(conn, project_id=p.id, limit=10000):
-            concept_projects[c.name.lower()].add(p.id)
-    pair_counts: dict[tuple[str, str], int] = defaultdict(int)
-    for _name, pids in concept_projects.items():
-        pids_list = sorted(pids)
-        for i, a in enumerate(pids_list):
-            for b in pids_list[i + 1:]:
-                pair_counts[(a, b)] += 1
-    return [
-        {"source_id": a, "target_id": b, "weight": count, "relationship": "shared_deps"}
-        for (a, b), count in pair_counts.items() if count >= 2
-    ]

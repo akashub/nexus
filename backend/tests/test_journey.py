@@ -65,8 +65,8 @@ class TestGetJourney:
 
     def test_filtered_by_project(self, conn):
         proj = add_project(conn, "myapp", path="/tmp/myapp")
-        c1 = add_concept(conn, "react", category="framework", project_id=proj.id)
-        c2 = add_concept(conn, "vue", category="framework")
+        add_concept(conn, "react", category="framework", project_id=proj.id)
+        add_concept(conn, "vue", category="framework")
 
         weeks = get_journey(conn, project_id=proj.id)
         all_names = [c.name for w in weeks for c in w["concepts"]]

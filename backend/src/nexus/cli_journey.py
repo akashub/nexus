@@ -1,35 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 import click
 
 from nexus.db import get_connection, get_journey, get_project
-
-
-def _format_week_label(week_start: str) -> str:
-    dt = datetime.fromisoformat(week_start)
-    return dt.strftime("Week of %b %-d")
-
-
-def _print_tree(weeks: list[dict]) -> None:
-    total_concepts = 0
-    for week in weeks:
-        click.echo(f"\n{_format_week_label(week['week_start'])}")
-        concepts = week["concepts"]
-        total_concepts += len(concepts)
-        for i, c in enumerate(concepts):
-            is_last = i == len(concepts) - 1
-            prefix = "  └── " if is_last else "  ├── "
-            cat = f" [{c.category}]" if c.category else ""
-            desc = ""
-            if c.summary:
-                desc = f" — {c.summary[:60]}"
-            elif c.description:
-                desc = f" — {c.description[:60]}"
-            click.echo(f"{prefix}{c.name}{cat}{desc}")
-
-    click.echo(f"\n{len(weeks)} week(s) · {total_concepts} concept(s)")
+from nexus.graph_helpers import format_journey
 
 
 @click.command("journey")
@@ -47,9 +21,6 @@ def journey_cmd(project: str | None, days: int) -> None:
             project_id = p.id
 
         weeks = get_journey(conn, project_id=project_id, days=days)
-        if not weeks:
-            click.echo("No concepts found in this time range.")
-            return
-        _print_tree(weeks)
+        click.echo(format_journey(weeks))
     finally:
         conn.close()

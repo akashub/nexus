@@ -6,14 +6,8 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 from nexus.cli_track import SOURCE_CATEGORIES, track_concept
-from nexus.db import (
-    get_connection,
-    get_project_by_path,
-    search_fts,
-)
-from nexus.db import (
-    list_projects as db_list_projects,
-)
+from nexus.db import get_connection, get_project_by_path, search_fts
+from nexus.db import list_projects as db_list_projects
 from nexus.db_concepts import (
     add_concept as db_add_concept,
 )
@@ -21,9 +15,12 @@ from nexus.db_concepts import (
     count_concepts,
     get_concept,
     get_edges,
-    get_journey,
+)
+from nexus.db_concepts import (
+    get_journey as db_get_journey,
 )
 from nexus.expertise import classify_expertise
+from nexus.graph_helpers import build_concept_detail, concept_dict
 
 VALID_SOURCES = frozenset(SOURCE_CATEGORIES.keys())
 
@@ -33,11 +30,15 @@ mcp = FastMCP(
 )
 
 
-def _concept_dict(c) -> dict:
-    return {
-        "name": c.name, "category": c.category, "summary": c.summary,
-        "description": c.description, "doc_url": c.doc_url,
-    }
+def _resolve_pid(conn, project_id: str | None, project_dir: str | None) -> str | None:
+    """Resolve a project ID from either an explicit ID or a directory path."""
+    if project_id:
+        return project_id
+    if project_dir:
+        p = get_project_by_path(conn, str(Path(project_dir).resolve()))
+        if p:
+            return p.id
+    return None
 
 
 @mcp.tool()
@@ -48,7 +49,7 @@ def search_concepts(query: str, project_id: str | None = None, limit: int = 10) 
         results = search_fts(conn, query)
         if project_id:
             results = [c for c in results if c.project_id == project_id]
-        return [_concept_dict(c) for c in results[:limit]]
+        return [concept_dict(c) for c in results[:limit]]
     finally:
         conn.close()
 
@@ -62,25 +63,7 @@ def get_concept_detail(name: str) -> dict:
         if not c:
             return {"error": f"not found: {name}"}
         edges = get_edges(conn, c.id)
-        related_ids = {e.target_id for e in edges if e.source_id == c.id}
-        related_ids |= {e.source_id for e in edges if e.target_id == c.id}
-        related_ids.discard(c.id)
-        name_map = {c.id: c.name}
-        for rid in related_ids:
-            rc = get_concept(conn, rid)
-            if rc:
-                name_map[rid] = rc.name
-        return {
-            **_concept_dict(c),
-            "tags": c.tags, "quickstart": c.quickstart,
-            "edges": [
-                {"target": name_map.get(e.target_id, e.target_id), "relationship": e.relationship}
-                for e in edges if e.source_id == c.id
-            ] + [
-                {"source": name_map.get(e.source_id, e.source_id), "relationship": e.relationship}
-                for e in edges if e.target_id == c.id
-            ],
-        }
+        return build_concept_detail(conn, c, edges)
     finally:
         conn.close()
 
@@ -108,11 +91,7 @@ def get_expertise(project_id: str | None = None, project_dir: str | None = None)
     """Get expertise profile — what you know well, have seen, and are missing."""
     conn = get_connection()
     try:
-        pid = project_id
-        if not pid and project_dir:
-            p = get_project_by_path(conn, str(Path(project_dir).resolve()))
-            if p:
-                pid = p.id
+        pid = _resolve_pid(conn, project_id, project_dir)
         if not pid:
             return {"error": "provide project_id or project_dir"}
         return classify_expertise(conn, pid).to_dict()
@@ -123,19 +102,13 @@ def get_expertise(project_id: str | None = None, project_dir: str | None = None)
 @mcp.tool()
 def onboard(project_id: str | None = None, project_dir: str | None = None) -> dict:
     """Get full onboarding context for a project — expertise + project metadata."""
+    from nexus.db import get_project
     conn = get_connection()
     try:
-        pid = project_id
-        proj = None
-        if not pid and project_dir:
-            proj = get_project_by_path(conn, str(Path(project_dir).resolve()))
-            if proj:
-                pid = proj.id
+        pid = _resolve_pid(conn, project_id, project_dir)
         if not pid:
             return {"error": "provide project_id or project_dir"}
-        if not proj:
-            from nexus.db import get_project
-            proj = get_project(conn, pid)
+        proj = get_project(conn, pid)
         profile = classify_expertise(conn, pid)
         return {
             **profile.to_dict(),
@@ -154,11 +127,7 @@ def add_concept(name: str, project_dir: str | None = None, category: str | None 
         existing = get_concept(conn, name)
         if existing:
             return {"status": "exists", "id": existing.id, "name": existing.name}
-        project_id = None
-        if project_dir:
-            p = get_project_by_path(conn, str(Path(project_dir).resolve()))
-            if p:
-                project_id = p.id
+        project_id = _resolve_pid(conn, None, project_dir)
         try:
             c = db_add_concept(conn, name, category=category, project_id=project_id)
         except sqlite3.IntegrityError:
@@ -184,64 +153,30 @@ def track_install(name: str, source: str, project_dir: str, dev: bool = False) -
 @mcp.tool()
 def detect_gaps(project_id: str | None = None, project_dir: str | None = None) -> str:
     """Detect missing companion tools for a project's stack."""
+    from nexus.db import get_project
     from nexus.gaps import detect_gaps as _detect_gaps
     from nexus.gaps import format_gaps_report
     conn = get_connection()
     try:
-        pid = project_id
-        project_name = None
-        if not pid and project_dir:
-            p = get_project_by_path(conn, str(Path(project_dir).resolve()))
-            if p:
-                pid = p.id
-                project_name = p.name
-        if pid and not project_name:
-            from nexus.db import get_project
-            proj = get_project(conn, pid)
-            if proj:
-                project_name = proj.name
+        pid = _resolve_pid(conn, project_id, project_dir)
+        proj = get_project(conn, pid) if pid else None
         gaps = _detect_gaps(conn, project_id=pid)
-        return format_gaps_report(project_name, gaps)
+        return format_gaps_report(proj.name if proj else None, gaps)
     finally:
         conn.close()
 
 
 @mcp.tool()
-def learning_journey(
+def get_journey(
     project_dir: str | None = None, days: int = 90,
 ) -> str:
     """Show learning journey -- concepts grouped by week over time."""
-    from datetime import datetime
-
+    from nexus.graph_helpers import format_journey
     conn = get_connection()
     try:
-        pid = None
-        if project_dir:
-            p = get_project_by_path(conn, str(Path(project_dir).resolve()))
-            if p:
-                pid = p.id
-        weeks = get_journey(conn, project_id=pid, days=days)
-        if not weeks:
-            return "No concepts found in this time range."
-        lines: list[str] = []
-        total = 0
-        for w in weeks:
-            dt = datetime.fromisoformat(w["week_start"])
-            lines.append(f"\nWeek of {dt.strftime('%b %-d')}")
-            concepts = w["concepts"]
-            total += len(concepts)
-            for i, c in enumerate(concepts):
-                is_last = i == len(concepts) - 1
-                prefix = "  └── " if is_last else "  ├── "
-                cat = f" [{c.category}]" if c.category else ""
-                desc = ""
-                if c.summary:
-                    desc = f" — {c.summary[:60]}"
-                elif c.description:
-                    desc = f" — {c.description[:60]}"
-                lines.append(f"{prefix}{c.name}{cat}{desc}")
-        lines.append(f"\n{len(weeks)} week(s) · {total} concept(s)")
-        return "\n".join(lines)
+        pid = _resolve_pid(conn, None, project_dir)
+        weeks = db_get_journey(conn, project_id=pid, days=days)
+        return format_journey(weeks)
     finally:
         conn.close()
 
