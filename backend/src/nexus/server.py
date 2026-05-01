@@ -117,8 +117,10 @@ def edge_dict(e: Edge) -> dict:
 
 from nexus.routes import router  # noqa: E402
 from nexus.routes_ai import router as ai_router  # noqa: E402
+from nexus.routes_journey import router as journey_router  # noqa: E402
 from nexus.routes_projects import router as projects_router  # noqa: E402
 
 app.include_router(router, prefix="/api")
 app.include_router(ai_router, prefix="/api")
+app.include_router(journey_router, prefix="/api")
 app.include_router(projects_router, prefix="/api")

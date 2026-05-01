@@ -11,6 +11,11 @@ dependencies = [
     "mcp[cli]>=1.27.0",
 ]
 
+[project.optional-dependencies]
+cloud = ["anthropic>=0.40", "openai>=1.50"]
+anthropic = ["anthropic>=0.40"]
+openai = ["openai>=1.50"]
+
 [project.scripts]
 nexus = "nexus.cli:main"
 

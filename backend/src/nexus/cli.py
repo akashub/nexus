@@ -5,7 +5,9 @@ import click
 from nexus.cli_ask import ask_cmd
 from nexus.cli_compact import compact_cmd
 from nexus.cli_concept import remove_cmd, show_cmd
+from nexus.cli_gaps import gaps_cmd
 from nexus.cli_ingest import ingest_cmd
+from nexus.cli_journey import journey_cmd
 from nexus.cli_mcp import mcp_group
 from nexus.cli_onboard import onboard_cmd
 from nexus.cli_status import status_cmd
@@ -58,8 +60,10 @@ def db_init() -> None:
 @click.option("--notes", "-n", default=None, help="Personal notes.")
 @click.option("--no-enrich", is_flag=True, help="Skip AI enrichment.")
 @click.option("--source", "-s", default="auto", type=click.Choice(["auto", "all", "context7", "pypi", "npm", "github", "libraries"]), help="Doc source.")
+@click.option("--model", "-m", default="local", type=click.Choice(["local", "cloud"]), help="AI provider.")
 def add_cmd(
-    name: str, category: str | None, tags: str | None, notes: str | None, no_enrich: bool, source: str,
+    name: str, category: str | None, tags: str | None, notes: str | None,
+    no_enrich: bool, source: str, model: str,
 ) -> None:
     """Add a concept to your knowledge graph."""
     tag_list = [t.strip() for t in tags.split(",")] if tags else None
@@ -72,7 +76,7 @@ def add_cmd(
         click.echo(f"Added: {c.name} ({c.id[:8]})")
         if not no_enrich:
             from nexus.enrich import enrich_concept
-            enrich_concept(conn, c.id, mode=source)
+            enrich_concept(conn, c.id, mode=source, prefer_cloud=(model == "cloud"))
     finally:
         conn.close()
 
@@ -177,6 +181,8 @@ def cluster_cmd(project: str | None, verbose: bool) -> None:
 
 main.add_command(ask_cmd)
 main.add_command(compact_cmd)
+main.add_command(gaps_cmd)
+main.add_command(journey_cmd)
 main.add_command(scan_cmd)
 main.add_command(show_cmd)
 main.add_command(remove_cmd)

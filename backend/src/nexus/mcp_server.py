@@ -21,6 +21,7 @@ from nexus.db_concepts import (
     count_concepts,
     get_concept,
     get_edges,
+    get_journey,
 )
 from nexus.expertise import classify_expertise
 
@@ -176,6 +177,71 @@ def track_install(name: str, source: str, project_dir: str, dev: bool = False) -
     conn = get_connection()
     try:
         return track_concept(conn, name, project_dir, source=source, dev=dev)
+    finally:
+        conn.close()
+
+
+@mcp.tool()
+def detect_gaps(project_id: str | None = None, project_dir: str | None = None) -> str:
+    """Detect missing companion tools for a project's stack."""
+    from nexus.gaps import detect_gaps as _detect_gaps
+    from nexus.gaps import format_gaps_report
+    conn = get_connection()
+    try:
+        pid = project_id
+        project_name = None
+        if not pid and project_dir:
+            p = get_project_by_path(conn, str(Path(project_dir).resolve()))
+            if p:
+                pid = p.id
+                project_name = p.name
+        if pid and not project_name:
+            from nexus.db import get_project
+            proj = get_project(conn, pid)
+            if proj:
+                project_name = proj.name
+        gaps = _detect_gaps(conn, project_id=pid)
+        return format_gaps_report(project_name, gaps)
+    finally:
+        conn.close()
+
+
+@mcp.tool()
+def learning_journey(
+    project_dir: str | None = None, days: int = 90,
+) -> str:
+    """Show learning journey -- concepts grouped by week over time."""
+    from datetime import datetime
+
+    conn = get_connection()
+    try:
+        pid = None
+        if project_dir:
+            p = get_project_by_path(conn, str(Path(project_dir).resolve()))
+            if p:
+                pid = p.id
+        weeks = get_journey(conn, project_id=pid, days=days)
+        if not weeks:
+            return "No concepts found in this time range."
+        lines: list[str] = []
+        total = 0
+        for w in weeks:
+            dt = datetime.fromisoformat(w["week_start"])
+            lines.append(f"\nWeek of {dt.strftime('%b %-d')}")
+            concepts = w["concepts"]
+            total += len(concepts)
+            for i, c in enumerate(concepts):
+                is_last = i == len(concepts) - 1
+                prefix = "  └── " if is_last else "  ├── "
+                cat = f" [{c.category}]" if c.category else ""
+                desc = ""
+                if c.summary:
+                    desc = f" — {c.summary[:60]}"
+                elif c.description:
+                    desc = f" — {c.description[:60]}"
+                lines.append(f"{prefix}{c.name}{cat}{desc}")
+        lines.append(f"\n{len(weeks)} week(s) · {total} concept(s)")
+        return "\n".join(lines)
     finally:
         conn.close()
 

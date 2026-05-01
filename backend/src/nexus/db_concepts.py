@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
+from collections import defaultdict
+from datetime import datetime
 
 from nexus.models import Concept, Conversation, Edge
 
@@ -176,6 +178,38 @@ def list_conversations(conn: sqlite3.Connection, limit: int = 20) -> list[Conver
         "SELECT * FROM conversations ORDER BY created_at DESC LIMIT ?", (limit,),
     ).fetchall()
     return [Conversation.from_row(dict(r)) for r in rows]
+
+
+def get_journey(
+    conn: sqlite3.Connection, *, project_id: str | None = None, days: int = 90,
+) -> list[dict]:
+    """Return concepts ordered by created_at, grouped by ISO week."""
+    query = "SELECT * FROM concepts WHERE created_at >= datetime('now', ?)"
+    params: list = [f"-{days} days"]
+    if project_id:
+        query += " AND project_id = ?"
+        params.append(project_id)
+    query += " ORDER BY created_at ASC"
+    rows = conn.execute(query, params).fetchall()
+    concepts = [Concept.from_row(dict(r)) for r in rows]
+
+    weeks: dict[str, list[Concept]] = defaultdict(list)
+    for c in concepts:
+        dt = datetime.fromisoformat(c.created_at)
+        iso_year, iso_week, _ = dt.isocalendar()
+        key = f"{iso_year}-W{iso_week:02d}"
+        weeks[key].append(c)
+
+    result = []
+    for week_key in sorted(weeks):
+        year, w = week_key.split("-W")
+        week_start = datetime.fromisocalendar(int(year), int(w), 1).date()
+        result.append({
+            "week": week_key,
+            "week_start": week_start.isoformat(),
+            "concepts": weeks[week_key],
+        })
+    return result
 
 
 def _prepare_fts(query: str) -> str:

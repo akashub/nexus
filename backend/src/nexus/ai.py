@@ -78,3 +78,36 @@ def cosine_similarity(a: bytes, b: bytes) -> float:
     if na == 0 or nb == 0:
         return 0.0
     return dot / (na * nb)
+
+
+def smart_generate(
+    prompt: str, *, system: str | None = None, prefer_cloud: bool = False,
+) -> str:
+    if prefer_cloud:
+        from nexus.ai_cloud import generate_cloud, is_cloud_available
+        if is_cloud_available():
+            return generate_cloud(prompt, system=system)
+    if is_available():
+        return generate(prompt, system=system)
+    if not prefer_cloud:
+        from nexus.ai_cloud import generate_cloud, is_cloud_available
+        if is_cloud_available():
+            return generate_cloud(prompt, system=system)
+    return ""
+
+
+def smart_embed(text: str, *, prefer_cloud: bool = False) -> bytes | None:
+    if prefer_cloud:
+        from nexus.ai_cloud import embed_cloud, is_cloud_available
+        if is_cloud_available():
+            result = embed_cloud(text)
+            if result:
+                return result
+    result = embed(text)
+    if result:
+        return result
+    if not prefer_cloud:
+        from nexus.ai_cloud import embed_cloud, is_cloud_available
+        if is_cloud_available():
+            return embed_cloud(text)
+    return None

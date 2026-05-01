@@ -122,6 +122,7 @@ from nexus.db_concepts import (  # noqa: E402, F401
     get_concept,
     get_concept_by_name_and_project,
     get_edges,
+    get_journey,
     list_concepts,
     list_conversations,
     search_fts,

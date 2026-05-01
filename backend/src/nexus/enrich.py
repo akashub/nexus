@@ -7,7 +7,7 @@ import sqlite3
 
 import click
 
-from nexus.ai import cosine_similarity, embed, generate, is_available
+from nexus.ai import cosine_similarity, is_available, smart_embed, smart_generate
 from nexus.db import get_concept, get_connection, list_concepts, update_concept
 from nexus.fetch import fetch_context, fetch_quickstart
 
@@ -37,9 +37,13 @@ def _set_status(conn: sqlite3.Connection, cid: str, status: str | None) -> None:
     update_concept(conn, cid, enrich_status=status)
 
 
-def enrich_concept(conn: sqlite3.Connection, concept_id: str, mode: str = "auto") -> None:
-    if not is_available():
-        click.echo("  Ollama not running — skipping enrichment.")
+def enrich_concept(
+    conn: sqlite3.Connection, concept_id: str, mode: str = "auto",
+    prefer_cloud: bool = False,
+) -> None:
+    from nexus.ai_cloud import is_cloud_available
+    if not is_available() and not (prefer_cloud and is_cloud_available()):
+        click.echo("  No AI available (Ollama down, no cloud key) — skipping.")
         return
 
     c = get_concept(conn, concept_id)
@@ -68,7 +72,7 @@ def enrich_concept(conn: sqlite3.Connection, concept_id: str, mode: str = "auto"
 
     _set_status(conn, concept_id, "generating")
     docs_text = docs_result.text[:3000] if docs_result else None
-    llm_fields = _generate_all(c.name, docs_text, c.category, eagle_ctx)
+    llm_fields = _generate_all(c.name, docs_text, c.category, eagle_ctx, prefer_cloud)
     fields.update(llm_fields)
 
     if docs_result and docs_result.library_id:
@@ -78,7 +82,9 @@ def enrich_concept(conn: sqlite3.Connection, concept_id: str, mode: str = "auto"
             fields["quickstart"] = qs[:5000]
 
     _set_status(conn, concept_id, "embedding")
-    new_embedding = embed(f"{c.name}: {fields.get('description', c.name)}")
+    new_embedding = smart_embed(
+        f"{c.name}: {fields.get('description', c.name)}", prefer_cloud=prefer_cloud,
+    )
     if new_embedding:
         fields["embedding"] = new_embedding
 
@@ -112,7 +118,7 @@ def _fetch_eagle_mem_context(name: str) -> str | None:
 
 def _generate_all(
     name: str, docs: str | None, existing_cat: str | None,
-    eagle_ctx: str | None = None,
+    eagle_ctx: str | None = None, prefer_cloud: bool = False,
 ) -> dict:
     parts: list[str] = []
     if eagle_ctx:
@@ -124,7 +130,7 @@ def _generate_all(
         name=name, context=context, categories=", ".join(CATEGORIES),
     )
     try:
-        raw = generate(prompt, system=_SYSTEM)
+        raw = smart_generate(prompt, system=_SYSTEM, prefer_cloud=prefer_cloud)
         start = raw.find("{")
         end = raw.rfind("}") + 1
         if start >= 0 and end > start:
@@ -162,10 +168,10 @@ def _suggest_connections(conn: sqlite3.Connection, concept_id: str) -> None:
         click.echo(f"    {c.name} --[related_to]--> {other.name}  (sim: {sim:.2f})")
 
 
-def enrich_background(concept_id: str, mode: str = "auto") -> None:
+def enrich_background(concept_id: str, mode: str = "auto", prefer_cloud: bool = False) -> None:
     conn = get_connection()
     try:
-        enrich_concept(conn, concept_id, mode=mode)
+        enrich_concept(conn, concept_id, mode=mode, prefer_cloud=prefer_cloud)
     except Exception:
         log.exception("Background enrichment failed for concept %s", concept_id)
         with contextlib.suppress(Exception):

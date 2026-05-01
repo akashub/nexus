@@ -41,8 +41,8 @@ class TestEnrichConcept:
                 patch("nexus.enrich.fetch_context",
                        return_value=DocResult(text="React docs", library_id="lib-1")),
                 patch("nexus.enrich.fetch_quickstart", return_value="npm install react"),
-                patch("nexus.enrich.generate", side_effect=_fake_generate),
-                patch("nexus.enrich.embed", side_effect=_fake_embed),
+                patch("nexus.enrich.smart_generate", side_effect=_fake_generate),
+                patch("nexus.enrich.smart_embed", side_effect=_fake_embed),
             ):
                 enrich_concept(conn, c.id)
             updated = get_concept(conn, c.id)
@@ -71,8 +71,8 @@ class TestEnrichConcept:
             with (
                 patch("nexus.enrich.is_available", return_value=True),
                 patch("nexus.enrich.fetch_context", return_value=None),
-                patch("nexus.enrich.generate", side_effect=_fake_generate),
-                patch("nexus.enrich.embed", side_effect=_fake_embed),
+                patch("nexus.enrich.smart_generate", side_effect=_fake_generate),
+                patch("nexus.enrich.smart_embed", side_effect=_fake_embed),
             ):
                 enrich_concept(conn, c.id)
             updated = get_concept(conn, c.id)
