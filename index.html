@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus — Personal Knowledge Graph for Developers</title>
+  <meta name="description" content="Capture every tool, framework, and concept you learn. Build a living knowledge graph that grows with you.">
+  <meta name="theme-color" content="#08090f">
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #08090f;
+      --bg-raised: #0e1017;
+      --silver: #c8cdd6;
+      --silver-bright: #e8ecf2;
+      --silver-dim: #6b7280;
+      --silver-faint: #3b4252;
+      --white: #f0f2f7;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+      /* Category colors — matching the desktop app */
+      --c-purple: #a78bfa;
+      --c-blue: #60a5fa;
+      --c-green: #4ade80;
+      --c-orange: #fbbf24;
+      --c-red: #f87171;
+      --c-emerald: #34d399;
+
+      /* Metallic panel */
+      --m-border-t: rgba(255,255,255,0.15);
+      --m-border-r: rgba(255,255,255,0.06);
+      --m-border-b: rgba(255,255,255,0.04);
+      --m-border-l: rgba(255,255,255,0.08);
+      --m-shadow: 0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.25);
+      --m-shadow-lg: 0 2px 4px rgba(0,0,0,0.4), 0 16px 48px rgba(0,0,0,0.3);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--silver);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    ::selection { background: rgba(167,139,250,0.2); }
+
+    a { color: var(--silver-bright); text-decoration: none; transition: all 0.3s; }
+    a:hover { color: #fff; }
+
+    /* ─── METALLIC PANEL ─── */
+    .metal {
+      background: linear-gradient(145deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%);
+      border-top: 1px solid var(--m-border-t);
+      border-right: 1px solid var(--m-border-r);
+      border-bottom: 1px solid var(--m-border-b);
+      border-left: 1px solid var(--m-border-l);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), var(--m-shadow);
+      position: relative; overflow: hidden;
+    }
+    .metal::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(145deg, rgba(255,255,255,0.06) 0%, transparent 40%);
+      pointer-events: none;
+    }
+
+    /* ─── NAV ─── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(8,9,15,0.85);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+      padding: 0 2.5rem; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 14px; font-weight: 600;
+      letter-spacing: 3px; text-transform: uppercase; color: var(--silver-bright);
+    }
+    .nav-logo img { width: 28px; height: 28px; border-radius: 6px; filter: brightness(1.1); }
+    .nav-links { display: flex; gap: 2rem; font-size: 13px; font-weight: 400; }
+    .nav-links a { color: var(--silver-dim); letter-spacing: 0.3px; }
+    .nav-links a:hover { color: var(--c-purple); }
+    .nav-cta {
+      font-size: 12px; padding: 8px 18px; border-radius: 100px;
+      background: linear-gradient(135deg, var(--c-purple), #8b5cf6);
+      color: #fff; font-family: var(--sans); font-weight: 500;
+      cursor: pointer; transition: all 0.3s; letter-spacing: 0.3px;
+      border: none;
+      box-shadow: 0 2px 12px rgba(167,139,250,0.3);
+    }
+    .nav-cta:hover {
+      box-shadow: 0 4px 20px rgba(167,139,250,0.5);
+      transform: translateY(-1px);
+    }
+
+    /* ─── HERO ─── */
+    .hero {
+      position: relative; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 140px 2rem 100px;
+      overflow: hidden;
+    }
+    .hero-canvas { position: absolute; inset: 0; z-index: 0; }
+
+    .hero-orb { position: absolute; border-radius: 50%; animation: orbFloat 20s ease-in-out infinite; }
+    .hero-orb-1 {
+      width: 500px; height: 500px; top: 20%; left: 50%; transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(167,139,250,0.12) 0%, transparent 70%);
+      filter: blur(80px);
+    }
+    .hero-orb-2 {
+      width: 400px; height: 400px; top: 60%; left: 20%;
+      background: radial-gradient(circle, rgba(96,165,250,0.08) 0%, transparent 70%);
+      filter: blur(60px); animation-delay: -7s;
+    }
+    .hero-orb-3 {
+      width: 350px; height: 350px; top: 40%; right: 10%;
+      background: radial-gradient(circle, rgba(74,222,128,0.06) 0%, transparent 70%);
+      filter: blur(60px); animation-delay: -13s;
+    }
+    @keyframes orbFloat {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+      50% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+    }
+
+    .hero-content { position: relative; z-index: 1; max-width: 720px; }
+
+    .hero-icon {
+      width: 80px; height: 80px; border-radius: 20px; margin: 0 auto 2.5rem;
+      filter: brightness(1.3) drop-shadow(0 0 40px rgba(167,139,250,0.3));
+      animation: iconGlow 4s ease-in-out infinite;
+    }
+    @keyframes iconGlow {
+      0%, 100% { filter: brightness(1.3) drop-shadow(0 0 40px rgba(167,139,250,0.3)); }
+      50% { filter: brightness(1.5) drop-shadow(0 0 60px rgba(167,139,250,0.45)); }
+    }
+
+    .hero h1 {
+      font-size: clamp(2.2rem, 5.5vw, 3.8rem); font-weight: 300;
+      line-height: 1.1; margin-bottom: 1.5rem; letter-spacing: -1px; color: var(--white);
+    }
+    .hero h1 strong {
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--c-purple) 0%, var(--c-blue) 50%, var(--c-green) 100%);
+      background-size: 200% 100%;
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+      animation: shimmer 6s ease-in-out infinite;
+    }
+    @keyframes shimmer {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .hero p {
+      font-size: clamp(15px, 2vw, 17px); color: var(--silver-dim);
+      max-width: 500px; margin: 0 auto 2.5rem; line-height: 1.7; font-weight: 300;
+    }
+
+    .hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 28px; border-radius: 100px; font-size: 14px;
+      font-family: var(--sans); font-weight: 500; cursor: pointer;
+      transition: all 0.3s; letter-spacing: 0.2px;
+    }
+    .btn svg { opacity: 0.8; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--c-purple), #8b5cf6);
+      color: #fff; border: none;
+      box-shadow: 0 2px 8px rgba(167,139,250,0.3), 0 8px 32px rgba(167,139,250,0.15);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 4px 16px rgba(167,139,250,0.5), 0 12px 48px rgba(167,139,250,0.25);
+      transform: translateY(-2px);
+    }
+    .btn-glass {
+      background: linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+      color: var(--silver-bright);
+      border-top: 1px solid rgba(255,255,255,0.15);
+      border-right: 1px solid rgba(255,255,255,0.05);
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      border-left: 1px solid rgba(255,255,255,0.08);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .btn-glass:hover {
+      background: linear-gradient(145deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 100%);
+      transform: translateY(-2px);
+    }
+
+    /* ─── PLATFORM DOWNLOADS ─── */
+    .platform-downloads {
+      margin-top: 2rem;
+      display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+    }
+    .platform-card {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 16px 22px; border-radius: 14px;
+      background: linear-gradient(145deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%);
+      border-top: 1px solid var(--m-border-t);
+      border-right: 1px solid var(--m-border-r);
+      border-bottom: 1px solid var(--m-border-b);
+      border-left: 1px solid var(--m-border-l);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), var(--m-shadow);
+      transition: all 0.3s; cursor: pointer;
+      text-decoration: none; color: var(--silver);
+      position: relative; overflow: hidden; min-width: 140px;
+    }
+    .platform-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, transparent 40%);
+      pointer-events: none;
+    }
+    .platform-card:hover {
+      border-top-color: rgba(167,139,250,0.3);
+      transform: translateY(-2px);
+      box-shadow: inset 0 1px 0 rgba(167,139,250,0.15), 0 4px 8px rgba(0,0,0,0.3), 0 12px 40px rgba(167,139,250,0.08);
+      color: var(--silver-bright);
+    }
+    .platform-icon { font-size: 22px; line-height: 1; }
+    .platform-name { font-size: 13px; font-weight: 500; color: var(--silver-bright); }
+    .platform-arch { font-size: 10px; color: var(--silver-dim); font-family: var(--mono); letter-spacing: 0.5px; }
+
+    /* ─── INSTALL METHODS ─── */
+    .install-methods {
+      margin-top: 2rem;
+      display: flex; flex-direction: column; gap: 10px; align-items: center;
+    }
+    .hero-install {
+      padding: 16px 28px; border-radius: 14px;
+      background: linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+      border-top: 1px solid var(--m-border-t);
+      border-right: 1px solid var(--m-border-r);
+      border-bottom: 1px solid var(--m-border-b);
+      border-left: 1px solid var(--m-border-l);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), var(--m-shadow);
+      font-size: 13px; font-family: var(--mono); color: var(--silver-dim);
+      display: inline-flex; align-items: center; gap: 14px;
+      cursor: pointer; transition: all 0.3s;
+      position: relative; overflow: hidden;
+    }
+    .hero-install::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(145deg, rgba(255,255,255,0.04) 0%, transparent 40%);
+      pointer-events: none;
+    }
+    .hero-install:hover {
+      border-top-color: rgba(96,165,250,0.3);
+      box-shadow: inset 0 1px 0 rgba(96,165,250,0.1), 0 4px 8px rgba(0,0,0,0.3);
+    }
+    .hero-install code { color: var(--silver-bright); position: relative; }
+    .hero-install .copy-hint {
+      color: var(--silver-faint); font-size: 11px;
+      padding: 2px 8px; border-radius: 4px;
+      background: rgba(255,255,255,0.06); position: relative;
+    }
+    .install-label {
+      font-size: 11px; color: var(--silver-faint);
+      text-transform: uppercase; letter-spacing: 1.5px; font-weight: 500;
+      font-family: var(--sans); margin-bottom: 2px;
+    }
+
+    .hero-fade {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 200px;
+      background: linear-gradient(to bottom, transparent, var(--bg));
+      z-index: 1; pointer-events: none;
+    }
+
+    /* ─── SECTIONS ─── */
+    section { padding: 120px 2rem; max-width: 1080px; margin: 0 auto; }
+    .section-label {
+      font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--c-purple); margin-bottom: 1rem; font-weight: 600;
+    }
+    section h2 {
+      font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 300;
+      margin-bottom: 0.8rem; color: var(--white); letter-spacing: -0.5px;
+    }
+    section h2 strong { font-weight: 600; }
+    section > p.section-desc {
+      color: var(--silver-dim); max-width: 500px;
+      margin-bottom: 3.5rem; font-size: 15px; font-weight: 300; line-height: 1.7;
+    }
+
+    /* ─── FEATURE CARDS ─── */
+    .glass-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 1px; border-radius: 20px; overflow: hidden;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3), 0 16px 48px rgba(0,0,0,0.2);
+    }
+    .glass-card {
+      background: linear-gradient(155deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.015) 100%);
+      padding: 2.2rem;
+      transition: all 0.4s; position: relative; overflow: hidden;
+    }
+    .glass-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, transparent 40%);
+      pointer-events: none; transition: opacity 0.3s;
+    }
+    .glass-card:hover {
+      background: linear-gradient(155deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 100%);
+    }
+    .card-icon {
+      width: 42px; height: 42px; border-radius: 12px; margin-bottom: 1.2rem;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; position: relative;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .card-icon.purple { background: linear-gradient(135deg, rgba(167,139,250,0.2), rgba(167,139,250,0.05)); color: var(--c-purple); border-color: rgba(167,139,250,0.2); }
+    .card-icon.blue { background: linear-gradient(135deg, rgba(96,165,250,0.2), rgba(96,165,250,0.05)); color: var(--c-blue); border-color: rgba(96,165,250,0.2); }
+    .card-icon.green { background: linear-gradient(135deg, rgba(74,222,128,0.2), rgba(74,222,128,0.05)); color: var(--c-green); border-color: rgba(74,222,128,0.2); }
+    .card-icon.orange { background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(251,191,36,0.05)); color: var(--c-orange); border-color: rgba(251,191,36,0.2); }
+    .card-icon.red { background: linear-gradient(135deg, rgba(248,113,113,0.2), rgba(248,113,113,0.05)); color: var(--c-red); border-color: rgba(248,113,113,0.2); }
+    .card-icon.emerald { background: linear-gradient(135deg, rgba(52,211,153,0.2), rgba(52,211,153,0.05)); color: var(--c-emerald); border-color: rgba(52,211,153,0.2); }
+
+    .glass-card h3 { font-size: 15px; font-weight: 500; margin-bottom: 0.6rem; color: var(--silver-bright); }
+    .glass-card p { font-size: 13px; color: var(--silver-dim); line-height: 1.65; font-weight: 300; }
+
+    /* ─── STEPS ─── */
+    .steps { display: flex; flex-direction: column; gap: 0; }
+    .step {
+      display: grid; grid-template-columns: 80px 1fr; gap: 0;
+      padding: 2.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .step:last-child { border-bottom: none; }
+    .step-num {
+      font-size: 48px; font-weight: 200;
+      line-height: 1; letter-spacing: -2px;
+      background: linear-gradient(180deg, var(--c-purple), rgba(167,139,250,0.3));
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .step h3 { font-size: 16px; font-weight: 500; margin-bottom: 0.5rem; color: var(--silver-bright); }
+    .step p { font-size: 14px; color: var(--silver-dim); line-height: 1.7; font-weight: 300; }
+
+    /* ─── TERMINAL ─── */
+    .terminal {
+      background: linear-gradient(155deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.015) 100%);
+      border-top: 1px solid var(--m-border-t);
+      border-right: 1px solid var(--m-border-r);
+      border-bottom: 1px solid var(--m-border-b);
+      border-left: 1px solid var(--m-border-l);
+      border-radius: 14px; overflow: hidden; margin-top: 1.2rem;
+      position: relative;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), var(--m-shadow);
+    }
+    .terminal::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(145deg, rgba(255,255,255,0.04) 0%, transparent 40%);
+      pointer-events: none; border-radius: 14px;
+    }
+    .terminal-bar {
+      padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex; align-items: center; gap: 8px; position: relative;
+    }
+    .terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .terminal-dot:nth-child(1) { background: var(--c-red); opacity: 0.7; }
+    .terminal-dot:nth-child(2) { background: var(--c-orange); opacity: 0.7; }
+    .terminal-dot:nth-child(3) { background: var(--c-green); opacity: 0.7; }
+    .terminal-title { font-size: 11px; color: var(--silver-faint); margin-left: 8px; font-family: var(--mono); }
+    .terminal-body {
+      padding: 1.4rem 1.8rem; font-size: 13px; line-height: 2;
+      font-family: var(--mono); position: relative;
+    }
+    .terminal-body .prompt { color: var(--c-green); }
+    .terminal-body .cmd { color: var(--silver-bright); }
+    .terminal-body .flag { color: var(--c-blue); }
+    .terminal-body .comment { color: var(--silver-faint); }
+    .terminal-body .output { color: var(--silver-dim); }
+
+    /* ─── CATEGORY LEGEND ─── */
+    .legend {
+      display: flex; gap: 2rem; flex-wrap: wrap; margin-top: 3rem;
+      padding: 1.2rem 1.8rem; border-radius: 12px;
+      background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.015) 100%);
+      border-top: 1px solid var(--m-border-t);
+      border-right: 1px solid var(--m-border-r);
+      border-bottom: 1px solid var(--m-border-b);
+      border-left: 1px solid var(--m-border-l);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.2);
+      position: relative; overflow: hidden;
+    }
+    .legend::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, transparent 40%);
+      pointer-events: none;
+    }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--silver-dim); position: relative; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+    /* ─── INTEGRATION CARDS ─── */
+    .int-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 2.5rem;
+    }
+    .int-card {
+      padding: 1.8rem; border-radius: 14px;
+      background: linear-gradient(155deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.015) 100%);
+      border-top: 1px solid var(--m-border-t);
+      border-right: 1px solid var(--m-border-r);
+      border-bottom: 1px solid var(--m-border-b);
+      border-left: 1px solid var(--m-border-l);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), var(--m-shadow);
+      transition: all 0.3s; position: relative; overflow: hidden;
+    }
+    .int-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent, var(--c-purple)), transparent);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .int-card:hover::before { opacity: 1; }
+    .int-card:hover {
+      transform: translateY(-2px);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), var(--m-shadow-lg);
+    }
+    .int-card h4 {
+      font-size: 14px; font-weight: 500; margin-bottom: 0.4rem;
+      color: var(--silver-bright);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .int-card h4 .int-dot {
+      width: 6px; height: 6px; border-radius: 50;
+      display: inline-block;
+    }
+    .int-card p { font-size: 12px; color: var(--silver-dim); line-height: 1.6; font-weight: 300; }
+    .int-card code {
+      font-family: var(--mono); font-size: 11px;
+      background: rgba(167,139,250,0.1); color: var(--c-purple);
+      padding: 2px 6px; border-radius: 4px;
+    }
+
+    /* ─── CTA ─── */
+    .cta-section {
+      text-align: center; padding: 100px 2rem 140px; position: relative;
+    }
+    .cta-section h2 {
+      font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 300;
+      margin-bottom: 0.8rem; color: var(--white); position: relative;
+    }
+    .cta-section p {
+      color: var(--silver-dim); margin-bottom: 2.5rem;
+      font-size: 15px; font-weight: 300; position: relative;
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 2.5rem; text-align: center;
+      font-size: 12px; color: var(--silver-faint); font-weight: 300;
+    }
+    footer a { color: var(--silver-dim); }
+    footer a:hover { color: var(--c-purple); }
+
+    .divider {
+      width: 60px; height: 2px; margin: 0 auto;
+      background: linear-gradient(90deg, transparent, var(--c-purple), transparent);
+      opacity: 0.4;
+    }
+
+    /* ─── ANIMATIONS ─── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { opacity: 0; animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .fade-d1 { animation-delay: 0.1s; }
+    .fade-d2 { animation-delay: 0.2s; }
+    .fade-d3 { animation-delay: 0.35s; }
+    .fade-d4 { animation-delay: 0.5s; }
+    .fade-d5 { animation-delay: 0.65s; }
+    .fade-d6 { animation-delay: 0.8s; }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 900px) {
+      .glass-grid, .int-grid { grid-template-columns: 1fr; }
+      .platform-downloads { flex-direction: column; align-items: center; }
+    }
+    @media (max-width: 768px) {
+      nav { padding: 0 1.2rem; }
+      .nav-links { display: none; }
+      section { padding: 80px 1.2rem; }
+      .step { grid-template-columns: 50px 1fr; }
+      .step-num { font-size: 36px; }
+      .hero { padding: 120px 1.2rem 80px; }
+      .hero-actions { flex-direction: column; align-items: center; }
+      .hero-install { font-size: 11px; padding: 12px 16px; }
+      .platform-downloads { gap: 8px; }
+      .platform-card { min-width: 120px; padding: 12px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <img src="icon.png" alt="Nexus">
+    <span>Nexus</span>
+  </div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#how">How It Works</a>
+    <a href="#cli">CLI</a>
+    <a href="#integrations">Integrations</a>
+    <a href="https://github.com/akashub/nexus" target="_blank">GitHub</a>
+  </div>
+  <a href="#install" class="nav-cta">Get Started</a>
+</nav>
+
+<!-- ─── HERO ─── -->
+<div class="hero">
+  <div class="hero-orb hero-orb-1"></div>
+  <div class="hero-orb hero-orb-2"></div>
+  <div class="hero-orb hero-orb-3"></div>
+  <canvas class="hero-canvas" id="graphCanvas"></canvas>
+
+  <div class="hero-content">
+    <img src="icon.png" alt="Nexus" class="hero-icon fade-up">
+    <h1 class="fade-up fade-d1">Your learning,<br><strong>mapped.</strong></h1>
+    <p class="fade-up fade-d2">
+      Every tool, framework, and concept you touch &mdash;
+      captured into a personal knowledge graph.
+      Search it. Visualize it. Let AI connect the dots.
+    </p>
+    <div class="hero-actions fade-up fade-d3">
+      <a href="https://github.com/akashub/nexus/releases/latest" class="btn btn-primary" id="downloadBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span id="downloadText">Download Desktop App</span>
+      </a>
+      <a href="https://github.com/akashub/nexus" class="btn btn-glass" target="_blank">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        View Source
+      </a>
+    </div>
+
+    <!-- ─── PLATFORM DOWNLOADS ─── -->
+    <div class="platform-downloads fade-up fade-d4">
+      <a href="https://github.com/akashub/nexus/releases/latest" class="platform-card">
+        <div class="platform-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+        </div>
+        <div class="platform-name">macOS</div>
+        <div class="platform-arch">arm64 + x86_64</div>
+      </a>
+      <a href="https://github.com/akashub/nexus/releases/latest" class="platform-card">
+        <div class="platform-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20.581 19.049c-.55-.446-.336-1.431-.907-1.917.553-3.365-.997-6.331-2.845-8.232-1.551-1.595-3.005-2.032-3.409-2.32a4.858 4.858 0 0 0-.22-.146c-.04-.025-.06-.036-.06-.036s.01.011.04.036L12 8l-1.18-1.566s-.02-.025-.06-.036a4.858 4.858 0 0 0-.22.146c-.404.288-1.858.725-3.409 2.32-1.848 1.901-3.398 4.867-2.845 8.232-.571.486-.357 1.471-.907 1.917C2.598 19.7 2 22 2 22h20s-.598-2.3-1.419-2.951z"/></svg>
+        </div>
+        <div class="platform-name">Linux</div>
+        <div class="platform-arch">x86_64</div>
+      </a>
+      <a href="https://github.com/akashub/nexus/releases/latest" class="platform-card">
+        <div class="platform-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+        </div>
+        <div class="platform-name">Windows</div>
+        <div class="platform-arch">x86_64</div>
+      </a>
+    </div>
+
+    <!-- ─── INSTALL METHODS ─── -->
+    <div class="install-methods fade-up fade-d5">
+      <div class="install-label">Install via CLI</div>
+      <div class="hero-install" onclick="copyInstall('uv')" id="installBlock">
+        <code><span class="prompt">$</span> uv tool install <span style="color:var(--c-blue)">"git+https://github.com/akashub/nexus.git#subdirectory=backend"</span></code>
+        <span class="copy-hint" id="copyIcon">copy</span>
+      </div>
+      <div class="hero-install" onclick="copyInstall('pip')" id="installBlockPip">
+        <code><span class="prompt">$</span> pip install <span style="color:var(--c-blue)">"nexus-graph @ git+https://github.com/akashub/nexus.git#subdirectory=backend"</span></code>
+        <span class="copy-hint" id="copyIconPip">copy</span>
+      </div>
+    </div>
+  </div>
+  <div class="hero-fade"></div>
+</div>
+
+<!-- ─── FEATURES ─── -->
+<section id="features">
+  <div class="section-label">Capabilities</div>
+  <h2>Everything you need to <strong>remember</strong></h2>
+  <p class="section-desc">Nexus captures your learning passively and makes it searchable, visual, and actionable.</p>
+
+  <div class="glass-grid">
+    <div class="glass-card">
+      <div class="card-icon purple">&#9673;</div>
+      <h3>Interactive Graph</h3>
+      <p>Every concept is a node, every relationship an edge. Drag, zoom, filter by category. Your entire stack, visualized.</p>
+    </div>
+    <div class="glass-card">
+      <div class="card-icon blue">&#8634;</div>
+      <h3>Passive Capture</h3>
+      <p>Hooks watch for installs. Session-end scans catch changes. Your graph builds itself while you work.</p>
+    </div>
+    <div class="glass-card">
+      <div class="card-icon green">&#9826;</div>
+      <h3>AI Enrichment</h3>
+      <p>Descriptions, summaries, install instructions, and embeddings. Local Ollama or cloud APIs.</p>
+    </div>
+    <div class="glass-card">
+      <div class="card-icon orange">&#9678;</div>
+      <h3>Gap Detection</h3>
+      <p>Companion pattern analysis surfaces what your stack is missing. React without testing? Flagged.</p>
+    </div>
+    <div class="glass-card">
+      <div class="card-icon red">&#8614;</div>
+      <h3>Learning Journey</h3>
+      <p>Timeline of when you adopted each tool. See your growth week by week, filter by project.</p>
+    </div>
+    <div class="glass-card">
+      <div class="card-icon emerald">&#9702;</div>
+      <h3>Multi-Project</h3>
+      <p>Each project gets its own graph. Cross-project connections and shared dependencies surface automatically.</p>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background: var(--c-purple); box-shadow: 0 0 8px var(--c-purple);"></div> devtool</div>
+    <div class="legend-item"><div class="legend-dot" style="background: var(--c-blue); box-shadow: 0 0 8px var(--c-blue);"></div> framework</div>
+    <div class="legend-item"><div class="legend-dot" style="background: var(--c-green); box-shadow: 0 0 8px var(--c-green);"></div> concept</div>
+    <div class="legend-item"><div class="legend-dot" style="background: var(--c-orange); box-shadow: 0 0 8px var(--c-orange);"></div> pattern</div>
+    <div class="legend-item"><div class="legend-dot" style="background: var(--c-red); box-shadow: 0 0 8px var(--c-red);"></div> language</div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── HOW IT WORKS ─── -->
+<section id="how">
+  <div class="section-label">Setup</div>
+  <h2>Two minutes to a <strong>living graph</strong></h2>
+  <p class="section-desc">Install, wire into Claude Code, forget about it. Your graph builds itself from there.</p>
+
+  <div class="steps">
+    <div class="step" id="install">
+      <div class="step-num">01</div>
+      <div>
+        <h3>Install the CLI</h3>
+        <p>One command. Works on macOS, Linux, and Windows. Requires Python 3.12+ and uv.</p>
+        <div class="terminal">
+          <div class="terminal-body">
+            <span class="prompt">$</span> <span class="cmd">uv tool install</span> <span class="flag">"git+https://github.com/akashub/nexus.git#subdirectory=backend"</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div>
+        <h3>Wire into Claude Code</h3>
+        <p>Installs MCP server, skill file, and session hooks. Claude reads and writes your graph automatically.</p>
+        <div class="terminal">
+          <div class="terminal-body">
+            <span class="prompt">$</span> <span class="cmd">nexus mcp install</span><br>
+            <span class="output">&ensp; MCP server registered</span><br>
+            <span class="output">&ensp; Skill installed &middot; Hooks registered</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div>
+        <h3>Seed your graph</h3>
+        <p>Scan a project to populate from package files. Or just start working &mdash; hooks capture everything.</p>
+        <div class="terminal">
+          <div class="terminal-body">
+            <span class="prompt">$</span> <span class="cmd">nexus scan</span> <span class="flag">. --enrich</span><br>
+            <span class="output">&ensp; Found 47 dependencies in package.json, pyproject.toml</span><br>
+            <span class="output">&ensp; Enriching React... Enriching FastAPI... done</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <div>
+        <h3>Explore</h3>
+        <p>Desktop app or CLI. Search, visualize, ask questions, detect gaps, track your journey.</p>
+        <div class="terminal">
+          <div class="terminal-body">
+            <span class="prompt">$</span> <span class="cmd">nexus journey</span><br>
+            <span class="output"><br>Week of Apr 28</span><br>
+            <span class="output">&ensp; &#9500;&#9472;&#9472; React <span style="color:var(--c-blue)">[framework]</span></span><br>
+            <span class="output">&ensp; &#9500;&#9472;&#9472; Tailwind <span style="color:var(--c-blue)">[framework]</span></span><br>
+            <span class="output">&ensp; &#9492;&#9472;&#9472; Playwright <span style="color:var(--c-purple)">[devtool]</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── CLI ─── -->
+<section id="cli">
+  <div class="section-label">Command Line</div>
+  <h2>20+ commands, <strong>zero friction</strong></h2>
+  <p class="section-desc">Everything works from the terminal. The desktop app is optional.</p>
+
+  <div class="terminal">
+    <div class="terminal-bar">
+      <div class="terminal-dot"></div>
+      <div class="terminal-dot"></div>
+      <div class="terminal-dot"></div>
+      <div class="terminal-title">nexus</div>
+    </div>
+    <div class="terminal-body">
+      <span class="comment"># Add with AI enrichment</span><br>
+      <span class="prompt">$</span> <span class="cmd">nexus add</span> <span class="flag">"Playwright"</span><br>
+      <span class="output">&ensp; Added: Playwright (a3f2b1c8)</span><br>
+      <span class="output">&ensp; Enriching... Updated: description, summary, category, embedding</span><br>
+      <span class="output">&ensp; Playwright --[<span style="color:var(--c-purple)">related_to</span>]--&gt; Cypress (0.78)</span><br><br>
+
+      <span class="comment"># Detect gaps in your stack</span><br>
+      <span class="prompt">$</span> <span class="cmd">nexus gaps</span><br>
+      <span class="output">&ensp; React project &mdash; 3 gaps:</span><br>
+      <span class="output">&ensp;&ensp; <span style="color:var(--c-orange)">testing</span> &middot; <span style="color:var(--c-orange)">linting</span> &middot; <span style="color:var(--c-orange)">state management</span></span><br><br>
+
+      <span class="comment"># Semantic search across everything</span><br>
+      <span class="prompt">$</span> <span class="cmd">nexus search</span> <span class="flag">"testing" --semantic</span><br>
+      <span class="output">&ensp; <span style="color:var(--c-purple)">Playwright</span> &middot; <span style="color:var(--c-purple)">pytest</span> &middot; <span style="color:var(--c-purple)">Vitest</span> &middot; <span style="color:var(--c-purple)">Cypress</span></span><br><br>
+
+      <span class="comment"># Full concept detail</span><br>
+      <span class="prompt">$</span> <span class="cmd">nexus show</span> <span class="flag">react</span><br>
+      <span class="output">&ensp; React <span style="color:var(--c-blue)">[framework]</span></span><br>
+      <span class="output">&ensp; A JavaScript library for building user interfaces</span><br>
+      <span class="output">&ensp; Connections: Next.js, Tailwind, TypeScript, Vite</span>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── INTEGRATIONS ─── -->
+<section id="integrations">
+  <div class="section-label">Ecosystem</div>
+  <h2>Works with your <strong>tools</strong></h2>
+  <p class="section-desc">Plugs into the AI coding workflow you already have.</p>
+
+  <div class="int-grid">
+    <div class="int-card" style="--accent: var(--c-purple);">
+      <h4>Claude Code</h4>
+      <p>MCP server for real-time graph access. Hooks capture installs. Skill teaches the ledger format.</p>
+    </div>
+    <div class="int-card" style="--accent: var(--c-blue);">
+      <h4>Codex &amp; MCP Clients</h4>
+      <p>Any MCP-compatible tool works. Register <code>nexus mcp serve</code> and go.</p>
+    </div>
+    <div class="int-card" style="--accent: var(--c-green);">
+      <h4>Ollama</h4>
+      <p>Gemma 4B for generation, nomic-embed-text for embeddings. Local, no API keys.</p>
+    </div>
+    <div class="int-card" style="--accent: var(--c-orange);">
+      <h4>Cloud AI</h4>
+      <p>Anthropic or OpenAI for higher-quality enrichment. One env var, add <code>--model cloud</code>.</p>
+    </div>
+    <div class="int-card" style="--accent: var(--c-red);">
+      <h4>Desktop App</h4>
+      <p>Tauri-based native app. Interactive graph, search, side panels, project switching.</p>
+    </div>
+    <div class="int-card" style="--accent: var(--c-emerald);">
+      <h4>Context7</h4>
+      <p>Real library docs for enrichment. Falls back to PyPI, npm, GitHub, libraries.io.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─── CTA ─── -->
+<div class="cta-section">
+  <h2>Start mapping your knowledge</h2>
+  <p>Two commands. Two minutes. Your graph builds itself from there.</p>
+  <div class="terminal" style="max-width:620px; margin:0 auto; text-align:left;">
+    <div class="terminal-bar">
+      <div class="terminal-dot"></div>
+      <div class="terminal-dot"></div>
+      <div class="terminal-dot"></div>
+      <div class="terminal-title">quick start</div>
+    </div>
+    <div class="terminal-body">
+      <span class="prompt">$</span> <span class="cmd">uv tool install</span> <span class="flag">"git+https://github.com/akashub/nexus.git#subdirectory=backend"</span><br>
+      <span class="prompt">$</span> <span class="cmd">nexus mcp install</span><br>
+      <span class="prompt">$</span> <span class="cmd">nexus db init</span><br><br>
+      <span class="comment"># Optional: local AI</span><br>
+      <span class="prompt">$</span> <span class="cmd">ollama pull</span> <span class="flag">gemma4</span><br>
+      <span class="prompt">$</span> <span class="cmd">ollama pull</span> <span class="flag">nomic-embed-text</span>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>Built by <a href="https://github.com/akashub" target="_blank">akashub</a> &ensp;&middot;&ensp; MIT License &ensp;&middot;&ensp; <a href="https://github.com/akashub/nexus" target="_blank">Source on GitHub</a></p>
+</footer>
+
+<script>
+(function() {
+  const ua = navigator.userAgent.toLowerCase();
+  const txt = document.getElementById('downloadText');
+  if (ua.includes('mac')) txt.textContent = 'Download for macOS';
+  else if (ua.includes('win')) txt.textContent = 'Download for Windows';
+  else if (ua.includes('linux')) txt.textContent = 'Download for Linux';
+})();
+
+var installCommands = {
+  uv: 'uv tool install "git+https://github.com/akashub/nexus.git#subdirectory=backend"',
+  pip: 'pip install "nexus-graph @ git+https://github.com/akashub/nexus.git#subdirectory=backend"'
+};
+
+function copyInstall(method) {
+  var cmd = installCommands[method] || installCommands.uv;
+  var iconId = method === 'pip' ? 'copyIconPip' : 'copyIcon';
+  navigator.clipboard.writeText(cmd).then(function() {
+    var el = document.getElementById(iconId);
+    el.textContent = 'copied';
+    setTimeout(function() { el.textContent = 'copy'; }, 2000);
+  });
+}
+
+// Animated graph — uses category colors
+(function() {
+  const canvas = document.getElementById('graphCanvas');
+  const ctx = canvas.getContext('2d');
+  let w, h, nodes = [];
+  const N = 50, MAX_D = 160;
+  const colors = ['167,139,250', '96,165,250', '74,222,128', '251,191,36', '248,113,113'];
+
+  function resize() {
+    w = canvas.width = canvas.parentElement.offsetWidth;
+    h = canvas.height = canvas.parentElement.offsetHeight;
+  }
+
+  function init() {
+    resize();
+    nodes = Array.from({ length: N }, () => ({
+      x: Math.random() * w, y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.2, vy: (Math.random() - 0.5) * 0.2,
+      r: 1.5 + Math.random() * 2,
+      c: colors[Math.floor(Math.random() * colors.length)],
+    }));
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d < MAX_D) {
+          ctx.beginPath();
+          ctx.moveTo(nodes[i].x, nodes[i].y);
+          ctx.lineTo(nodes[j].x, nodes[j].y);
+          ctx.strokeStyle = `rgba(${nodes[i].c},${(1 - d / MAX_D) * 0.08})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+    for (const n of nodes) {
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${n.c},0.35)`;
+      ctx.fill();
+      n.x += n.vx; n.y += n.vy;
+      if (n.x < 0 || n.x > w) n.vx *= -1;
+      if (n.y < 0 || n.y > h) n.vy *= -1;
+    }
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', resize);
+  init(); draw();
+})();
+
+// Scroll reveal
+(function() {
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.animation = 'fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) forwards';
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.glass-card, .step, .int-card').forEach(el => {
+    el.style.opacity = '0'; el.style.transform = 'translateY(24px)';
+    obs.observe(el);
+  });
+})();
+</script>
+
+</body>
+</html>
