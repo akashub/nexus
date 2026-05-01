@@ -121,18 +121,21 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
               {concept.source === "manual" ? "added manually" : `enriched via ${concept.source}`} · {timeAgo(concept.created_at)}
             </p>
           </Sec>
-          <div className="mt-auto pt-3 flex gap-2">
-            <button onClick={() => setShowConnect(true)}
-              className="flex-1 px-3 py-1.5 text-xs text-[var(--nx-text-2)] border border-[var(--nx-border-strong)] rounded hover:bg-[var(--nx-hover)] transition-colors">
-              connect &rarr;
-            </button>
-            <div className="flex-1 flex flex-col gap-1">
+          <div className="mt-auto pt-3 flex flex-col gap-1.5">
+            <div className="flex gap-2">
+              <button onClick={() => setShowConnect(true)}
+                className="flex-1 px-3 py-1.5 text-xs text-[var(--nx-text-2)] border border-[var(--nx-border-strong)] rounded hover:bg-[var(--nx-hover)] transition-colors">
+                connect &rarr;
+              </button>
               <button onClick={() => enrich.mutate({ id: conceptId, mode: enrichSource })} disabled={enrich.isPending || !!concept.enrich_status}
-                className="w-full px-3 py-1.5 text-xs text-[var(--nx-text-2)] border border-[var(--nx-border-strong)] rounded hover:bg-[var(--nx-hover)] disabled:opacity-50 transition-colors">
+                className="flex-1 px-3 py-1.5 text-xs text-[var(--nx-text-2)] border border-[var(--nx-border-strong)] rounded hover:bg-[var(--nx-hover)] disabled:opacity-50 transition-colors">
                 {concept.enrich_status ? "enriching..." : "enrich"}
               </button>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-[var(--nx-text-4)]">source</span>
               <select value={enrichSource} onChange={(e) => setEnrichSource(e.target.value)}
-                className="w-full px-2 py-0.5 text-[10px] text-[var(--nx-text-4)] bg-[var(--nx-input)] border border-[var(--nx-border)] rounded outline-none">
+                className="flex-1 px-2 py-0.5 text-[10px] text-[var(--nx-text-4)] bg-[var(--nx-input)] border border-[var(--nx-border)] rounded outline-none">
                 <option value="auto">auto</option>
                 <option value="all">all sources</option>
                 <option value="context7">context7</option>
