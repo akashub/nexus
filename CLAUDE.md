@@ -68,8 +68,17 @@ Endpoints:
 - `DELETE /api/edges/:id` — delete
 - `GET /api/search?q=...&semantic=bool` — search
 - `POST /api/ask` — chat with graph context
-- `GET /api/graph` — full nodes + edges for visualization
+- `GET /api/graph` — full nodes + edges for visualization (`?project_id=` filter)
+- `GET /api/graph/global` — projects as nodes with shared-dep edges
 - `GET /api/stats` — counts and category breakdown
+- `GET/POST /api/projects` — list/create projects
+- `GET/PUT/DELETE /api/projects/:id` — project detail/update/delete
+- `POST /api/projects/:id/scan` — trigger project scan (background)
+- `POST /api/projects/:id/replicate` — generate setup script
+- `POST /api/projects/:id/compact` — compact project graph
+- `POST /api/projects/:id/infer-relationships` — infer edges (background)
+- `GET /api/projects/:id/expertise` — expertise profile
+- `GET /api/concepts/:id/context` — concept context (Eagle Mem, usage, install history)
 
 ## CLI commands
 - `nexus add <name>` — add concept (enriches via Ollama by default, `--no-enrich` to skip)
@@ -79,6 +88,17 @@ Endpoints:
 - `nexus show <name>` — full concept detail
 - `nexus ask <question>` — chat with graph context via Ollama
 - `nexus remove <name>` — delete concept + cascading edges
+- `nexus scan <path>` — scan project directory for dependencies and tools (`--enrich`, `--dry-run`)
+- `nexus compact [project]` — merge duplicates, remove stale entries (`--all`, `--dry-run`, `--stale-days`)
+- `nexus replicate <project>` — generate setup script (`--mode complete|context`, `--context "query"`)
+- `nexus track <name>` — track a package install (`--source npm|pip|brew|cargo`, `--dev`)
+- `nexus onboard [--project]` — show expertise profile (known_well, seen, gaps)
+- `nexus enrich-relationships` — infer edges using embeddings + AI
+- `nexus cluster` — assign semantic groups to concepts
+- `nexus project list|add|show|remove` — manage projects
+- `nexus mcp install|serve` — install/run MCP server for Claude Code
+- `nexus ingest <ledger.jsonl>` — import knowledge ledger entries
+- `nexus status` — show integration status (DB, MCP, Hooks, Skill, Ollama)
 - `nexus serve` — start API server (`--port`, `--host`)
 - `nexus db init` — initialize database
 
@@ -88,13 +108,24 @@ Endpoints:
 - Migrations are numbered `.sql` files in `backend/migrations/`. Applied idempotently on `db init` and server startup.
 
 ## Enrichment pipeline (on `nexus add`)
-1. Resolve via Context7 → if library found, fetch docs.
-2. If no Context7 match → optional web fetch fallback.
-3. Gemma-4B summarizes (2-3 sentences + one-liner).
-4. Gemma-4B suggests category.
-5. nomic-embed-text generates embedding vector.
-6. Cosine similarity finds top-3 related existing concepts → suggest connections.
-7. All stored in concepts table. User confirms suggested connections.
+1. Eagle Mem context — if sessions mention this tool, use as primary context.
+2. Resolve via Context7 → if library found, fetch docs.
+3. If no Context7 match → try PyPI, npm, GitHub, libraries.io fallbacks.
+4. Gemma-4B summarizes (2-3 sentences + one-liner) using combined context.
+5. Gemma-4B suggests category.
+6. nomic-embed-text generates embedding vector.
+7. Cosine similarity finds top-3 related existing concepts → suggest connections.
+8. All stored in concepts table.
 
-## Out of scope (V1)
-Polyglot voice integration, cloud model toggle, gap detection, learning journey view, Obsidian sync, cross-platform packaging/signing, multi-graph support.
+## V2 features
+- **Multi-project graphs**: projects table, `nexus scan` auto-captures deps, global graph view
+- **Auto-capture**: PostToolUse hook tracks npm/pip/brew/cargo installs, SessionEnd hook runs scan
+- **Expertise profiling**: `nexus onboard` classifies known_well/seen/gap per project
+- **MCP server**: 7 tools for Claude Code integration (search, get_concept, list_projects, etc.)
+- **Compaction**: `nexus compact` merges similar concepts, removes stale auto_scan entries
+- **Replication**: `nexus replicate` generates setup scripts from project graph
+- **Relationship inference**: `nexus enrich-relationships` infers edges via embeddings + AI
+- **Semantic clustering**: `nexus cluster` groups concepts using AI
+
+## Out of scope (V2)
+Polyglot voice integration, cloud model toggle, learning journey view, Obsidian sync, cross-platform packaging/signing.
