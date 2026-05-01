@@ -107,10 +107,10 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
       const nodeMap = new Map(simNodes.map((n) => [n.id, n]));
       let labelsAdded = false;
       const sim = forceSimulation(simNodes)
-        .force("charge", forceManyBody().strength(-250))
-        .force("link", forceLink(simLinks).id((d: any) => d.id).distance(120).strength(0.25))
-        .force("center", forceCenter(w / 2, h / 2).strength(0.05))
-        .force("collide", forceCollide(35))
+        .force("charge", forceManyBody().strength(-120))
+        .force("link", forceLink(simLinks).id((d: any) => d.id).distance(70).strength(0.4))
+        .force("center", forceCenter(w / 2, h / 2).strength(0.08))
+        .force("collide", forceCollide(22))
         .alphaDecay(0.02)
         .on("tick", () => {
           cy.batch(() => simNodes.forEach((sn) => {
@@ -151,7 +151,7 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
         <div className="absolute z-20 bg-[var(--nx-surface)] border border-[var(--nx-border-strong)] rounded-lg shadow-lg py-1 min-w-[120px]"
           style={{ left: ctxMenu.x, top: ctxMenu.y }}>
           {[
-            { label: "enrich", action: () => { enrich.mutate(ctxMenu.nodeId); onSelectNode(ctxMenu.nodeId); setCtxMenu(null); } },
+            { label: "enrich", action: () => { enrich.mutate({ id: ctxMenu.nodeId }); onSelectNode(ctxMenu.nodeId); setCtxMenu(null); } },
             { label: "connect", action: () => { onSelectNode(ctxMenu.nodeId); setCtxMenu(null); } },
             { label: "delete", action: () => { deleteConcept.mutate(ctxMenu.nodeId); onSelectNode(null); setCtxMenu(null); } },
           ].map((item) => (

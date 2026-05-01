@@ -1,10 +1,10 @@
 import type cytoscape from "cytoscape";
 
 export const CATEGORY_COLORS: Record<string, string> = {
-  devtool: "#8b7bb8", framework: "#5b8cb8", concept: "#5ba88b",
-  pattern: "#b89060", language: "#b86b6b",
+  devtool: "#a78bfa", framework: "#60a5fa", concept: "#4ade80",
+  pattern: "#fbbf24", language: "#f87171",
 };
-export const DEFAULT_COLOR = "#4a5568";
+export const DEFAULT_COLOR = "#94a3b8";
 
 interface GTheme {
   nodeText: string; nodeTextHover: string; edgeLine: string;
@@ -12,30 +12,30 @@ interface GTheme {
 }
 
 const DARK: GTheme = {
-  nodeText: "#f1f5f9", nodeTextHover: "#ffffff", edgeLine: "#334155",
-  edgeText: "#94a3b8", edgeTextBg: "#0a0a0b", dimOpacity: 0.08,
+  nodeText: "#e2e8f0", nodeTextHover: "#ffffff", edgeLine: "#475569",
+  edgeText: "#94a3b8", edgeTextBg: "#0a0a0b", dimOpacity: 0.06,
 };
 const LIGHT: GTheme = {
-  nodeText: "#0f172a", nodeTextHover: "#000000", edgeLine: "#94a3b8",
-  edgeText: "#475569", edgeTextBg: "#fafafa", dimOpacity: 0.15,
+  nodeText: "#1e293b", nodeTextHover: "#000000", edgeLine: "#94a3b8",
+  edgeText: "#475569", edgeTextBg: "#fafafa", dimOpacity: 0.12,
 };
 
 export function graphStyles(dark = true): cytoscape.StylesheetStyle[] {
   const t = dark ? DARK : LIGHT;
   const cc = (e: cytoscape.NodeSingular) => CATEGORY_COLORS[e.data("category")] || DEFAULT_COLOR;
-  const sz = (e: cytoscape.NodeSingular) => 20 + Math.min(e.data("deg"), 5) * 3;
+  const sz = (e: cytoscape.NodeSingular) => 14 + Math.min(e.data("deg"), 8) * 4;
   return [
     { selector: "node", style: {
-      shape: "ellipse", label: "data(label)", "text-valign": "bottom", "text-halign": "center", "text-margin-y": 5,
-      "background-color": cc, "background-opacity": 0.15, "border-width": 1.5, "border-color": cc,
-      "border-opacity": 0.6, color: t.nodeText, "font-size": "13px", "text-opacity": 0.4, "font-family": "'SF Mono', 'Fira Code', monospace",
-      width: sz, height: sz, "overlay-opacity": 0,
+      shape: "ellipse", label: "data(label)", "text-valign": "bottom", "text-halign": "center", "text-margin-y": 4,
+      "background-color": cc, "background-opacity": 0.55, "border-width": 1.5, "border-color": cc,
+      "border-opacity": 0.8, color: t.nodeText, "font-size": "11px", "text-opacity": 0.85, "font-family": "'SF Mono', 'Fira Code', monospace",
+      width: sz, height: sz, "overlay-opacity": 0, "text-max-width": "100px", "text-wrap": "ellipsis",
       "transition-property": "opacity, border-color, border-opacity, border-width, background-opacity", "transition-duration": 200,
     } as unknown as cytoscape.Css.Node },
     { selector: "node:active", style: { "overlay-opacity": 0 } as cytoscape.Css.Node },
     { selector: "edge", style: {
       "curve-style": "bezier", "target-arrow-shape": "triangle", "arrow-scale": 0.6,
-      "line-color": t.edgeLine, "target-arrow-color": t.edgeLine, width: 1, "line-opacity": 0.5,
+      "line-color": t.edgeLine, "target-arrow-color": t.edgeLine, width: 0.8, "line-opacity": 0.35,
       label: "data(label)", "font-size": "10px", "font-family": "'SF Mono', 'Fira Code', monospace",
       color: t.edgeText, "text-rotation": "autorotate", "text-margin-y": -8, "text-background-color": t.edgeTextBg,
       "text-background-opacity": 0.9, "text-background-padding": "2px", "overlay-opacity": 0, "text-opacity": 0,
@@ -49,12 +49,12 @@ export function graphStyles(dark = true): cytoscape.StylesheetStyle[] {
     { selector: "edge[rel='deployed_via']", style: { "line-style": "dotted", "line-color": "#b89060", "target-arrow-color": "#b89060" } as cytoscape.Css.Edge },
     { selector: "edge[rel='replaces']", style: { "line-style": "dashed", "line-color": "#b86b6b", "target-arrow-color": "#b86b6b" } as cytoscape.Css.Edge },
     { selector: ".dimmed", style: { opacity: t.dimOpacity } as any },
-    { selector: "node.hover", style: { "border-opacity": 1, "border-width": 2, "background-opacity": 0.3, color: t.nodeTextHover, "text-opacity": 1 } as cytoscape.Css.Node },
+    { selector: "node.hover", style: { "border-opacity": 1, "border-width": 2.5, "background-opacity": 0.7, color: t.nodeTextHover, "text-opacity": 1 } as cytoscape.Css.Node },
     { selector: "node.enriching-pulse", style: { "border-width": 3, "border-opacity": 1, "background-opacity": 0.35 } as cytoscape.Css.Node },
     { selector: "node:selected", style: { "border-width": 2, "border-color": t.nodeTextHover, "border-opacity": 0.9, "background-opacity": 0.25, color: t.nodeTextHover } as cytoscape.Css.Node },
     { selector: ".edge-hover", style: { "text-opacity": 1, "line-opacity": 0.8, width: 1.5 } as cytoscape.Css.Edge },
     { selector: ".cat-glow", style: { "background-opacity": 0.25, "border-opacity": 0.8, "border-width": 2, "text-opacity": 0.8 } as cytoscape.Css.Node },
-    { selector: "edge[rel='related_to']", style: { "line-opacity": 0.25, "line-style": "dotted", width: 0.7 } as cytoscape.Css.Edge },
+    { selector: "edge[rel='related_to']", style: { "line-opacity": 0.15, "line-style": "dotted", width: 0.5 } as cytoscape.Css.Edge },
     { selector: ".cat-label", style: {
       shape: "ellipse", width: 1, height: 1, "background-opacity": 0, "border-width": 0,
       label: "data(label)", "text-valign": "center", "text-halign": "center",

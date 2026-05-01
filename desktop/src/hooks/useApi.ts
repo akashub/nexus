@@ -91,8 +91,8 @@ export function useAddEdge() {
 export function useEnrichConcept() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) =>
-      apiFetch<{ status: string }>(`/concepts/${id}/enrich`, { method: "POST" }),
+    mutationFn: ({ id, mode = "auto" }: { id: string; mode?: string }) =>
+      apiFetch<{ status: string }>(`/concepts/${id}/enrich?mode=${mode}`, { method: "POST" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["concepts"] });
       qc.invalidateQueries({ queryKey: ["concept"] });

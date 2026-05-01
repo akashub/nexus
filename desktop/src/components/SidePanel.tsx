@@ -25,6 +25,7 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
   const update = useUpdateConcept();
   const [showConnect, setShowConnect] = useState(false);
   const [noteDraft, setNoteDraft] = useState(concept?.notes ?? "");
+  const [enrichSource, setEnrichSource] = useState("auto");
   const initRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -120,15 +121,27 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
               {concept.source === "manual" ? "added manually" : `enriched via ${concept.source}`} · {timeAgo(concept.created_at)}
             </p>
           </Sec>
-          <div className="mt-auto pt-3 flex gap-2">
-            <button onClick={() => setShowConnect(true)}
-              className="flex-1 px-3 py-1.5 text-xs text-[var(--nx-text-2)] border border-[var(--nx-border-strong)] rounded hover:bg-[var(--nx-hover)] transition-colors">
-              connect &rarr;
-            </button>
-            <button onClick={() => enrich.mutate(conceptId)} disabled={enrich.isPending || !!concept.enrich_status}
-              className="flex-1 px-3 py-1.5 text-xs text-[var(--nx-text-2)] border border-[var(--nx-border-strong)] rounded hover:bg-[var(--nx-hover)] disabled:opacity-50 transition-colors">
-              {concept.enrich_status ? "enriching..." : "enrich"}
-            </button>
+          <div className="mt-auto pt-3 flex flex-col gap-2">
+            <div className="flex gap-2">
+              <button onClick={() => setShowConnect(true)}
+                className="flex-1 px-3 py-1.5 text-xs text-[var(--nx-text-2)] border border-[var(--nx-border-strong)] rounded hover:bg-[var(--nx-hover)] transition-colors">
+                connect &rarr;
+              </button>
+              <button onClick={() => enrich.mutate({ id: conceptId, mode: enrichSource })} disabled={enrich.isPending || !!concept.enrich_status}
+                className="flex-1 px-3 py-1.5 text-xs text-[var(--nx-text-2)] border border-[var(--nx-border-strong)] rounded hover:bg-[var(--nx-hover)] disabled:opacity-50 transition-colors">
+                {concept.enrich_status ? "enriching..." : "enrich"}
+              </button>
+            </div>
+            <select value={enrichSource} onChange={(e) => setEnrichSource(e.target.value)}
+              className="w-full px-2 py-1 text-[11px] text-[var(--nx-text-3)] bg-[var(--nx-input)] border border-[var(--nx-border)] rounded outline-none">
+              <option value="auto">auto (waterfall)</option>
+              <option value="all">all sources (merged)</option>
+              <option value="context7">context7</option>
+              <option value="pypi">pypi</option>
+              <option value="npm">npm</option>
+              <option value="github">github</option>
+              <option value="libraries">libraries.io</option>
+            </select>
           </div>
         </>
       )}
