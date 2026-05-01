@@ -6,6 +6,8 @@ import GlobalGraphView from "./components/GlobalGraphView";
 import GraphView, { CATEGORY_COLORS } from "./components/GraphView";
 import LeftSidebar from "./components/LeftSidebar";
 import Logo from "./components/Logo";
+import ProjectPanel from "./components/ProjectPanel";
+import ReplicateModal from "./components/ReplicateModal";
 import SearchBar from "./components/SearchBar";
 import SidePanel from "./components/SidePanel";
 import { useGlobalGraph, useGraph, useOllamaStatus, useStats } from "./hooks/useApi";
@@ -21,6 +23,8 @@ export default function App() {
   const [showAddProject, setShowAddProject] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [replicateProject, setReplicateProject] = useState<Project | null>(null);
   const backendStatus = useBackend();
   const { data: graph } = useGraph(activeProject?.id);
   const { data: globalGraph } = useGlobalGraph();
@@ -30,7 +34,7 @@ export default function App() {
 
   const handleSelectProjectById = useCallback((id: string) => {
     const proj = globalGraph?.nodes.find((n) => n.id === id);
-    if (proj) setActiveProject(proj);
+    if (proj) setSelectedProject(proj);
   }, [globalGraph]);
 
   useEffect(() => {
@@ -38,7 +42,7 @@ export default function App() {
       if (e.metaKey && e.key === "k") { e.preventDefault(); setShowSearch(true); }
       else if (e.metaKey && e.key === "n") { e.preventDefault(); setShowAdd(true); }
       else if (e.metaKey && e.key === "/") { e.preventDefault(); setShowChat((v) => !v); }
-      else if (e.key === "Escape") { setShowSearch(false); setShowAdd(false); }
+      else if (e.key === "Escape") { setShowSearch(false); setShowAdd(false); setSelectedProject(null); }
     }
     const onAdd = () => setShowAdd(true);
     const onChat = () => setShowChat((v) => !v);
@@ -78,7 +82,7 @@ export default function App() {
       <header className="flex items-center justify-between px-4 h-10 border-b border-[var(--nx-border)] shrink-0">
         <div className="flex items-center gap-2">
           <Logo size={18} />
-          <button onClick={() => { setActiveProject(null); setSelectedId(null); }} className="text-xs tracking-[0.2em] text-[var(--nx-text-2)] uppercase hover:text-[var(--nx-text)] transition-colors">
+          <button onClick={() => { setActiveProject(null); setSelectedId(null); setSelectedProject(null); }} className="text-xs tracking-[0.2em] text-[var(--nx-text-2)] uppercase hover:text-[var(--nx-text)] transition-colors">
             nexus
           </button>
           {activeProject && (
@@ -109,7 +113,7 @@ export default function App() {
         <LeftSidebar
           activeProject={activeProject}
           onSelectProject={setActiveProject}
-          onBackToGlobal={() => { setActiveProject(null); setSelectedId(null); }}
+          onBackToGlobal={() => { setActiveProject(null); setSelectedId(null); setSelectedProject(null); }}
           onAddProject={() => setShowAddProject(true)}
           onSelectNode={setSelectedId} selectedId={selectedId}
           categoryFilter={categoryFilter} onCategoryFilter={setCategoryFilter}
@@ -146,11 +150,20 @@ export default function App() {
           )}
         </div>
         {selectedId && activeProject && <SidePanel conceptId={selectedId} onClose={() => setSelectedId(null)} onNavigate={setSelectedId} />}
+        {selectedProject && !activeProject && (
+          <ProjectPanel project={selectedProject} onClose={() => setSelectedProject(null)}
+            onOpenProject={(p) => { setActiveProject(p); setSelectedProject(null); }}
+            onReplicate={(p) => { setReplicateProject(p); setSelectedProject(null); }} />
+        )}
         {showChat && !selectedId && <ChatPanel onClose={() => setShowChat(false)} />}
       </div>
       {showSearch && <SearchBar onSelect={setSelectedId} onClose={() => setShowSearch(false)} />}
       {showAdd && <AddModal onClose={() => setShowAdd(false)} />}
       {showAddProject && <AddProjectModal onClose={() => setShowAddProject(false)} />}
+      {replicateProject && (
+        <ReplicateModal projectId={replicateProject.id} projectName={replicateProject.name}
+          onClose={() => setReplicateProject(null)} />
+      )}
     </div>
   );
 }
