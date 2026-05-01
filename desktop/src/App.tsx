@@ -2,8 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import AddModal from "./components/AddModal";
 import AddProjectModal from "./components/AddProjectModal";
 import ChatPanel from "./components/ChatPanel";
+import GapsPanel from "./components/GapsPanel";
 import GlobalGraphView from "./components/GlobalGraphView";
 import GraphView, { CATEGORY_COLORS } from "./components/GraphView";
+import JourneyPanel from "./components/JourneyPanel";
 import LeftSidebar from "./components/LeftSidebar";
 import Logo from "./components/Logo";
 import ProjectPanel from "./components/ProjectPanel";
@@ -25,6 +27,8 @@ export default function App() {
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [replicateProject, setReplicateProject] = useState<Project | null>(null);
+  const [showJourney, setShowJourney] = useState(false);
+  const [showGaps, setShowGaps] = useState(false);
   const backendStatus = useBackend();
   const { data: graph } = useGraph(activeProject?.id);
   const { data: globalGraph } = useGlobalGraph();
@@ -126,6 +130,8 @@ export default function App() {
             <Shortcut label="add" keys="⌘N" onClick={() => setShowAdd(true)} />
             <Shortcut label="ask" keys="⌘/" onClick={() => setShowChat((v) => !v)} />
             <div className="flex-1" />
+            <Shortcut label="journey" onClick={() => { setShowJourney((v) => !v); setShowGaps(false); }} />
+            {activeProject && <Shortcut label="gaps" onClick={() => { setShowGaps((v) => !v); setShowJourney(false); }} />}
             {activeProject && <Shortcut label="fit" onClick={() => window.dispatchEvent(new CustomEvent("nexus:fit"))} />}
           </div>
           <main className="flex-1 relative">
@@ -156,6 +162,8 @@ export default function App() {
             onReplicate={(p) => { setReplicateProject(p); setSelectedProject(null); }} />
         )}
         {showChat && !selectedId && <ChatPanel onClose={() => setShowChat(false)} />}
+        {showJourney && <JourneyPanel projectId={activeProject?.id ?? null} onClose={() => setShowJourney(false)} />}
+        {showGaps && activeProject && <GapsPanel projectId={activeProject.id} projectName={activeProject.name} onClose={() => setShowGaps(false)} />}
       </div>
       {showSearch && <SearchBar onSelect={setSelectedId} onClose={() => setShowSearch(false)} />}
       {showAdd && <AddModal onClose={() => setShowAdd(false)} />}
