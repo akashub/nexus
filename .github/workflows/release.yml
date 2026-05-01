@@ -1,4 +1,4 @@
-name: Release Desktop App
+name: Release
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   build:
@@ -72,14 +73,22 @@ jobs:
           prerelease: false
           args: --target ${{ matrix.target }}
 
-  python-check:
+  publish-pypi:
     runs-on: ubuntu-latest
+    environment: pypi
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
-      - name: Install and test
+      - name: Test
         working-directory: backend
         run: |
           uv sync
           uv run pytest -q
           uv run ruff check src/ tests/
+      - name: Build
+        working-directory: backend
+        run: uv build
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: backend/dist/
