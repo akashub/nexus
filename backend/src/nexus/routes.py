@@ -166,7 +166,10 @@ def concept_context_route(concept_id: str, conn: ConnDep):
 
 
 @router.post("/concepts/{concept_id}/enrich")
-def enrich_concept_route(concept_id: str, conn: ConnDep, background_tasks: BackgroundTasks, mode: str = "auto"):
+def enrich_concept_route(
+    concept_id: str, conn: ConnDep,
+    background_tasks: BackgroundTasks, mode: str = "auto",
+):
     if not get_concept(conn, concept_id):
         raise HTTPException(404, f"Concept not found: {concept_id}")
     from nexus.enrich import enrich_background

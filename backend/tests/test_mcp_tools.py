@@ -8,7 +8,6 @@ import pytest
 from nexus.db import add_project, get_connection, init_db
 from nexus.db_concepts import add_concept, add_edge, get_concept, update_concept
 from nexus.mcp_server import (
-    add_concept as mcp_add_concept,
     get_concept_detail,
     get_expertise,
     list_projects,

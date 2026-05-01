@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 
@@ -20,7 +19,9 @@ def test_merges_with_existing_hooks(settings_path):
     settings_path.write_text(json.dumps({
         "hooks": {
             "PostToolUse": [
-                {"matcher": "Bash", "hooks": [{"type": "command", "command": "/path/to/eagle-mem.sh"}]},
+                {"matcher": "Bash", "hooks": [
+                    {"type": "command", "command": "/path/to/eagle-mem.sh"},
+                ]},
             ],
             "SessionEnd": [
                 {"hooks": [{"type": "command", "command": "/path/to/eagle-summary.sh"}]},

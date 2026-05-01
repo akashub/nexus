@@ -26,7 +26,13 @@ from nexus.db import (
     search_fts,
 )
 
-VALID_RELATIONSHIPS = ["uses", "depends_on", "similar_to", "part_of", "related_to"]
+VALID_RELATIONSHIPS = [
+    "uses", "depends_on", "similar_to", "part_of", "related_to",
+]
+
+_SOURCE_CHOICES = click.Choice([
+    "auto", "all", "context7", "pypi", "npm", "github", "libraries",
+])
 
 
 @click.group()
@@ -48,15 +54,16 @@ def db_init() -> None:
 
 @main.command("add")
 @click.argument("name")
-@click.option("--category", "-c", default=None, help="devtool, framework, concept, pattern")
+@click.option("--category", "-c", default=None, help="Category.")
 @click.option("--tags", "-t", default=None, help="Comma-separated tags.")
 @click.option("--notes", "-n", default=None, help="Personal notes.")
 @click.option("--no-enrich", is_flag=True, help="Skip AI enrichment.")
-@click.option("--source", "-s", default="auto", type=click.Choice(["auto", "all", "context7", "pypi", "npm", "github", "libraries"]), help="Doc source.")
-@click.option("--model", "-m", default="local", type=click.Choice(["local", "cloud"]), help="AI provider.")
+@click.option("--source", "-s", default="auto", type=_SOURCE_CHOICES)
+@click.option("--model", "-m", default="local",
+              type=click.Choice(["local", "cloud"]))
 def add_cmd(
-    name: str, category: str | None, tags: str | None, notes: str | None,
-    no_enrich: bool, source: str, model: str,
+    name: str, category: str | None, tags: str | None,
+    notes: str | None, no_enrich: bool, source: str, model: str,
 ) -> None:
     """Add a concept to your knowledge graph."""
     tag_list = [t.strip() for t in tags.split(",")] if tags else None
@@ -64,12 +71,19 @@ def add_cmd(
     try:
         existing = get_concept(conn, name)
         if existing:
-            raise click.ClickException(f"Concept already exists: {existing.name}")
-        c = add_concept(conn, name, category=category, tags=tag_list, notes=notes)
+            raise click.ClickException(
+                f"Concept already exists: {existing.name}",
+            )
+        c = add_concept(
+            conn, name, category=category, tags=tag_list, notes=notes,
+        )
         click.echo(f"Added: {c.name} ({c.id[:8]})")
         if not no_enrich:
             from nexus.enrich import enrich_concept
-            enrich_concept(conn, c.id, mode=source, prefer_cloud=(model == "cloud"))
+            enrich_concept(
+                conn, c.id, mode=source,
+                prefer_cloud=(model == "cloud"),
+            )
     finally:
         conn.close()
 
@@ -77,9 +91,13 @@ def add_cmd(
 @main.command("connect")
 @click.argument("source")
 @click.argument("target")
-@click.option("--type", "-t", "rel_type", default="related_to", type=click.Choice(VALID_RELATIONSHIPS))
+@click.option("--type", "-t", "rel_type", default="related_to",
+              type=click.Choice(VALID_RELATIONSHIPS))
 @click.option("--description", "-d", default=None)
-def connect_cmd(source: str, target: str, rel_type: str, description: str | None) -> None:
+def connect_cmd(
+    source: str, target: str, rel_type: str,
+    description: str | None,
+) -> None:
     """Create a directed edge: SOURCE -> TARGET."""
     conn = get_connection()
     try:
@@ -94,24 +112,37 @@ def connect_cmd(source: str, target: str, rel_type: str, description: str | None
 @main.command("list")
 @click.option("--category", "-c", default=None, help="Filter by category.")
 @click.option("--limit", "-n", default=20, help="Max results.")
-@click.option("--format", "fmt", type=click.Choice(["table", "json"]), default="table")
+@click.option("--format", "fmt",
+              type=click.Choice(["table", "json"]), default="table")
 def list_cmd(category: str | None, limit: int, fmt: str) -> None:
     """List all concepts."""
     conn = get_connection()
-    try: concepts = list_concepts(conn, limit=limit, category=category)
-    finally: conn.close()
+    try:
+        concepts = list_concepts(conn, limit=limit, category=category)
+    finally:
+        conn.close()
     if not concepts:
-        click.echo("No concepts yet. Add one with: nexus add <name>"); return
+        click.echo("No concepts yet. Add one with: nexus add <name>")
+        return
     if fmt == "json":
         import json
-        click.echo(json.dumps([{"name": c.name, "category": c.category, "id": c.id} for c in concepts], indent=2)); return
+        rows = [
+            {"name": c.name, "category": c.category, "id": c.id}
+            for c in concepts
+        ]
+        click.echo(json.dumps(rows, indent=2))
+        return
     for c in concepts:
-        click.echo(f"  {c.name} [{c.category}]" if c.category else f"  {c.name}")
+        if c.category:
+            click.echo(f"  {c.name} [{c.category}]")
+        else:
+            click.echo(f"  {c.name}")
 
 
 @main.command("search")
 @click.argument("query")
-@click.option("--semantic", "-s", is_flag=True, help="Use embedding similarity.")
+@click.option("--semantic", "-s", is_flag=True,
+              help="Use embedding similarity.")
 def search_cmd(query: str, semantic: bool) -> None:
     """Search concepts by keyword or semantic similarity."""
     conn = get_connection()
@@ -122,22 +153,33 @@ def search_cmd(query: str, semantic: bool) -> None:
             from nexus.ai import cosine_similarity, embed
             qvec = embed(query)
             if not qvec:
-                click.echo("Embedding model unavailable. Falling back to FTS."); results = search_fts(conn, query)
+                click.echo("Embedding unavailable. Falling back to FTS.")
+                results = search_fts(conn, query)
             else:
                 all_c = list_concepts(conn, limit=200)
-                scored = sorted(((c, cosine_similarity(qvec, c.embedding)) for c in all_c if c.embedding), key=lambda x: x[1], reverse=True)
+                scored = sorted(
+                    (
+                        (c, cosine_similarity(qvec, c.embedding))
+                        for c in all_c if c.embedding
+                    ),
+                    key=lambda x: x[1], reverse=True,
+                )
                 results = [c for c, s in scored[:10] if s > 0.3]
-    finally: conn.close()
+    finally:
+        conn.close()
     if not results:
-        click.echo(f"No results for: {query}"); return
+        click.echo(f"No results for: {query}")
+        return
     click.echo(f"Found {len(results)} result(s):")
     for c in results:
-        cat, desc = f" [{c.category}]" if c.category else "", f" — {c.description[:80]}" if c.description else ""
+        cat = f" [{c.category}]" if c.category else ""
+        desc = f" — {c.description[:80]}" if c.description else ""
         click.echo(f"  {c.name}{cat}{desc}")
 
 
 @main.command("enrich-relationships")
-@click.option("--project", "-p", default=None, help="Project ID to scope inference.")
+@click.option("--project", "-p", default=None,
+              help="Project ID to scope inference.")
 @click.option("--verbose", "-v", is_flag=True)
 def enrich_rels_cmd(project: str | None, verbose: bool) -> None:
     """Infer relationships between concepts using embeddings + AI."""
@@ -148,10 +190,18 @@ def enrich_rels_cmd(project: str | None, verbose: bool) -> None:
         p_name, p_path = None, None
         if project:
             p = get_project(conn, project)
-            if p: p_name, p_path = p.name, p.path
-        stats = infer_relationships(conn, project_id=project, project_name=p_name, project_path=p_path, verbose=verbose)
-        click.echo(f"Done: {stats['inferred']} inferred, {stats['skipped']} skipped, {stats['errors']} errors")
-    finally: conn.close()
+            if p:
+                p_name, p_path = p.name, p.path
+        stats = infer_relationships(
+            conn, project_id=project, project_name=p_name,
+            project_path=p_path, verbose=verbose,
+        )
+        click.echo(
+            f"Done: {stats['inferred']} inferred, "
+            f"{stats['skipped']} skipped, {stats['errors']} errors",
+        )
+    finally:
+        conn.close()
 
 
 @main.command("cluster")
@@ -166,10 +216,17 @@ def cluster_cmd(project: str | None, verbose: bool) -> None:
         p_name = None
         if project:
             p = get_project(conn, project)
-            if p: p_name = p.name
-        stats = cluster_concepts(conn, project_id=project, project_name=p_name, verbose=verbose)
-        click.echo(f"Done: {stats['clustered']} in {stats['groups']} groups")
-    finally: conn.close()
+            if p:
+                p_name = p.name
+        stats = cluster_concepts(
+            conn, project_id=project,
+            project_name=p_name, verbose=verbose,
+        )
+        click.echo(
+            f"Done: {stats['clustered']} in {stats['groups']} groups",
+        )
+    finally:
+        conn.close()
 
 
 main.add_command(ask_cmd)
