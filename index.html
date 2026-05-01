@@ -323,12 +323,7 @@
       border: 1px solid rgba(255,255,255,0.08);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.3);
     }
-    .card-icon.purple { background: linear-gradient(135deg, rgba(167,139,250,0.2), rgba(167,139,250,0.05)); color: var(--c-purple); border-color: rgba(167,139,250,0.2); }
-    .card-icon.blue { background: linear-gradient(135deg, rgba(96,165,250,0.2), rgba(96,165,250,0.05)); color: var(--c-blue); border-color: rgba(96,165,250,0.2); }
-    .card-icon.green { background: linear-gradient(135deg, rgba(74,222,128,0.2), rgba(74,222,128,0.05)); color: var(--c-green); border-color: rgba(74,222,128,0.2); }
-    .card-icon.orange { background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(251,191,36,0.05)); color: var(--c-orange); border-color: rgba(251,191,36,0.2); }
-    .card-icon.red { background: linear-gradient(135deg, rgba(248,113,113,0.2), rgba(248,113,113,0.05)); color: var(--c-red); border-color: rgba(248,113,113,0.2); }
-    .card-icon.emerald { background: linear-gradient(135deg, rgba(52,211,153,0.2), rgba(52,211,153,0.05)); color: var(--c-emerald); border-color: rgba(52,211,153,0.2); }
+    .card-icon { background: linear-gradient(135deg, rgba(167,139,250,0.15), rgba(139,92,246,0.05)); color: var(--c-purple); border-color: rgba(167,139,250,0.2); }
 
     .glass-card h3 { font-size: 15px; font-weight: 500; margin-bottom: 0.6rem; color: var(--silver-bright); }
     .glass-card p { font-size: 13px; color: var(--silver-dim); line-height: 1.65; font-weight: 300; }
@@ -574,13 +569,13 @@
 
     <!-- ─── INSTALL METHODS ─── -->
     <div class="install-methods fade-up fade-d5">
-      <div class="install-label">Install via CLI</div>
+      <div class="install-label">CLI only</div>
       <div class="hero-install" onclick="copyInstall('uv')" id="installBlock">
-        <code><span class="prompt">$</span> uv tool install <span style="color:var(--c-blue)">"git+https://github.com/akashub/nexus.git#subdirectory=backend"</span></code>
+        <code><span class="prompt">$</span> uv tool install <span style="color:var(--c-blue)">nexus-graph</span></code>
         <span class="copy-hint" id="copyIcon">copy</span>
       </div>
       <div class="hero-install" onclick="copyInstall('pip')" id="installBlockPip">
-        <code><span class="prompt">$</span> pip install <span style="color:var(--c-blue)">"nexus-graph @ git+https://github.com/akashub/nexus.git#subdirectory=backend"</span></code>
+        <code><span class="prompt">$</span> pip install <span style="color:var(--c-blue)">nexus-graph</span></code>
         <span class="copy-hint" id="copyIconPip">copy</span>
       </div>
     </div>
@@ -596,32 +591,32 @@
 
   <div class="glass-grid">
     <div class="glass-card">
-      <div class="card-icon purple">&#9673;</div>
+      <div class="card-icon">&#9673;</div>
       <h3>Interactive Graph</h3>
       <p>Every concept is a node, every relationship an edge. Drag, zoom, filter by category. Your entire stack, visualized.</p>
     </div>
     <div class="glass-card">
-      <div class="card-icon blue">&#8634;</div>
+      <div class="card-icon">&#8634;</div>
       <h3>Passive Capture</h3>
       <p>Hooks watch for installs. Session-end scans catch changes. Your graph builds itself while you work.</p>
     </div>
     <div class="glass-card">
-      <div class="card-icon green">&#9826;</div>
+      <div class="card-icon">&#9826;</div>
       <h3>AI Enrichment</h3>
-      <p>Descriptions, summaries, install instructions, and embeddings. Local Ollama or cloud APIs.</p>
+      <p>Descriptions, summaries, install instructions, and embeddings. Any local Ollama model or cloud APIs.</p>
     </div>
     <div class="glass-card">
-      <div class="card-icon orange">&#9678;</div>
+      <div class="card-icon">&#9678;</div>
       <h3>Gap Detection</h3>
       <p>Companion pattern analysis surfaces what your stack is missing. React without testing? Flagged.</p>
     </div>
     <div class="glass-card">
-      <div class="card-icon red">&#8614;</div>
+      <div class="card-icon">&#8614;</div>
       <h3>Learning Journey</h3>
       <p>Timeline of when you adopted each tool. See your growth week by week, filter by project.</p>
     </div>
     <div class="glass-card">
-      <div class="card-icon emerald">&#9702;</div>
+      <div class="card-icon">&#9702;</div>
       <h3>Multi-Project</h3>
       <p>Each project gets its own graph. Cross-project connections and shared dependencies surface automatically.</p>
     </div>
@@ -649,10 +644,10 @@
       <div class="step-num">01</div>
       <div>
         <h3>Install the CLI</h3>
-        <p>One command. Works on macOS, Linux, and Windows. Requires Python 3.12+ and uv.</p>
+        <p>One command. Works on macOS, Linux, and Windows. Requires Python 3.12+.</p>
         <div class="terminal">
           <div class="terminal-body">
-            <span class="prompt">$</span> <span class="cmd">uv tool install</span> <span class="flag">"git+https://github.com/akashub/nexus.git#subdirectory=backend"</span>
+            <span class="prompt">$</span> <span class="cmd">pip install</span> <span class="flag">nexus-graph</span>
           </div>
         </div>
       </div>
@@ -763,7 +758,7 @@
     </div>
     <div class="int-card" style="--accent: var(--c-green);">
       <h4>Ollama</h4>
-      <p>Gemma 4B for generation, nomic-embed-text for embeddings. Local, no API keys.</p>
+      <p>Any local model for generation, nomic-embed-text for embeddings. No API keys required.</p>
     </div>
     <div class="int-card" style="--accent: var(--c-orange);">
       <h4>Cloud AI</h4>
@@ -792,11 +787,11 @@
       <div class="terminal-title">quick start</div>
     </div>
     <div class="terminal-body">
-      <span class="prompt">$</span> <span class="cmd">uv tool install</span> <span class="flag">"git+https://github.com/akashub/nexus.git#subdirectory=backend"</span><br>
+      <span class="prompt">$</span> <span class="cmd">pip install</span> <span class="flag">nexus-graph</span><br>
       <span class="prompt">$</span> <span class="cmd">nexus mcp install</span><br>
       <span class="prompt">$</span> <span class="cmd">nexus db init</span><br><br>
-      <span class="comment"># Optional: local AI</span><br>
-      <span class="prompt">$</span> <span class="cmd">ollama pull</span> <span class="flag">gemma4</span><br>
+      <span class="comment"># Optional: local AI (any Ollama model works)</span><br>
+      <span class="prompt">$</span> <span class="cmd">ollama pull</span> <span class="flag">gemma3</span><br>
       <span class="prompt">$</span> <span class="cmd">ollama pull</span> <span class="flag">nomic-embed-text</span>
     </div>
   </div>
@@ -816,8 +811,8 @@
 })();
 
 var installCommands = {
-  uv: 'uv tool install "git+https://github.com/akashub/nexus.git#subdirectory=backend"',
-  pip: 'pip install "nexus-graph @ git+https://github.com/akashub/nexus.git#subdirectory=backend"'
+  uv: 'uv tool install nexus-graph',
+  pip: 'pip install nexus-graph'
 };
 
 function copyInstall(method) {
