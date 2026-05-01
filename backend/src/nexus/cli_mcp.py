@@ -79,7 +79,10 @@ def _has_command(entry: dict, cmd: str) -> bool:
 
 def _install_skill(quiet: bool) -> None:
     SKILL_DIR.mkdir(parents=True, exist_ok=True)
-    dest = SKILL_DIR / "nexus.md"
+    dest = SKILL_DIR / "SKILL.md"
+    old = SKILL_DIR / "nexus.md"
+    if old.exists():
+        old.unlink()
     if SKILL_SRC.exists():
         shutil.copy2(SKILL_SRC, dest)
         if not quiet:
@@ -96,9 +99,10 @@ def _uninstall(quiet: bool) -> None:
     if not quiet:
         click.echo("  MCP server: removed")
 
-    dest = SKILL_DIR / "nexus.md"
-    if dest.exists():
-        dest.unlink()
+    for name in ("SKILL.md", "nexus.md"):
+        p = SKILL_DIR / name
+        if p.exists():
+            p.unlink()
     if not quiet:
         click.echo("  Skill file: removed")
 
@@ -118,7 +122,7 @@ def install_cmd(check: bool, uninstall: bool, quiet: bool) -> None:
         data = _read_json(CLAUDE_JSON)
         installed = data.get("mcpServers", {}).get("nexus") == MCP_ENTRY
         click.echo(f"MCP server: {'installed' if installed else 'not installed'}")
-        skill = (SKILL_DIR / "nexus.md").exists()
+        skill = (SKILL_DIR / "SKILL.md").exists()
         click.echo(f"Skill file: {'installed' if skill else 'not installed'}")
         return
 
