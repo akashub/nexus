@@ -61,6 +61,15 @@ def delete_project_route(project_id: str, conn: ConnDep):
     return {"deleted": project_id}
 
 
+@router.get("/projects/{project_id}/gaps")
+def gaps_route(project_id: str, conn: ConnDep):
+    from nexus.gaps import detect_gaps
+    p = get_project(conn, project_id)
+    if not p:
+        raise HTTPException(404, f"Project not found: {project_id}")
+    return detect_gaps(conn, project_id=p.id)
+
+
 @router.get("/projects/{project_id}/expertise")
 def expertise_route(project_id: str, conn: ConnDep):
     from nexus.expertise import classify_expertise
