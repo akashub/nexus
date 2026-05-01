@@ -467,6 +467,155 @@
       opacity: 0.4;
     }
 
+    /* ─── DEMO APP ─── */
+    .demo-window {
+      max-width: 960px; margin: 0 auto; border-radius: 14px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.4), 0 24px 64px rgba(0,0,0,0.3);
+      background: #0c0e16; position: relative;
+    }
+    .demo-titlebar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 14px; height: 36px; border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+    }
+    .demo-dots { display: flex; gap: 6px; }
+    .demo-dots span { width: 10px; height: 10px; border-radius: 50%; }
+    .demo-dots span:nth-child(1) { background: #f87171; opacity: 0.7; }
+    .demo-dots span:nth-child(2) { background: #fbbf24; opacity: 0.7; }
+    .demo-dots span:nth-child(3) { background: #4ade80; opacity: 0.7; }
+    .demo-title { display: flex; align-items: center; gap: 8px; }
+    .demo-logo { width: 16px; height: 16px; border-radius: 3px; }
+    .demo-title-text { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--silver-dim); }
+    .demo-breadcrumb { font-size: 11px; color: var(--silver); }
+    .demo-breadcrumb::before { content: '/'; color: var(--silver-faint); margin: 0 4px; }
+    .demo-status { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--silver-dim); }
+    .demo-status-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .demo-status-dot.green { background: #34d399; }
+    .demo-stats { margin-left: 4px; }
+
+    .demo-body { display: flex; height: 380px; position: relative; }
+
+    .demo-sidebar {
+      width: 140px; border-right: 1px solid rgba(255,255,255,0.06);
+      padding: 10px; flex-shrink: 0; overflow: hidden;
+    }
+    .demo-sidebar-label {
+      font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--silver-faint); margin-bottom: 6px;
+    }
+    .demo-project {
+      font-size: 11px; padding: 4px 8px; border-radius: 6px; margin-bottom: 2px;
+      color: var(--silver-dim); cursor: default; transition: all 0.2s;
+    }
+    .demo-project.active { background: rgba(255,255,255,0.08); color: var(--silver-bright); }
+    .demo-cat-list { display: flex; flex-direction: column; gap: 3px; }
+    .demo-cat { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--silver-dim); }
+    .demo-cat-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+
+    .demo-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .demo-toolbar {
+      display: flex; align-items: center; gap: 6px; padding: 6px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .demo-search {
+      font-size: 10px; color: var(--silver-faint); padding: 3px 8px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 4px; cursor: pointer; width: 90px;
+    }
+    .demo-shortcut { font-size: 9px; color: var(--silver-faint); }
+    .demo-btn {
+      font-size: 10px; color: var(--silver-dim); padding: 2px 8px;
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 4px;
+      background: none; cursor: pointer; font-family: var(--sans);
+    }
+    .demo-canvas { flex: 1; display: block; }
+    .demo-legend {
+      display: flex; gap: 12px; padding: 4px 10px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      font-size: 9px; color: var(--silver-faint); justify-content: flex-end;
+    }
+    .demo-legend span { display: flex; align-items: center; gap: 4px; }
+
+    .demo-panel {
+      width: 200px; border-left: 1px solid rgba(255,255,255,0.08);
+      background: #0c0e16; padding: 12px; flex-shrink: 0;
+      transform: translateX(100%); transition: transform 0.3s ease;
+      position: absolute; right: 0; top: 0; bottom: 0; z-index: 2;
+    }
+    .demo-panel.open { transform: translateX(0); }
+    .demo-panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .demo-panel-name { font-size: 14px; font-weight: 500; color: var(--silver-bright); }
+    .demo-panel-close { background: none; border: none; color: var(--silver-faint); font-size: 16px; cursor: pointer; }
+    .demo-panel-badge {
+      display: inline-block; font-size: 9px; padding: 2px 8px; border-radius: 10px;
+      background: rgba(96,165,250,0.15); color: var(--c-blue); margin-bottom: 10px;
+    }
+    .demo-panel-desc { font-size: 11px; color: var(--silver-dim); line-height: 1.6; margin-bottom: 12px; }
+    .demo-panel-section { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--silver-faint); margin-bottom: 4px; margin-top: 8px; }
+    .demo-panel-connections { font-size: 11px; color: var(--silver-dim); }
+    .demo-panel-connections span {
+      display: block; padding: 2px 0; cursor: pointer; transition: color 0.2s;
+    }
+    .demo-panel-connections span:hover { color: var(--silver-bright); }
+    .demo-panel-notes { font-size: 11px; color: var(--silver-dim); line-height: 1.5; font-style: italic; }
+
+    .demo-search-overlay, .demo-add-overlay {
+      position: absolute; inset: 36px 0 0 0; background: rgba(8,9,15,0.85);
+      backdrop-filter: blur(8px); display: flex; justify-content: center;
+      padding-top: 40px; z-index: 10; opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .demo-search-overlay.show, .demo-add-overlay.show { opacity: 1; pointer-events: auto; }
+    .demo-search-modal {
+      width: 340px; height: fit-content; border-radius: 12px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: linear-gradient(155deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .demo-search-input {
+      width: 100%; padding: 12px 16px; font-size: 13px; font-family: var(--sans);
+      background: none; border: none; border-bottom: 1px solid rgba(255,255,255,0.08);
+      color: var(--silver-bright); outline: none;
+    }
+    .demo-search-results { padding: 6px; }
+    .demo-search-results div {
+      padding: 6px 10px; font-size: 12px; border-radius: 6px;
+      color: var(--silver-dim); display: flex; justify-content: space-between;
+    }
+    .demo-search-results div.hl { background: rgba(167,139,250,0.12); color: var(--silver-bright); }
+    .demo-search-results .sr-cat { font-size: 10px; color: var(--silver-faint); }
+
+    .demo-add-modal {
+      width: 300px; height: fit-content; border-radius: 12px; padding: 20px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: linear-gradient(155deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .demo-add-title { font-size: 14px; font-weight: 500; color: var(--silver-bright); margin-bottom: 14px; }
+    .demo-add-field { margin-bottom: 10px; }
+    .demo-add-field label { font-size: 10px; color: var(--silver-faint); text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px; }
+    .demo-add-input, .demo-add-select {
+      padding: 8px 10px; font-size: 12px; border-radius: 6px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      color: var(--silver-bright); font-family: var(--sans); min-height: 32px;
+    }
+    .demo-add-actions { margin-top: 14px; }
+    .demo-add-enrich {
+      padding: 8px 16px; border-radius: 8px; font-size: 12px; font-family: var(--sans);
+      background: linear-gradient(135deg, var(--c-purple), #8b5cf6); color: #fff;
+      border: none; cursor: pointer; font-weight: 500;
+    }
+    .demo-add-progress { margin-top: 10px; font-size: 11px; color: var(--c-purple); min-height: 16px; }
+
+    @media (max-width: 768px) {
+      .demo-window { border-radius: 10px; }
+      .demo-body { height: 300px; }
+      .demo-sidebar { width: 100px; padding: 6px; }
+      .demo-panel { width: 160px; }
+      .demo-search-modal, .demo-add-modal { width: 260px; }
+    }
+
     /* ─── ANIMATIONS ─── */
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(24px); }
@@ -531,6 +680,10 @@
       captured into a personal knowledge graph.
       Search it. Visualize it. Let AI connect the dots.
     </p>
+    <div style="margin-bottom:1.2rem" class="fade-up fade-d3">
+      <a href="https://github.com/akashub/nexus" target="_blank"><img src="https://img.shields.io/github/stars/akashub/nexus?style=flat&color=a78bfa&labelColor=1a1b2e" alt="GitHub stars"></a>
+      <a href="https://pypi.org/project/nexus-graph/" target="_blank"><img src="https://img.shields.io/pypi/v/nexus-graph?style=flat&color=60a5fa&labelColor=1a1b2e" alt="PyPI"></a>
+    </div>
     <div class="hero-actions fade-up fade-d3">
       <a href="https://github.com/akashub/nexus/releases/latest" class="btn btn-primary" id="downloadBtn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -582,6 +735,98 @@
   </div>
   <div class="hero-fade"></div>
 </div>
+
+<!-- ─── INTERACTIVE DEMO ─── -->
+<section id="demo" style="padding-bottom:60px;">
+  <div class="section-label">See it in action</div>
+  <h2>Your knowledge, <strong>visualized</strong></h2>
+  <p class="section-desc">An interactive graph that grows with every tool you learn. Click, explore, connect.</p>
+
+  <div class="demo-window">
+    <div class="demo-titlebar">
+      <div class="demo-dots"><span></span><span></span><span></span></div>
+      <div class="demo-title">
+        <img src="icon.png" alt="" class="demo-logo">
+        <span class="demo-title-text">nexus</span>
+        <span class="demo-breadcrumb" id="demoBreadcrumb"></span>
+      </div>
+      <div class="demo-status">
+        <span class="demo-status-dot green"></span>
+        <span>ollama</span>
+        <span class="demo-stats" id="demoStats">12 nodes &middot; 18 edges</span>
+      </div>
+    </div>
+
+    <div class="demo-body">
+      <div class="demo-sidebar">
+        <div class="demo-sidebar-label">PROJECTS</div>
+        <div class="demo-project active" id="demoProject">my-saas-app</div>
+        <div class="demo-project">nexus</div>
+        <div class="demo-project">portfolio</div>
+        <div class="demo-sidebar-label" style="margin-top:12px">CATEGORIES</div>
+        <div class="demo-cat-list">
+          <span class="demo-cat"><span class="demo-cat-dot" style="background:#a78bfa"></span>devtool</span>
+          <span class="demo-cat"><span class="demo-cat-dot" style="background:#60a5fa"></span>framework</span>
+          <span class="demo-cat"><span class="demo-cat-dot" style="background:#4ade80"></span>concept</span>
+          <span class="demo-cat"><span class="demo-cat-dot" style="background:#fbbf24"></span>pattern</span>
+          <span class="demo-cat"><span class="demo-cat-dot" style="background:#f87171"></span>language</span>
+        </div>
+      </div>
+
+      <div class="demo-main">
+        <div class="demo-toolbar">
+          <div class="demo-search" id="demoSearch">search...</div>
+          <span class="demo-shortcut">&#8984;K</span>
+          <button class="demo-btn" id="demoAddBtn">&#8984;N add</button>
+          <button class="demo-btn">&#8984;/ ask</button>
+          <div style="flex:1"></div>
+          <button class="demo-btn">journey</button>
+          <button class="demo-btn">gaps</button>
+        </div>
+        <canvas id="demoCanvas" class="demo-canvas"></canvas>
+        <div class="demo-legend">
+          <span><span class="demo-cat-dot" style="background:#a78bfa"></span>devtool</span>
+          <span><span class="demo-cat-dot" style="background:#60a5fa"></span>framework</span>
+          <span><span class="demo-cat-dot" style="background:#4ade80"></span>concept</span>
+          <span><span class="demo-cat-dot" style="background:#fbbf24"></span>pattern</span>
+          <span><span class="demo-cat-dot" style="background:#f87171"></span>language</span>
+        </div>
+      </div>
+
+      <div class="demo-panel" id="demoPanel">
+        <div class="demo-panel-header">
+          <span class="demo-panel-name" id="demoPanelName">React</span>
+          <button class="demo-panel-close" id="demoPanelClose">&times;</button>
+        </div>
+        <div class="demo-panel-badge" id="demoPanelBadge">framework</div>
+        <div class="demo-panel-desc" id="demoPanelDesc">A JavaScript library for building user interfaces with a component-based architecture and virtual DOM.</div>
+        <div class="demo-panel-section">Connections</div>
+        <div class="demo-panel-connections" id="demoPanelConns"></div>
+        <div class="demo-panel-section">Notes</div>
+        <div class="demo-panel-notes">Used in the main frontend. Paired with TypeScript and Tailwind.</div>
+      </div>
+    </div>
+
+    <div class="demo-search-overlay" id="demoSearchOverlay">
+      <div class="demo-search-modal">
+        <input class="demo-search-input" id="demoSearchInput" placeholder="Search concepts..." readonly>
+        <div class="demo-search-results" id="demoSearchResults"></div>
+      </div>
+    </div>
+
+    <div class="demo-add-overlay" id="demoAddOverlay">
+      <div class="demo-add-modal">
+        <div class="demo-add-title">Add Concept</div>
+        <div class="demo-add-field"><label>Name</label><div class="demo-add-input" id="demoAddInput"></div></div>
+        <div class="demo-add-field"><label>Category</label><div class="demo-add-select">devtool</div></div>
+        <div class="demo-add-actions">
+          <button class="demo-add-enrich" id="demoAddEnrich">Add &amp; Enrich</button>
+        </div>
+        <div class="demo-add-progress" id="demoAddProgress"></div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- ─── FEATURES ─── -->
 <section id="features">
@@ -878,6 +1123,251 @@ function copyInstall(method) {
 
   window.addEventListener('resize', resize);
   init(); draw();
+})();
+
+// ─── INTERACTIVE DEMO ───
+(function() {
+  var canvas = document.getElementById('demoCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var panel = document.getElementById('demoPanel');
+  var searchOv = document.getElementById('demoSearchOverlay');
+  var addOv = document.getElementById('demoAddOverlay');
+
+  var COLORS = { devtool:'#a78bfa', framework:'#60a5fa', concept:'#4ade80', pattern:'#fbbf24', language:'#f87171' };
+  var concepts = [
+    { name:'React', cat:'framework', desc:'A JavaScript library for building UIs with component-based architecture and virtual DOM.', x:0.5, y:0.4 },
+    { name:'TypeScript', cat:'language', desc:'Typed superset of JavaScript that compiles to plain JS. Catches errors at build time.', x:0.35, y:0.25 },
+    { name:'Tailwind', cat:'framework', desc:'Utility-first CSS framework for rapidly building custom designs without leaving HTML.', x:0.65, y:0.22 },
+    { name:'Next.js', cat:'framework', desc:'React framework with SSR, file-based routing, and API routes built in.', x:0.72, y:0.5 },
+    { name:'Vite', cat:'devtool', desc:'Lightning-fast frontend build tool with HMR. Replaces webpack for modern projects.', x:0.28, y:0.5 },
+    { name:'ESLint', cat:'devtool', desc:'Pluggable linting utility for JavaScript and TypeScript. Catches bugs and enforces style.', x:0.2, y:0.35 },
+    { name:'Prisma', cat:'devtool', desc:'Type-safe ORM for Node.js and TypeScript. Auto-generates client from your schema.', x:0.78, y:0.35 },
+    { name:'REST API', cat:'concept', desc:'Architectural style for distributed systems using HTTP methods on resources.', x:0.6, y:0.65 },
+    { name:'JWT', cat:'pattern', desc:'JSON Web Tokens for stateless authentication. Encoded claims signed with a secret.', x:0.4, y:0.7 },
+    { name:'PostgreSQL', cat:'devtool', desc:'Advanced open-source relational database with strong SQL compliance and extensibility.', x:0.82, y:0.65 },
+    { name:'Docker', cat:'devtool', desc:'Container platform for packaging apps with their dependencies. Build once, run anywhere.', x:0.18, y:0.7 },
+    { name:'CI/CD', cat:'concept', desc:'Continuous integration and delivery. Automate testing and deployment on every push.', x:0.35, y:0.85 }
+  ];
+  var edges = [
+    [0,1],[0,2],[0,3],[0,4],[1,2],[1,5],[3,7],[3,6],[6,9],[7,8],[4,0],[10,11],[8,7],[9,6],[11,10]
+  ];
+
+  var selected = -1, hovered = -1, W, H, animT = 0;
+
+  function resize() {
+    var r = canvas.parentElement.getBoundingClientRect();
+    W = canvas.width = r.width;
+    H = canvas.height = r.height;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function px(c) { return { x: c.x * W, y: c.y * H }; }
+
+  function draw() {
+    animT += 0.005;
+    ctx.clearRect(0, 0, W, H);
+
+    for (var i = 0; i < edges.length; i++) {
+      var a = px(concepts[edges[i][0]]), b = px(concepts[edges[i][1]]);
+      var isSel = selected === edges[i][0] || selected === edges[i][1];
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+      ctx.strokeStyle = isSel ? 'rgba(167,139,250,0.35)' : 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = isSel ? 1.5 : 0.8;
+      ctx.stroke();
+    }
+
+    for (var i = 0; i < concepts.length; i++) {
+      var c = concepts[i], p = px(c);
+      var col = COLORS[c.cat] || '#94a3b8';
+      var r = (i === selected || i === hovered) ? 18 : 12;
+      var pulse = 1 + Math.sin(animT * 2 + i) * 0.08;
+      r *= pulse;
+
+      if (i === selected) {
+        ctx.beginPath(); ctx.arc(p.x, p.y, r + 8, 0, Math.PI * 2);
+        ctx.fillStyle = col.replace(')', ',0.08)').replace('rgb', 'rgba');
+        ctx.fill();
+      }
+
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = col.replace(')', ',0.2)').replace('rgb', 'rgba');
+      if (col.startsWith('#')) {
+        var hex = col;
+        var rv = parseInt(hex.slice(1,3),16), gv = parseInt(hex.slice(3,5),16), bv = parseInt(hex.slice(5,7),16);
+        ctx.fillStyle = 'rgba('+rv+','+gv+','+bv+','+(i === selected ? 0.35 : 0.15)+')';
+        if (i === selected) {
+          ctx.beginPath(); ctx.arc(p.x, p.y, r + 8, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba('+rv+','+gv+','+bv+',0.08)';
+          ctx.fill();
+          ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba('+rv+','+gv+','+bv+',0.35)';
+        }
+      }
+      ctx.fill();
+
+      ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = col;
+      ctx.fill();
+
+      ctx.font = (i === selected ? '500 12px' : '400 11px') + ' Inter, sans-serif';
+      ctx.fillStyle = i === selected ? '#f0f2f7' : '#6b7280';
+      ctx.textAlign = 'center';
+      ctx.fillText(c.name, p.x, p.y + r + 14);
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+
+  function showPanel(idx) {
+    selected = idx;
+    var c = concepts[idx];
+    document.getElementById('demoPanelName').textContent = c.name;
+    document.getElementById('demoPanelBadge').textContent = c.cat;
+    document.getElementById('demoPanelBadge').style.background =
+      'rgba(' + hexToRgb(COLORS[c.cat]) + ',0.15)';
+    document.getElementById('demoPanelBadge').style.color = COLORS[c.cat];
+    document.getElementById('demoPanelDesc').textContent = c.desc;
+    var conns = edges.filter(function(e) { return e[0] === idx || e[1] === idx; });
+    var html = '';
+    conns.forEach(function(e) {
+      var other = concepts[e[0] === idx ? e[1] : e[0]];
+      html += '<span>' + (e[0] === idx ? '→ ' : '← ') + other.name + '</span>';
+    });
+    document.getElementById('demoPanelConns').innerHTML = html;
+    panel.classList.add('open');
+  }
+  function hidePanel() { selected = -1; panel.classList.remove('open'); }
+  function hexToRgb(hex) {
+    var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+    return r+','+g+','+b;
+  }
+
+  canvas.addEventListener('click', function(ev) {
+    var rect = canvas.getBoundingClientRect();
+    var mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
+    for (var i = 0; i < concepts.length; i++) {
+      var p = px(concepts[i]);
+      if (Math.hypot(mx - p.x, my - p.y) < 20) { showPanel(i); return; }
+    }
+    hidePanel();
+  });
+  canvas.addEventListener('mousemove', function(ev) {
+    var rect = canvas.getBoundingClientRect();
+    var mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
+    hovered = -1;
+    for (var i = 0; i < concepts.length; i++) {
+      var p = px(concepts[i]);
+      if (Math.hypot(mx - p.x, my - p.y) < 20) { hovered = i; break; }
+    }
+    canvas.style.cursor = hovered >= 0 ? 'pointer' : 'default';
+  });
+  document.getElementById('demoPanelClose').addEventListener('click', hidePanel);
+
+  // Auto-play demo sequence
+  var steps = [
+    // 1. Select React
+    function(next) { showPanel(0); setTimeout(next, 2000); },
+    // 2. Close, select Prisma
+    function(next) { hidePanel(); setTimeout(function() { showPanel(6); }, 400); setTimeout(next, 2200); },
+    // 3. Close, open search
+    function(next) {
+      hidePanel();
+      setTimeout(function() {
+        searchOv.classList.add('show');
+        typeText(document.getElementById('demoSearchInput'), 'testing', function() {
+          var res = document.getElementById('demoSearchResults');
+          res.innerHTML = '<div class="hl"><span>ESLint</span><span class="sr-cat">devtool</span></div>'
+            + '<div><span>CI/CD</span><span class="sr-cat">concept</span></div>'
+            + '<div><span>TypeScript</span><span class="sr-cat">language</span></div>';
+          setTimeout(next, 1800);
+        });
+      }, 500);
+    },
+    // 4. Close search, open add
+    function(next) {
+      searchOv.classList.remove('show');
+      document.getElementById('demoSearchInput').value = '';
+      document.getElementById('demoSearchResults').innerHTML = '';
+      setTimeout(function() {
+        addOv.classList.add('show');
+        typeText(document.getElementById('demoAddInput'), 'Playwright', function() {
+          setTimeout(function() {
+            var prog = document.getElementById('demoAddProgress');
+            prog.textContent = 'Fetching docs via Context7...';
+            setTimeout(function() {
+              prog.textContent = 'Generating description...';
+              setTimeout(function() {
+                prog.textContent = 'Creating embedding...';
+                setTimeout(function() {
+                  prog.textContent = 'Suggesting connections...';
+                  setTimeout(function() {
+                    prog.textContent = '✓ Added with 3 connections';
+                    prog.style.color = '#4ade80';
+                    // Add node to graph
+                    concepts.push({ name:'Playwright', cat:'devtool', desc:'End-to-end testing framework for web apps. Cross-browser, fast, reliable.', x:0.5, y:0.88 });
+                    edges.push([concepts.length-1, 11]); // CI/CD
+                    edges.push([concepts.length-1, 5]); // ESLint
+                    document.getElementById('demoStats').innerHTML = '13 nodes &middot; 20 edges';
+                    setTimeout(next, 1500);
+                  }, 800);
+                }, 800);
+              }, 800);
+            }, 1000);
+          }, 400);
+        });
+      }, 500);
+    },
+    // 5. Close add, select the new node
+    function(next) {
+      addOv.classList.remove('show');
+      document.getElementById('demoAddInput').textContent = '';
+      document.getElementById('demoAddProgress').textContent = '';
+      document.getElementById('demoAddProgress').style.color = '';
+      setTimeout(function() { showPanel(concepts.length - 1); }, 600);
+      setTimeout(next, 2500);
+    },
+    // 6. Reset and loop
+    function(next) {
+      hidePanel();
+      concepts.splice(12); edges.splice(15);
+      document.getElementById('demoStats').innerHTML = '12 nodes &middot; 18 edges';
+      setTimeout(next, 2000);
+    }
+  ];
+
+  function typeText(el, text, cb) {
+    var i = 0;
+    var isInput = el.tagName === 'INPUT';
+    function t() {
+      if (i <= text.length) {
+        if (isInput) el.value = text.slice(0, i);
+        else el.textContent = text.slice(0, i);
+        i++; setTimeout(t, 60 + Math.random() * 40);
+      } else if (cb) cb();
+    }
+    t();
+  }
+
+  var stepIdx = 0;
+  function runStep() {
+    steps[stepIdx](function() {
+      stepIdx = (stepIdx + 1) % steps.length;
+      setTimeout(runStep, 300);
+    });
+  }
+
+  // Start demo when visible
+  var demoObs = new IntersectionObserver(function(entries) {
+    if (entries[0].isIntersecting) {
+      demoObs.disconnect();
+      document.getElementById('demoBreadcrumb').textContent = 'my-saas-app';
+      setTimeout(runStep, 1000);
+    }
+  }, { threshold: 0.3 });
+  demoObs.observe(document.getElementById('demo'));
 })();
 
 // Scroll reveal
