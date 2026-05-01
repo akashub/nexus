@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus — Personal Knowledge Graph for Developers</title>
+  <meta name="description" content="Capture every tool, framework, and concept you learn. Build a living knowledge graph that grows with you. Zero cloud, zero config.">
+  <meta name="theme-color" content="#0a0a0b">
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0a0b;
+      --surface: #111113;
+      --border: rgba(255,255,255,0.08);
+      --border-strong: rgba(255,255,255,0.14);
+      --text: #f1f5f9;
+      --text-2: #e2e8f0;
+      --text-3: #94a3b8;
+      --text-4: #64748b;
+      --accent: #60a5fa;
+      --accent-bg: rgba(96,165,250,0.12);
+      --purple: #a78bfa;
+      --green: #4ade80;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    ::selection { background: rgba(96,165,250,0.25); }
+
+    a { color: var(--accent); text-decoration: none; transition: opacity 0.2s; }
+    a:hover { opacity: 0.8; }
+
+    /* ─── NAV ─── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(10,10,11,0.85); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 15px; font-weight: 600; letter-spacing: 1px;
+    }
+    .nav-logo img { width: 24px; height: 24px; border-radius: 4px; }
+    .nav-links { display: flex; gap: 1.5rem; font-size: 13px; }
+    .nav-links a { color: var(--text-3); transition: color 0.2s; }
+    .nav-links a:hover { color: var(--text); opacity: 1; }
+    .nav-cta {
+      font-size: 12px; padding: 6px 14px; border-radius: 6px;
+      background: var(--accent-bg); border: 1px solid rgba(96,165,250,0.2);
+      color: var(--accent); font-family: var(--mono); cursor: pointer;
+      transition: all 0.2s;
+    }
+    .nav-cta:hover { background: rgba(96,165,250,0.2); }
+
+    /* ─── HERO ─── */
+    .hero {
+      position: relative; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 120px 2rem 80px;
+      overflow: hidden;
+    }
+    .hero-canvas {
+      position: absolute; inset: 0; z-index: 0; opacity: 0.5;
+    }
+    .hero-glow {
+      position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%);
+      width: 600px; height: 600px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(96,165,250,0.08) 0%, transparent 70%);
+      z-index: 0;
+    }
+    .hero-content { position: relative; z-index: 1; max-width: 700px; }
+    .hero-badge {
+      display: inline-block; font-size: 11px; padding: 4px 12px;
+      border-radius: 20px; background: var(--accent-bg);
+      border: 1px solid rgba(96,165,250,0.15); color: var(--accent);
+      margin-bottom: 1.5rem; letter-spacing: 0.5px;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 700;
+      line-height: 1.15; margin-bottom: 1.2rem;
+      background: linear-gradient(135deg, var(--text) 0%, var(--text-3) 100%);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: clamp(14px, 2vw, 16px); color: var(--text-3);
+      max-width: 540px; margin: 0 auto 2rem; line-height: 1.7;
+    }
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 24px; border-radius: 8px; font-size: 14px;
+      font-family: var(--mono); font-weight: 500; border: none; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: var(--accent); color: #0a0a0b;
+    }
+    .btn-primary:hover { background: #93c5fd; color: #0a0a0b; opacity: 1; }
+    .btn-secondary {
+      background: var(--surface); color: var(--text-2);
+      border: 1px solid var(--border-strong);
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.07); opacity: 1; }
+    .hero-install {
+      margin-top: 2rem; padding: 14px 24px; border-radius: 8px;
+      background: var(--surface); border: 1px solid var(--border);
+      font-size: 13px; color: var(--text-3); display: inline-flex; align-items: center; gap: 12px;
+      cursor: pointer; transition: border-color 0.2s;
+    }
+    .hero-install:hover { border-color: var(--border-strong); }
+    .hero-install code { color: var(--green); }
+    .hero-install .copy-icon { color: var(--text-4); font-size: 16px; }
+
+    /* ─── SECTIONS ─── */
+    section { padding: 100px 2rem; max-width: 1100px; margin: 0 auto; }
+    .section-label {
+      font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 0.8rem;
+    }
+    section h2 {
+      font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 600;
+      margin-bottom: 1rem; color: var(--text);
+    }
+    section > p { color: var(--text-3); max-width: 600px; margin-bottom: 3rem; font-size: 15px; }
+
+    /* ─── FEATURE GRID ─── */
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1px; background: var(--border); border-radius: 12px; overflow: hidden;
+    }
+    .feature {
+      background: var(--surface); padding: 2rem;
+      transition: background 0.2s;
+    }
+    .feature:hover { background: rgba(255,255,255,0.03); }
+    .feature-icon {
+      width: 36px; height: 36px; border-radius: 8px; margin-bottom: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .feature h3 { font-size: 15px; font-weight: 600; margin-bottom: 0.5rem; }
+    .feature p { font-size: 13px; color: var(--text-3); line-height: 1.6; }
+
+    /* ─── HOW IT WORKS ─── */
+    .steps { display: flex; flex-direction: column; gap: 0; }
+    .step {
+      display: grid; grid-template-columns: 60px 1fr; gap: 0;
+      padding: 2rem 0; border-bottom: 1px solid var(--border);
+    }
+    .step:last-child { border-bottom: none; }
+    .step-num {
+      font-size: 28px; font-weight: 700; color: var(--accent);
+      opacity: 0.3; line-height: 1;
+    }
+    .step h3 { font-size: 15px; font-weight: 600; margin-bottom: 0.5rem; }
+    .step p { font-size: 13px; color: var(--text-3); line-height: 1.7; }
+
+    /* ─── CLI SHOWCASE ─── */
+    .terminal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden; margin-top: 2rem;
+    }
+    .terminal-bar {
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .terminal-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: rgba(255,255,255,0.1);
+    }
+    .terminal-title { font-size: 12px; color: var(--text-4); margin-left: 8px; }
+    .terminal-body { padding: 1.2rem 1.5rem; font-size: 13px; line-height: 2; }
+    .terminal-body .prompt { color: var(--green); }
+    .terminal-body .cmd { color: var(--text-2); }
+    .terminal-body .flag { color: var(--yellow); }
+    .terminal-body .comment { color: var(--text-4); }
+    .terminal-body .output { color: var(--text-3); }
+
+    /* ─── GRAPH LEGEND ─── */
+    .legend {
+      display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 2rem;
+      padding: 1.2rem 1.5rem; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 8px;
+    }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-3); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+    /* ─── INTEGRATION ─── */
+    .integrations {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem; margin-top: 2rem;
+    }
+    .integration {
+      padding: 1.5rem; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; transition: border-color 0.2s;
+    }
+    .integration:hover { border-color: var(--border-strong); }
+    .integration h4 { font-size: 14px; font-weight: 600; margin-bottom: 0.4rem; }
+    .integration p { font-size: 12px; color: var(--text-3); }
+
+    /* ─── CTA ─── */
+    .cta-section {
+      text-align: center; padding: 80px 2rem 120px;
+      position: relative;
+    }
+    .cta-section h2 {
+      font-size: clamp(1.4rem, 3vw, 1.8rem); font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    .cta-section p { color: var(--text-3); margin-bottom: 2rem; font-size: 14px; }
+
+    /* ─── FOOTER ─── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem; text-align: center; font-size: 12px; color: var(--text-4);
+    }
+    footer a { color: var(--text-3); }
+
+    /* ─── ANIMATIONS ─── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up {
+      opacity: 0; transform: translateY(20px);
+      animation: fadeUp 0.6s ease-out forwards;
+    }
+    .fade-up-d1 { animation-delay: 0.1s; }
+    .fade-up-d2 { animation-delay: 0.2s; }
+    .fade-up-d3 { animation-delay: 0.3s; }
+    .fade-up-d4 { animation-delay: 0.4s; }
+
+    @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.8; } }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 768px) {
+      nav { padding: 0 1rem; }
+      .nav-links { display: none; }
+      section { padding: 60px 1.2rem; }
+      .step { grid-template-columns: 40px 1fr; }
+      .hero { padding: 100px 1.2rem 60px; }
+      .hero-actions { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <img src="icon.png" alt="Nexus">
+    <span>NEXUS</span>
+  </div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#how">How It Works</a>
+    <a href="#cli">CLI</a>
+    <a href="#integrations">Integrations</a>
+    <a href="https://github.com/akashub/nexus" target="_blank">GitHub</a>
+  </div>
+  <a href="#install" class="nav-cta">Get Started</a>
+</nav>
+
+<!-- ─── HERO ─── -->
+<div class="hero">
+  <div class="hero-glow"></div>
+  <canvas class="hero-canvas" id="graphCanvas"></canvas>
+  <div class="hero-content">
+    <div class="hero-badge fade-up">v0.2.0 &mdash; Open Source</div>
+    <h1 class="fade-up fade-up-d1">Your learning,<br>mapped.</h1>
+    <p class="fade-up fade-up-d2">
+      Every tool, framework, and concept you touch in Claude Code &mdash;
+      captured automatically into a personal knowledge graph.
+      Search it, visualize it, let AI connect the dots.
+    </p>
+    <div class="hero-actions fade-up fade-up-d3">
+      <a href="https://github.com/akashub/nexus/releases/latest" class="btn btn-primary" id="downloadBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span id="downloadText">Download Desktop App</span>
+      </a>
+      <a href="https://github.com/akashub/nexus" class="btn btn-secondary" target="_blank">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        View Source
+      </a>
+    </div>
+    <div class="hero-install fade-up fade-up-d4" onclick="copyInstall()" id="installBlock">
+      <code><span style="color:var(--text-4)">$</span> uv tool install "git+https://github.com/akashub/nexus.git#subdirectory=backend"</code>
+      <span class="copy-icon" id="copyIcon">&#x2398;</span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── FEATURES ─── -->
+<section id="features">
+  <div class="section-label">Features</div>
+  <h2>Everything a developer needs to remember</h2>
+  <p>Nexus captures your learning passively and makes it searchable, visual, and actionable.</p>
+
+  <div class="features-grid">
+    <div class="feature">
+      <div class="feature-icon" style="background:rgba(96,165,250,0.12);">
+        <span style="color:var(--accent);">&#9673;</span>
+      </div>
+      <h3>Interactive Knowledge Graph</h3>
+      <p>See every concept as a node, every relationship as an edge. Drag, zoom, filter by category. Your stack visualized.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon" style="background:rgba(74,222,128,0.12);">
+        <span style="color:var(--green);">&#8634;</span>
+      </div>
+      <h3>Passive Capture</h3>
+      <p>Hooks watch for npm install, pip install, brew install, cargo add. Session-end scans catch everything else. Zero effort.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon" style="background:rgba(167,139,250,0.12);">
+        <span style="color:var(--purple);">&#9881;</span>
+      </div>
+      <h3>AI Enrichment</h3>
+      <p>Every concept gets a description, summary, install instructions, and embedding. Powered by local Ollama or cloud APIs.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon" style="background:rgba(251,191,36,0.12);">
+        <span style="color:var(--yellow);">&#8645;</span>
+      </div>
+      <h3>Gap Detection</h3>
+      <p>Companion pattern analysis finds what your stack is missing. Using React without testing? Nexus flags it.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon" style="background:rgba(248,113,113,0.12);">
+        <span style="color:var(--red);">&#9776;</span>
+      </div>
+      <h3>Learning Journey</h3>
+      <p>Timeline of when you adopted each tool. See your growth week by week, filter by project.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon" style="background:rgba(96,165,250,0.12);">
+        <span style="color:var(--accent);">&#9889;</span>
+      </div>
+      <h3>Multi-Project Graphs</h3>
+      <p>Each project gets its own graph. See cross-project connections in the global view. Shared dependencies surface automatically.</p>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--purple);"></div> devtool</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--accent);"></div> framework</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--green);"></div> concept</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--yellow);"></div> pattern</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--red);"></div> language</div>
+  </div>
+</section>
+
+<!-- ─── HOW IT WORKS ─── -->
+<section id="how">
+  <div class="section-label">How It Works</div>
+  <h2>Two minutes to a living knowledge graph</h2>
+  <p>Install, wire into Claude Code, and forget about it. Your graph builds itself.</p>
+
+  <div class="steps">
+    <div class="step" id="install">
+      <div class="step-num">01</div>
+      <div>
+        <h3>Install</h3>
+        <p>One command installs the CLI globally. Works on macOS, Linux, and Windows. Requires Python 3.12+ and uv.</p>
+        <div class="terminal" style="margin-top:1rem;">
+          <div class="terminal-body">
+            <span class="prompt">$</span> <span class="cmd">uv tool install</span> <span class="flag">"git+https://github.com/akashub/nexus.git#subdirectory=backend"</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div>
+        <h3>Wire into Claude Code</h3>
+        <p>Installs the MCP server, skill file, and session hooks. Claude Code now reads and writes your graph.</p>
+        <div class="terminal" style="margin-top:1rem;">
+          <div class="terminal-body">
+            <span class="prompt">$</span> <span class="cmd">nexus mcp install</span><br>
+            <span class="output">&nbsp;&nbsp;MCP server registered</span><br>
+            <span class="output">&nbsp;&nbsp;Skill installed</span><br>
+            <span class="output">&nbsp;&nbsp;Hooks registered</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div>
+        <h3>Seed your graph</h3>
+        <p>Scan an existing project to populate your graph from package files. Or just start working &mdash; hooks capture everything.</p>
+        <div class="terminal" style="margin-top:1rem;">
+          <div class="terminal-body">
+            <span class="prompt">$</span> <span class="cmd">nexus scan</span> <span class="flag">.</span> <span class="flag">--enrich</span><br>
+            <span class="output">&nbsp;&nbsp;Found 47 dependencies in package.json, pyproject.toml</span><br>
+            <span class="output">&nbsp;&nbsp;Enriching React... Enriching FastAPI... done</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <div>
+        <h3>Explore</h3>
+        <p>Open the desktop app or use the CLI. Search, visualize, ask questions, detect gaps, see your learning journey.</p>
+        <div class="terminal" style="margin-top:1rem;">
+          <div class="terminal-body">
+            <span class="prompt">$</span> <span class="cmd">nexus journey</span><br>
+            <span class="output"><br>Week of Apr 28</span><br>
+            <span class="output">&nbsp;&nbsp;&#9500;&#9472;&#9472; React [framework] &mdash; UI library for building interfaces</span><br>
+            <span class="output">&nbsp;&nbsp;&#9500;&#9472;&#9472; Tailwind [framework] &mdash; Utility-first CSS framework</span><br>
+            <span class="output">&nbsp;&nbsp;&#9492;&#9472;&#9472; Playwright [devtool] &mdash; End-to-end testing</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── CLI ─── -->
+<section id="cli">
+  <div class="section-label">CLI</div>
+  <h2>20+ commands for your knowledge graph</h2>
+  <p>Everything works from the terminal. The desktop app is optional.</p>
+
+  <div class="terminal">
+    <div class="terminal-bar">
+      <div class="terminal-dot"></div>
+      <div class="terminal-dot"></div>
+      <div class="terminal-dot"></div>
+      <div class="terminal-title">~/ &mdash; nexus</div>
+    </div>
+    <div class="terminal-body">
+      <span class="comment"># Add a concept with AI enrichment</span><br>
+      <span class="prompt">$</span> <span class="cmd">nexus add</span> <span class="flag">"Playwright"</span><br>
+      <span class="output">&nbsp;&nbsp;Added: Playwright (a3f2b1c8)</span><br>
+      <span class="output">&nbsp;&nbsp;Enriching Playwright...</span><br>
+      <span class="output">&nbsp;&nbsp;Updated: description, summary, category, embedding</span><br>
+      <span class="output">&nbsp;&nbsp;Playwright --[related_to]--&gt; Cypress (0.78)</span><br><br>
+
+      <span class="comment"># See what your project is missing</span><br>
+      <span class="prompt">$</span> <span class="cmd">nexus gaps</span><br>
+      <span class="output">&nbsp;&nbsp;React project &mdash; 3 gaps found:</span><br>
+      <span class="output">&nbsp;&nbsp;&nbsp;&nbsp;testing: No test framework detected</span><br>
+      <span class="output">&nbsp;&nbsp;&nbsp;&nbsp;linting: Consider ESLint or Biome</span><br>
+      <span class="output">&nbsp;&nbsp;&nbsp;&nbsp;state: No state management library</span><br><br>
+
+      <span class="comment"># Full concept detail</span><br>
+      <span class="prompt">$</span> <span class="cmd">nexus show</span> <span class="flag">react</span><br>
+      <span class="output">&nbsp;&nbsp;React [framework]</span><br>
+      <span class="output">&nbsp;&nbsp;A JavaScript library for building user interfaces with</span><br>
+      <span class="output">&nbsp;&nbsp;a component-based architecture and virtual DOM.</span><br>
+      <span class="output">&nbsp;&nbsp;Connections: Next.js, Tailwind, TypeScript, Vite</span><br><br>
+
+      <span class="comment"># Search across everything</span><br>
+      <span class="prompt">$</span> <span class="cmd">nexus search</span> <span class="flag">"testing"</span> <span class="flag">--semantic</span><br>
+      <span class="output">&nbsp;&nbsp;Found 4 result(s):</span><br>
+      <span class="output">&nbsp;&nbsp;&nbsp;&nbsp;Playwright [devtool] &mdash; End-to-end testing framework</span><br>
+      <span class="output">&nbsp;&nbsp;&nbsp;&nbsp;pytest [devtool] &mdash; Python testing framework</span><br>
+      <span class="output">&nbsp;&nbsp;&nbsp;&nbsp;Vitest [devtool] &mdash; Vite-native unit test framework</span><br>
+      <span class="output">&nbsp;&nbsp;&nbsp;&nbsp;Cypress [devtool] &mdash; Browser-based E2E testing</span>
+    </div>
+  </div>
+</section>
+
+<!-- ─── INTEGRATIONS ─── -->
+<section id="integrations">
+  <div class="section-label">Integrations</div>
+  <h2>Works with your tools</h2>
+  <p>Nexus plugs into the AI coding workflow you already have.</p>
+
+  <div class="integrations">
+    <div class="integration">
+      <h4>Claude Code</h4>
+      <p>MCP server gives Claude real-time graph access. Hooks capture installs. Skill teaches the ledger format.</p>
+    </div>
+    <div class="integration">
+      <h4>Codex &amp; MCP Clients</h4>
+      <p>Any tool that supports MCP servers works. Register <code>nexus mcp serve</code> and go.</p>
+    </div>
+    <div class="integration">
+      <h4>Ollama (Local AI)</h4>
+      <p>Gemma 4B for generation, nomic-embed-text for embeddings. Runs on your machine, no API keys needed.</p>
+    </div>
+    <div class="integration">
+      <h4>Cloud AI (Optional)</h4>
+      <p>Anthropic or OpenAI for higher-quality enrichment. Set one env var and add <code>--model cloud</code>.</p>
+    </div>
+    <div class="integration">
+      <h4>Desktop App</h4>
+      <p>Tauri-based native app with interactive graph, search (Cmd+K), side panels, and project switching.</p>
+    </div>
+    <div class="integration">
+      <h4>Context7</h4>
+      <p>Fetches real library docs for enrichment. Falls back to PyPI, npm, GitHub, and libraries.io.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─── CTA ─── -->
+<div class="cta-section">
+  <h2>Start mapping your knowledge</h2>
+  <p>Two commands. Two minutes. Your graph builds itself from there.</p>
+  <div class="terminal" style="max-width:650px; margin:0 auto; text-align:left;">
+    <div class="terminal-bar">
+      <div class="terminal-dot"></div>
+      <div class="terminal-dot"></div>
+      <div class="terminal-dot"></div>
+      <div class="terminal-title">Quick Start</div>
+    </div>
+    <div class="terminal-body">
+      <span class="prompt">$</span> <span class="cmd">uv tool install</span> <span class="flag">"git+https://github.com/akashub/nexus.git#subdirectory=backend"</span><br>
+      <span class="prompt">$</span> <span class="cmd">nexus mcp install</span><br>
+      <span class="prompt">$</span> <span class="cmd">nexus db init</span><br><br>
+      <span class="comment"># Optional: local AI models</span><br>
+      <span class="prompt">$</span> <span class="cmd">ollama pull</span> <span class="flag">gemma4</span><br>
+      <span class="prompt">$</span> <span class="cmd">ollama pull</span> <span class="flag">nomic-embed-text</span><br><br>
+      <span class="comment"># Seed from your project</span><br>
+      <span class="prompt">$</span> <span class="cmd">nexus scan</span> <span class="flag">. --enrich</span>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>Built by <a href="https://github.com/akashub" target="_blank">akashub</a> &mdash; MIT License &mdash; <a href="https://github.com/akashub/nexus" target="_blank">Source on GitHub</a></p>
+</footer>
+
+<script>
+// Platform-detect download button
+(function() {
+  const btn = document.getElementById('downloadBtn');
+  const txt = document.getElementById('downloadText');
+  const ua = navigator.userAgent.toLowerCase();
+  if (ua.includes('mac')) {
+    txt.textContent = 'Download for macOS';
+  } else if (ua.includes('win')) {
+    txt.textContent = 'Download for Windows';
+  } else if (ua.includes('linux')) {
+    txt.textContent = 'Download for Linux';
+  }
+})();
+
+// Copy install command
+function copyInstall() {
+  const cmd = 'uv tool install "git+https://github.com/akashub/nexus.git#subdirectory=backend"';
+  navigator.clipboard.writeText(cmd).then(() => {
+    const icon = document.getElementById('copyIcon');
+    icon.textContent = '✓';
+    setTimeout(() => { icon.textContent = '⎘'; }, 2000);
+  });
+}
+
+// Animated graph background
+(function() {
+  const canvas = document.getElementById('graphCanvas');
+  const ctx = canvas.getContext('2d');
+  let w, h, nodes = [], edges = [];
+
+  const COLORS = ['#60a5fa', '#a78bfa', '#4ade80', '#fbbf24', '#f87171', '#94a3b8'];
+  const NODE_COUNT = 40;
+  const MAX_DIST = 180;
+
+  function resize() {
+    w = canvas.width = canvas.parentElement.offsetWidth;
+    h = canvas.height = canvas.parentElement.offsetHeight;
+  }
+
+  function init() {
+    resize();
+    nodes = [];
+    for (let i = 0; i < NODE_COUNT; i++) {
+      nodes.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        r: 2 + Math.random() * 3,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      });
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+
+    // edges
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const dx = nodes[i].x - nodes[j].x;
+        const dy = nodes[i].y - nodes[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < MAX_DIST) {
+          const alpha = (1 - dist / MAX_DIST) * 0.15;
+          ctx.beginPath();
+          ctx.moveTo(nodes[i].x, nodes[i].y);
+          ctx.lineTo(nodes[j].x, nodes[j].y);
+          ctx.strokeStyle = `rgba(100,165,250,${alpha})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+
+    // nodes
+    for (const n of nodes) {
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+      ctx.fillStyle = n.color;
+      ctx.globalAlpha = 0.4;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      n.x += n.vx;
+      n.y += n.vy;
+      if (n.x < 0 || n.x > w) n.vx *= -1;
+      if (n.y < 0 || n.y > h) n.vy *= -1;
+    }
+
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', resize);
+  init();
+  draw();
+})();
+
+// Scroll-reveal
+(function() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('fade-up');
+        e.target.style.animationPlayState = 'running';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.feature, .step, .integration').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(20px)';
+    el.style.animation = 'fadeUp 0.5s ease-out forwards';
+    el.style.animationPlayState = 'paused';
+    observer.observe(el);
+  });
+})();
+</script>
+
+</body>
+</html>
