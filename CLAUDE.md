@@ -14,7 +14,7 @@ Personal learning knowledge graph. Capture concepts, understand them with local 
 - **Monorepo**: `backend/` (Python) + `desktop/` (Tauri + React).
 - **Backend**: Python 3.12+. FastAPI (async) + uvicorn for local API server. Click for CLI.
 - **Database**: SQLite (WAL mode) + FTS5 for full-text search. DB lives at `~/.nexus/nexus.db`.
-- **AI**: Ollama (local). Primary model `gemma4:e2b` for generation, `nomic-embed-text` for embeddings. Model names read from env (`NEXUS_LLM_MODEL`, `NEXUS_EMBED_MODEL`).
+- **AI**: Ollama (local). Any model for generation (default `gemma3`), `nomic-embed-text` for embeddings. Model names read from env (`NEXUS_LLM_MODEL`, `NEXUS_EMBED_MODEL`).
 - **Docs fetch**: Context7 MCP as primary source for library/framework docs. Web fetch (`httpx`) as fallback.
 - **Desktop**: Tauri v2 (Rust shell + OS webview). React + TypeScript frontend.
 - **Graph viz**: Cytoscape.js for interactive knowledge graph rendering.

@@ -65,7 +65,7 @@ jobs:
 
             **CLI install (all platforms):**
             ```
-            uv tool install "git+https://github.com/akashub/nexus.git#subdirectory=backend"
+            pip install nexus-graph
             nexus mcp install
             ```
           releaseDraft: false

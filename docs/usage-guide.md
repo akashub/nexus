@@ -5,18 +5,13 @@ How Nexus works across different setups, what to tell your teammates, and what r
 ## Install (2 minutes)
 
 ```bash
-# Install from GitHub
-uv tool install "git+https://github.com/akashub/nexus.git#subdirectory=backend"
-
-# Wire into Claude Code
+pip install nexus-graph
+nexus db init
 nexus mcp install
 
-# Pull AI models (optional — everything works without Ollama)
-ollama pull gemma4
+# Optional: local AI (any Ollama model works)
+ollama pull gemma3
 ollama pull nomic-embed-text
-
-# Initialize database
-nexus db init
 ```
 
 ## Scenarios

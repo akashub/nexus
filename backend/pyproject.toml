@@ -1,6 +1,6 @@
 [project]
-name = "nexus"
-version = "0.1.0"
+name = "nexus-graph"
+version = "0.2.0"
 description = "Personal learning knowledge graph powered by local AI"
 requires-python = ">=3.12"
 dependencies = [
@@ -38,3 +38,9 @@ minversion = "8.0"
 addopts = "-ra -q --strict-markers --strict-config"
 testpaths = ["tests"]
 filterwarnings = ["error"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "ruff>=0.15.12",
+]
