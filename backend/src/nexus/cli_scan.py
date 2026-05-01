@@ -14,19 +14,23 @@ from nexus.sync import sync_scan_results
 @click.option("--enrich", is_flag=True, help="Enrich new concepts after scanning.")
 @click.option("--dry-run", is_flag=True, help="Preview without writing to DB.")
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed output.")
-def scan_cmd(path: str, enrich: bool, dry_run: bool, verbose: bool) -> None:
+@click.option("--quiet", "-q", is_flag=True, help="Suppress output except errors.")
+def scan_cmd(path: str, enrich: bool, dry_run: bool, verbose: bool, quiet: bool) -> None:
     """Scan a project directory and build its knowledge graph."""
     project_path = Path(path).resolve()
-    click.echo(f"Scanning {project_path}...")
+    if not quiet:
+        click.echo(f"Scanning {project_path}...")
 
     result = scan_project(project_path, verbose=verbose)
 
     if not result.concepts:
-        click.echo("No concepts found.")
+        if not quiet:
+            click.echo("No concepts found.")
         return
 
-    click.echo(f"Found {len(result.concepts)} concepts, "
-               f"{len(result.relationships)} relationships")
+    if not quiet:
+        click.echo(f"Found {len(result.concepts)} concepts, "
+                   f"{len(result.relationships)} relationships")
 
     if dry_run:
         click.echo("\nDry run — would add:")
@@ -47,5 +51,6 @@ def scan_cmd(path: str, enrich: bool, dry_run: bool, verbose: bool) -> None:
     finally:
         conn.close()
 
-    click.echo(f"\nDone: {stats['added']} added, {stats['skipped']} skipped, "
-               f"{stats['edges_added']} edges")
+    if not quiet:
+        click.echo(f"\nDone: {stats['added']} added, {stats['skipped']} skipped, "
+                   f"{stats['edges_added']} edges")

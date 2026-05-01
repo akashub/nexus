@@ -7,6 +7,7 @@ from nexus.cli_concept import remove_cmd, show_cmd
 from nexus.cli_project import project_group
 from nexus.cli_replicate import replicate_cmd
 from nexus.cli_scan import scan_cmd
+from nexus.cli_track import track_cmd
 from nexus.db import (
     DB_PATH,
     add_concept,
@@ -174,6 +175,7 @@ main.add_command(scan_cmd)
 main.add_command(show_cmd)
 main.add_command(remove_cmd)
 main.add_command(replicate_cmd)
+main.add_command(track_cmd)
 main.add_command(project_group)
 
 
