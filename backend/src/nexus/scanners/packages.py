@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import tomllib
 from pathlib import Path
 
 from nexus.scanners import ScannedConcept, ScannedRelationship, ScanResult
@@ -67,7 +68,10 @@ _TEST_TOOLS = {"test", "jest", "vitest", "mocha", "cypress", "playwright"}
 _BUILD_TOOLS = {"webpack", "vite", "esbuild", "rollup", "turbopack", "parcel", "tsup"}
 _LINT_TOOLS = {"eslint", "prettier", "biome", "oxlint", "stylelint"}
 _FRAMEWORKS = ["react", "vue", "svelte", "angular", "next", "nuxt", "solid", "preact"]
-_CONFIG_PAIRS = {"postcss": "tailwindcss", "tailwindcss": "postcss", "typescript": "ts-node", "ts-node": "typescript"}
+_CONFIG_PAIRS = {
+    "postcss": "tailwindcss", "tailwindcss": "postcss",
+    "typescript": "ts-node", "ts-node": "typescript",
+}
 
 
 def _find_main_framework(deps: dict) -> str | None:
@@ -135,13 +139,11 @@ def _find_workspace_names(root: Path) -> set[str]:
         if any(p in _SKIP_DIRS for p in pp.parts):
             continue
         try:
-            for line in pp.read_text().splitlines():
-                s = line.strip()
-                if s.startswith("name") and "=" in s:
-                    val = s.split("=", 1)[1].strip().strip('"').strip("'")
-                    if val:
-                        names.add(val.lower())
-        except OSError:
+            data = tomllib.loads(pp.read_text())
+            val = data.get("project", {}).get("name", "")
+            if val:
+                names.add(val.lower())
+        except (OSError, tomllib.TOMLDecodeError):
             pass
     return names
 
@@ -150,33 +152,22 @@ def _parse_pyproject(
     path: Path, result: ScanResult, workspace_names: set[str], seen: set[str],
 ) -> None:
     try:
-        text = path.read_text()
-    except OSError:
+        data = tomllib.loads(path.read_text())
+    except (OSError, tomllib.TOMLDecodeError):
         return
-    in_deps = False
-    for line in text.splitlines():
-        stripped = line.strip()
-        if stripped == "dependencies = [" or (stripped.startswith("dependencies") and "= [" in stripped):
-            in_deps = True
+    deps = data.get("project", {}).get("dependencies", [])
+    for raw in deps:
+        name = raw.split(">=")[0].split("==")[0].split("<")[0].split("[")[0].strip()
+        if not name or name.startswith("#") or " " in name or "=" in name:
             continue
-        if in_deps:
-            if stripped.startswith("]"):
-                in_deps = False
-                continue
-            if not stripped.startswith('"'):
-                continue
-            raw = stripped.strip('",').strip("',")
-            name = raw.split(">=")[0].split("==")[0].split("<")[0].split("[")[0].strip()
-            if not name or name.startswith("#") or " " in name or "=" in name:
-                continue
-            lower = name.lower()
-            if lower in seen or lower in workspace_names:
-                continue
-            seen.add(lower)
-            result.concepts.append(ScannedConcept(
-                name=name, source="package_scan", category_hint="framework",
-                setup_command=f"uv add {name}",
-            ))
+        lower = name.lower()
+        if lower in seen or lower in workspace_names:
+            continue
+        seen.add(lower)
+        result.concepts.append(ScannedConcept(
+            name=name, source="package_scan", category_hint="framework",
+            setup_command=f"uv add {name}",
+        ))
 
 
 def _parse_requirements(path: Path, result: ScanResult, seen: set[str]) -> None:

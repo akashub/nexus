@@ -158,5 +158,5 @@ def _label_pair(a, b, overview: str, context: str) -> dict | None:
         if rel not in RELATIONSHIP_TYPES:
             rel = "related_to"
         return {"relationship": rel, "reason": data.get("reason")}
-    except (json.JSONDecodeError, Exception):
+    except Exception:
         return None

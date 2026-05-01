@@ -228,7 +228,9 @@ def search_fts(conn: sqlite3.Connection, query: str) -> list[Concept]:
             "WHERE concepts_fts MATCH ? ORDER BY rank", (fts_q,),
         ).fetchall()
     except sqlite3.OperationalError:
-        escaped = query.replace("%", "").replace("_", "").replace("[", "")
+        escaped = query.replace("%", "").replace("_", "").replace("[", "").strip()
+        if not escaped:
+            return []
         rows = conn.execute(
             "SELECT * FROM concepts WHERE name LIKE ? OR description LIKE ?",
             (f"%{escaped}%", f"%{escaped}%"),

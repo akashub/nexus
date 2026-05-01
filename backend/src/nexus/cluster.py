@@ -52,7 +52,7 @@ def cluster_concepts(
         if start < 0 or end <= start:
             return {"clustered": 0, "groups": 0}
         groups = json.loads(raw[start:end]).get("groups", {})
-    except (json.JSONDecodeError, Exception):
+    except Exception:
         return {"clustered": 0, "groups": 0}
 
     name_map = {c.name.lower(): c.id for c in concepts}

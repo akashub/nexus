@@ -4,9 +4,9 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 
 from nexus.db import (
     add_project,
+    count_concepts,
     delete_project,
     get_project,
-    list_concepts,
     list_projects,
     update_project,
 )
@@ -26,9 +26,8 @@ def get_project_route(project_id: str, conn: ConnDep):
     p = get_project(conn, project_id)
     if not p:
         raise HTTPException(404, f"Project not found: {project_id}")
-    concepts = list_concepts(conn, project_id=p.id, limit=10000)
     d = project_dict(p)
-    d["concept_count"] = len(concepts)
+    d["concept_count"] = count_concepts(conn, project_id=p.id)
     return d
 
 
@@ -171,11 +170,9 @@ def global_graph_route(conn: ConnDep):
     projects = list_projects(conn)
     nodes = []
     for p in projects:
-        count = len(list_concepts(conn, project_id=p.id, limit=10000))
-        nodes.append({**project_dict(p), "concept_count": count})
+        nodes.append({**project_dict(p), "concept_count": count_concepts(conn, project_id=p.id)})
     edges = compute_project_edges(conn, projects)
-    unassigned = list_concepts(conn, limit=10000)
-    unassigned_count = sum(1 for c in unassigned if not c.project_id)
+    unassigned_count = count_concepts(conn, unassigned=True)
     return {"nodes": nodes, "edges": edges, "unassigned_count": unassigned_count}
 
 

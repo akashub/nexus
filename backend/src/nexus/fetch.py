@@ -25,7 +25,7 @@ class DocResult:
 _QUOTA_MARKERS = ("quota exceeded", "rate limit", "too many requests")
 
 
-def _ctx7_key_flag() -> str:
+def _ctx7_key_args() -> list[str]:
     key = os.environ.get("CONTEXT7_API_KEY", "")
     if not key:
         env_file = Path(__file__).resolve().parents[2] / ".env"
@@ -34,7 +34,7 @@ def _ctx7_key_flag() -> str:
                 if line.startswith("CONTEXT7_API_KEY="):
                     key = line.split("=", 1)[1].strip()
                     break
-    return f" --api-key {key}" if key else ""
+    return ["--api-key", key] if key else []
 
 
 def _mcp_call(method: str, arguments: dict) -> str | None:
@@ -44,9 +44,9 @@ def _mcp_call(method: str, arguments: dict) -> str | None:
         "params": {"name": method, "arguments": arguments},
     })
     try:
+        cmd = ["npx", "-y", "@upstash/context7-mcp", *_ctx7_key_args()]
         proc = subprocess.run(
-            f"echo '{msg}' | npx -y @upstash/context7-mcp{_ctx7_key_flag()}",
-            capture_output=True, text=True, timeout=45, shell=True,
+            cmd, input=msg, capture_output=True, text=True, timeout=45,
         )
         if proc.returncode != 0 or not proc.stdout.strip():
             return None
@@ -117,21 +117,27 @@ def _fetch_github(name: str) -> DocResult | None:
     candidates = [f"{slug}/{slug}", f"{slug}python/{slug}", f"{slug}/{slug}-python"]
     for repo in candidates:
         try:
-            r = httpx.get(f"https://api.github.com/repos/{repo}/readme", headers=headers, timeout=10)
+            url = f"https://api.github.com/repos/{repo}/readme"
+            r = httpx.get(url, headers=headers, timeout=10)
             if r.status_code == 200:
-                text = r.text[:4000] if isinstance(r.text, str) else r.content.decode()[:4000]
-                return DocResult(text=text, doc_url=f"https://github.com/{repo}", source="github")
+                body = r.text[:4000] if isinstance(r.text, str) else r.content.decode()[:4000]
+                return DocResult(text=body, doc_url=f"https://github.com/{repo}", source="github")
         except Exception:
             continue
     try:
-        r = httpx.get(f"https://api.github.com/search/repositories?q={slug}&per_page=1", headers=headers, timeout=10)
+        r = httpx.get(
+            "https://api.github.com/search/repositories",
+            params={"q": slug, "per_page": "1"}, headers=headers, timeout=10,
+        )
         if r.status_code == 200:
             items = r.json().get("items", [])
             if items:
                 full_name = items[0]["full_name"]
-                r2 = httpx.get(f"https://api.github.com/repos/{full_name}/readme", headers=headers, timeout=10)
+                url = f"https://api.github.com/repos/{full_name}/readme"
+                r2 = httpx.get(url, headers=headers, timeout=10)
                 if r2.status_code == 200:
-                    return DocResult(text=r2.text[:4000], doc_url=f"https://github.com/{full_name}", source="github")
+                    gh_url = f"https://github.com/{full_name}"
+                    return DocResult(text=r2.text[:4000], doc_url=gh_url, source="github")
     except Exception:
         pass
     return None
@@ -155,7 +161,10 @@ def _fetch_libraries(name: str) -> DocResult | None:
                 parts.append(f"Homepage: {data['homepage']}")
             if data.get("keywords"):
                 parts.append(f"Keywords: {', '.join(data['keywords'][:10])}")
-            return DocResult(text="\n".join(parts)[:2000], doc_url=data.get("homepage"), source="libraries")
+            return DocResult(
+                text="\n".join(parts)[:2000], doc_url=data.get("homepage"),
+                source="libraries",
+            )
         except Exception:
             continue
     return None
@@ -192,7 +201,10 @@ def fetch_context(name: str, mode: str = "auto") -> DocResult | None:
 
 
 def fetch_quickstart(library_id: str) -> str | None:
-    return _mcp_call("query-docs", {"libraryId": library_id, "query": "installation and quick start code examples"})
+    return _mcp_call(
+        "query-docs",
+        {"libraryId": library_id, "query": "installation and quick start code examples"},
+    )
 
 
 def resolve_library(name: str) -> tuple[str | None, str | None]:

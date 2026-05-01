@@ -15,7 +15,10 @@ router = APIRouter()
 
 
 @router.get("/search")
-def search_route(conn: ConnDep, q: str = Query(max_length=500), semantic: bool = False):
+def search_route(
+    conn: ConnDep, q: str = Query(min_length=1, max_length=500),
+    semantic: bool = False,
+):
     if semantic:
         from nexus.ai import cosine_similarity, embed
         qvec = embed(q)
