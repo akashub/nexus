@@ -29,15 +29,16 @@ def add_concept(
     summary: str | None = None, category: str | None = None,
     tags: list[str] | None = None, source: str = "manual",
     embedding: bytes | None = None, notes: str | None = None,
-    project_id: str | None = None,
+    quickstart: str | None = None, project_id: str | None = None,
 ) -> Concept:
     cid = str(uuid.uuid4())
     tags_json = json.dumps(tags or [])
     conn.execute(
         "INSERT INTO concepts (id, name, description, summary, category, tags, "
-        "source, embedding, notes, project_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "source, embedding, notes, quickstart, project_id) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (cid, name, description, summary, category, tags_json,
-         source, embedding, notes, project_id),
+         source, embedding, notes, quickstart, project_id),
     )
     conn.commit()
     return get_concept(conn, cid)

@@ -77,6 +77,8 @@ def _process_entry(conn, entry: dict) -> None:
             updates["summary"] = entry["summary"]
         if entry.get("category") and not existing.category:
             updates["category"] = entry["category"]
+        if entry.get("quickstart") and not existing.quickstart:
+            updates["quickstart"] = entry["quickstart"]
         ctx = entry.get("context")
         if ctx:
             current = existing.notes or ""
@@ -91,6 +93,7 @@ def _process_entry(conn, entry: dict) -> None:
         description=entry.get("description"),
         summary=entry.get("summary"),
         category=entry.get("category"),
+        quickstart=entry.get("quickstart"),
         notes=entry.get("context"),
         source="ledger",
         project_id=project_id,

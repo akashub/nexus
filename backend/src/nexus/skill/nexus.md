@@ -45,7 +45,7 @@ Write RICH entries — you have the full session context, so include everything
 Nexus needs to build the graph without calling Ollama:
 
 ```jsonl
-{"name": "playwright", "description": "E2E testing framework with multi-browser support and auto-waiting", "summary": "E2E browser testing with auto-wait", "category": "devtool", "project_dir": "/path/to/project", "relationships": [{"target": "vitest", "type": "tested_with"}, {"target": "react", "type": "uses"}], "context": "Added for auth flow E2E tests"}
+{"name": "playwright", "description": "E2E testing framework with multi-browser support and auto-waiting", "summary": "E2E browser testing with auto-wait", "category": "devtool", "quickstart": "npm install -D @playwright/test\nnpx playwright install\nnpx playwright test", "project_dir": "/path/to/project", "relationships": [{"target": "vitest", "type": "tested_with"}, {"target": "react", "type": "uses"}], "context": "Added for auth flow E2E tests"}
 ```
 
 ### Fields
@@ -54,6 +54,9 @@ Nexus needs to build the graph without calling Ollama:
   added — include that context, not just what docs say.
 - `summary`: one-line summary under 15 words
 - `category`: one of devtool, framework, concept, pattern, language
+- `quickstart`: installation commands and basic setup steps. Include the
+  actual install command (npm install, pip install, etc.) and minimal
+  getting-started steps. This is stored on the node for future reference.
 - `project_dir`: absolute path to the project
 - `relationships`: array of `{target, type}` where type is one of:
   uses, depends_on, similar_to, part_of, tested_with, configured_by,

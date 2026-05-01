@@ -20,6 +20,12 @@ def print_concept_detail(conn, c, edges) -> None:
         click.echo(f"  Tags: {', '.join(c.tags)}")
     if c.notes:
         click.echo(f"  Notes: {c.notes}")
+    if c.quickstart:
+        lines = c.quickstart.strip().splitlines()
+        preview = "\n    ".join(lines[:8])
+        click.echo(f"\n  Install / Quickstart:\n    {preview}")
+        if len(lines) > 8:
+            click.echo(f"    ... ({len(lines) - 8} more lines)")
     if c.source != "manual":
         click.echo(f"  Source: {c.source}")
 
