@@ -4,6 +4,10 @@ import click
 
 from nexus.cli_ask import ask_cmd
 from nexus.cli_concept import remove_cmd, show_cmd
+from nexus.cli_ingest import ingest_cmd
+from nexus.cli_mcp import mcp_group
+from nexus.cli_onboard import onboard_cmd
+from nexus.cli_status import status_cmd
 from nexus.cli_project import project_group
 from nexus.cli_replicate import replicate_cmd
 from nexus.cli_scan import scan_cmd
@@ -176,6 +180,10 @@ main.add_command(show_cmd)
 main.add_command(remove_cmd)
 main.add_command(replicate_cmd)
 main.add_command(track_cmd)
+main.add_command(onboard_cmd)
+main.add_command(ingest_cmd)
+main.add_command(status_cmd)
+main.add_command(mcp_group)
 main.add_command(project_group)
 
 

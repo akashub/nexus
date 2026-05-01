@@ -61,6 +61,15 @@ def delete_project_route(project_id: str, conn: ConnDep):
     return {"deleted": project_id}
 
 
+@router.get("/projects/{project_id}/expertise")
+def expertise_route(project_id: str, conn: ConnDep):
+    from nexus.expertise import classify_expertise
+    p = get_project(conn, project_id)
+    if not p:
+        raise HTTPException(404, f"Project not found: {project_id}")
+    return classify_expertise(conn, project_id).to_dict()
+
+
 @router.post("/projects/{project_id}/scan")
 def scan_project_route(
     project_id: str, conn: ConnDep, background_tasks: BackgroundTasks,
