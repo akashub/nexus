@@ -1,5 +1,3 @@
-"""Helpers for cross-project graph and journey formatting."""
-
 from __future__ import annotations
 
 import sqlite3

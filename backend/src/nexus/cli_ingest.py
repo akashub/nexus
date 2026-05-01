@@ -8,12 +8,7 @@ import click
 
 from nexus.db import add_project, get_connection, get_project_by_path
 from nexus.db_concepts import add_concept, add_edge, get_concept, update_concept
-
-_VALID_REL_TYPES = frozenset({
-    "uses", "depends_on", "similar_to", "part_of", "tested_with",
-    "configured_by", "builds_into", "wraps", "serves", "deployed_via",
-    "replaces", "related_to", "sends_data_to", "triggers",
-})
+from nexus.models import RELATIONSHIP_TYPES
 
 
 @click.command("ingest")
@@ -107,7 +102,7 @@ def _process_relationships(
     for source_name, rel in rels:
         target_name = rel.get("target")
         rel_type = rel.get("type", "related_to")
-        if not target_name or rel_type not in _VALID_REL_TYPES:
+        if not target_name or rel_type not in RELATIONSHIP_TYPES:
             continue
         source = get_concept(conn, source_name)
         target = get_concept(conn, target_name)

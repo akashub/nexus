@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import logging
-
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 
 from nexus.db import (
@@ -26,8 +24,6 @@ from nexus.server import (
     concept_dict,
     edge_dict,
 )
-
-log = logging.getLogger(__name__)
 
 router = APIRouter()
 

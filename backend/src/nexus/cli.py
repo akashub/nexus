@@ -4,16 +4,16 @@ import click
 
 from nexus.cli_ask import ask_cmd
 from nexus.cli_compact import compact_cmd
-from nexus.cli_concept import remove_cmd, show_cmd
+from nexus.cli_concept import _require_concept, remove_cmd, show_cmd
 from nexus.cli_gaps import gaps_cmd
 from nexus.cli_ingest import ingest_cmd
 from nexus.cli_journey import journey_cmd
 from nexus.cli_mcp import mcp_group
 from nexus.cli_onboard import onboard_cmd
-from nexus.cli_status import status_cmd
 from nexus.cli_project import project_group
 from nexus.cli_replicate import replicate_cmd
 from nexus.cli_scan import scan_cmd
+from nexus.cli_status import status_cmd
 from nexus.cli_track import track_cmd
 from nexus.db import (
     DB_PATH,
@@ -27,13 +27,6 @@ from nexus.db import (
 )
 
 VALID_RELATIONSHIPS = ["uses", "depends_on", "similar_to", "part_of", "related_to"]
-
-
-def _require_concept(conn, name: str):
-    c = get_concept(conn, name)
-    if not c:
-        raise click.ClickException(f"Concept not found: {name}")
-    return c
 
 
 @click.group()
