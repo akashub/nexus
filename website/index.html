@@ -4,261 +4,382 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nexus — Personal Knowledge Graph for Developers</title>
-  <meta name="description" content="Capture every tool, framework, and concept you learn. Build a living knowledge graph that grows with you. Zero cloud, zero config.">
-  <meta name="theme-color" content="#0a0a0b">
+  <meta name="description" content="Capture every tool, framework, and concept you learn. Build a living knowledge graph that grows with you.">
+  <meta name="theme-color" content="#0a0c14">
   <link rel="icon" type="image/png" href="icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg: #0a0a0b;
-      --surface: #111113;
-      --border: rgba(255,255,255,0.08);
-      --border-strong: rgba(255,255,255,0.14);
-      --text: #f1f5f9;
-      --text-2: #e2e8f0;
-      --text-3: #94a3b8;
-      --text-4: #64748b;
-      --accent: #60a5fa;
-      --accent-bg: rgba(96,165,250,0.12);
-      --purple: #a78bfa;
-      --green: #4ade80;
-      --yellow: #fbbf24;
-      --red: #f87171;
-      --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+      --bg: #08090f;
+      --bg-2: #0c0e17;
+      --surface: rgba(255,255,255,0.03);
+      --glass: rgba(255,255,255,0.04);
+      --glass-border: rgba(255,255,255,0.08);
+      --glass-hover: rgba(255,255,255,0.06);
+      --silver: #c8cdd6;
+      --silver-bright: #e8ecf2;
+      --silver-dim: #6b7280;
+      --silver-faint: #3b4252;
+      --white: #f0f2f7;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
     html { scroll-behavior: smooth; }
 
     body {
       background: var(--bg);
-      color: var(--text);
-      font-family: var(--mono);
+      color: var(--silver);
+      font-family: var(--sans);
       -webkit-font-smoothing: antialiased;
       line-height: 1.6;
       overflow-x: hidden;
     }
 
-    ::selection { background: rgba(96,165,250,0.25); }
+    ::selection { background: rgba(200,205,214,0.15); }
 
-    a { color: var(--accent); text-decoration: none; transition: opacity 0.2s; }
-    a:hover { opacity: 0.8; }
+    a { color: var(--silver-bright); text-decoration: none; transition: all 0.3s; }
+    a:hover { color: #fff; }
 
     /* ─── NAV ─── */
     nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      background: rgba(10,10,11,0.85); backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      padding: 0 2rem; height: 56px;
+      background: rgba(8,9,15,0.7); backdrop-filter: blur(24px) saturate(1.2);
+      -webkit-backdrop-filter: blur(24px) saturate(1.2);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      padding: 0 2.5rem; height: 60px;
       display: flex; align-items: center; justify-content: space-between;
     }
     .nav-logo {
-      display: flex; align-items: center; gap: 10px;
-      font-size: 15px; font-weight: 600; letter-spacing: 1px;
+      display: flex; align-items: center; gap: 12px;
+      font-family: var(--sans); font-size: 14px; font-weight: 600;
+      letter-spacing: 3px; text-transform: uppercase; color: var(--silver-bright);
     }
-    .nav-logo img { width: 24px; height: 24px; border-radius: 4px; }
-    .nav-links { display: flex; gap: 1.5rem; font-size: 13px; }
-    .nav-links a { color: var(--text-3); transition: color 0.2s; }
-    .nav-links a:hover { color: var(--text); opacity: 1; }
+    .nav-logo img {
+      width: 28px; height: 28px; border-radius: 6px;
+      filter: brightness(1.1);
+    }
+    .nav-links { display: flex; gap: 2rem; font-size: 13px; font-weight: 400; }
+    .nav-links a { color: var(--silver-dim); letter-spacing: 0.3px; }
+    .nav-links a:hover { color: var(--silver-bright); }
     .nav-cta {
-      font-size: 12px; padding: 6px 14px; border-radius: 6px;
-      background: var(--accent-bg); border: 1px solid rgba(96,165,250,0.2);
-      color: var(--accent); font-family: var(--mono); cursor: pointer;
-      transition: all 0.2s;
+      font-size: 12px; padding: 8px 18px; border-radius: 100px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      color: var(--silver-bright); font-family: var(--sans); font-weight: 500;
+      cursor: pointer; transition: all 0.3s; letter-spacing: 0.3px;
+      backdrop-filter: blur(8px);
     }
-    .nav-cta:hover { background: rgba(96,165,250,0.2); }
+    .nav-cta:hover {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.2);
+      box-shadow: 0 0 20px rgba(255,255,255,0.05);
+    }
 
     /* ─── HERO ─── */
     .hero {
       position: relative; min-height: 100vh;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      text-align: center; padding: 120px 2rem 80px;
+      text-align: center; padding: 140px 2rem 100px;
       overflow: hidden;
     }
-    .hero-canvas {
-      position: absolute; inset: 0; z-index: 0; opacity: 0.5;
+    .hero-canvas { position: absolute; inset: 0; z-index: 0; }
+    .hero-orb {
+      position: absolute; border-radius: 50%; filter: blur(80px);
+      animation: orbFloat 20s ease-in-out infinite;
     }
-    .hero-glow {
-      position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%);
-      width: 600px; height: 600px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(96,165,250,0.08) 0%, transparent 70%);
-      z-index: 0;
+    .hero-orb-1 {
+      width: 500px; height: 500px; top: 15%; left: 50%; transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(200,205,214,0.06) 0%, transparent 70%);
     }
-    .hero-content { position: relative; z-index: 1; max-width: 700px; }
-    .hero-badge {
-      display: inline-block; font-size: 11px; padding: 4px 12px;
-      border-radius: 20px; background: var(--accent-bg);
-      border: 1px solid rgba(96,165,250,0.15); color: var(--accent);
-      margin-bottom: 1.5rem; letter-spacing: 0.5px;
+    .hero-orb-2 {
+      width: 300px; height: 300px; top: 60%; left: 30%;
+      background: radial-gradient(circle, rgba(200,205,214,0.03) 0%, transparent 70%);
+      animation-delay: -7s;
     }
+    .hero-orb-3 {
+      width: 250px; height: 250px; top: 40%; right: 15%;
+      background: radial-gradient(circle, rgba(200,205,214,0.04) 0%, transparent 70%);
+      animation-delay: -13s;
+    }
+    @keyframes orbFloat {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.15); }
+    }
+
+    .hero-content { position: relative; z-index: 1; max-width: 680px; }
+
+    .hero-icon {
+      width: 80px; height: 80px; border-radius: 20px; margin: 0 auto 2.5rem;
+      filter: brightness(1.2) drop-shadow(0 0 30px rgba(200,205,214,0.15));
+      animation: iconGlow 4s ease-in-out infinite;
+    }
+    @keyframes iconGlow {
+      0%, 100% { filter: brightness(1.2) drop-shadow(0 0 30px rgba(200,205,214,0.15)); }
+      50% { filter: brightness(1.4) drop-shadow(0 0 50px rgba(200,205,214,0.25)); }
+    }
+
     .hero h1 {
-      font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 700;
-      line-height: 1.15; margin-bottom: 1.2rem;
-      background: linear-gradient(135deg, var(--text) 0%, var(--text-3) 100%);
+      font-size: clamp(2.2rem, 5.5vw, 3.8rem); font-weight: 300;
+      line-height: 1.1; margin-bottom: 1.5rem; letter-spacing: -1px;
+      color: var(--white);
+    }
+    .hero h1 strong {
+      font-weight: 600;
+      background: linear-gradient(135deg, #fff 0%, #a0a8b8 50%, #fff 100%);
+      background-size: 200% 100%;
       -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+      animation: shimmer 6s ease-in-out infinite;
     }
+    @keyframes shimmer {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
     .hero p {
-      font-size: clamp(14px, 2vw, 16px); color: var(--text-3);
-      max-width: 540px; margin: 0 auto 2rem; line-height: 1.7;
+      font-size: clamp(15px, 2vw, 17px); color: var(--silver-dim);
+      max-width: 500px; margin: 0 auto 2.5rem; line-height: 1.7;
+      font-weight: 300;
     }
-    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+    .hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
     .btn {
       display: inline-flex; align-items: center; gap: 8px;
-      padding: 12px 24px; border-radius: 8px; font-size: 14px;
-      font-family: var(--mono); font-weight: 500; border: none; cursor: pointer;
-      transition: all 0.2s;
+      padding: 14px 28px; border-radius: 100px; font-size: 14px;
+      font-family: var(--sans); font-weight: 500; border: none; cursor: pointer;
+      transition: all 0.3s; letter-spacing: 0.2px;
     }
+    .btn svg { opacity: 0.7; }
     .btn-primary {
-      background: var(--accent); color: #0a0a0b;
+      background: rgba(255,255,255,0.9); color: #0a0c14;
     }
-    .btn-primary:hover { background: #93c5fd; color: #0a0a0b; opacity: 1; }
-    .btn-secondary {
-      background: var(--surface); color: var(--text-2);
-      border: 1px solid var(--border-strong);
+    .btn-primary:hover {
+      background: #fff; color: #0a0c14; opacity: 1;
+      box-shadow: 0 0 40px rgba(255,255,255,0.15), 0 4px 20px rgba(0,0,0,0.3);
     }
-    .btn-secondary:hover { background: rgba(255,255,255,0.07); opacity: 1; }
+    .btn-glass {
+      background: var(--glass); color: var(--silver-bright);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(12px);
+    }
+    .btn-glass:hover {
+      background: var(--glass-hover); opacity: 1;
+      border-color: rgba(255,255,255,0.15);
+      box-shadow: 0 0 30px rgba(255,255,255,0.05);
+    }
+
     .hero-install {
-      margin-top: 2rem; padding: 14px 24px; border-radius: 8px;
-      background: var(--surface); border: 1px solid var(--border);
-      font-size: 13px; color: var(--text-3); display: inline-flex; align-items: center; gap: 12px;
-      cursor: pointer; transition: border-color 0.2s;
+      margin-top: 2.5rem; padding: 16px 28px; border-radius: 14px;
+      background: var(--glass); border: 1px solid var(--glass-border);
+      backdrop-filter: blur(16px);
+      font-size: 13px; font-family: var(--mono); color: var(--silver-dim);
+      display: inline-flex; align-items: center; gap: 14px;
+      cursor: pointer; transition: all 0.3s;
     }
-    .hero-install:hover { border-color: var(--border-strong); }
-    .hero-install code { color: var(--green); }
-    .hero-install .copy-icon { color: var(--text-4); font-size: 16px; }
+    .hero-install:hover {
+      border-color: rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.06);
+      box-shadow: 0 0 30px rgba(255,255,255,0.03);
+    }
+    .hero-install code { color: var(--silver-bright); }
+    .hero-install .copy-hint {
+      color: var(--silver-faint); font-size: 11px;
+      padding: 2px 8px; border-radius: 4px;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .hero-fade {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 200px;
+      background: linear-gradient(to bottom, transparent, var(--bg));
+      z-index: 1; pointer-events: none;
+    }
 
     /* ─── SECTIONS ─── */
-    section { padding: 100px 2rem; max-width: 1100px; margin: 0 auto; }
+    section { padding: 120px 2rem; max-width: 1080px; margin: 0 auto; }
     .section-label {
-      font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
-      color: var(--accent); margin-bottom: 0.8rem;
+      font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+      color: var(--silver-faint); margin-bottom: 1rem; font-weight: 500;
     }
     section h2 {
-      font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 600;
-      margin-bottom: 1rem; color: var(--text);
+      font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 300;
+      margin-bottom: 0.8rem; color: var(--white); letter-spacing: -0.5px;
     }
-    section > p { color: var(--text-3); max-width: 600px; margin-bottom: 3rem; font-size: 15px; }
+    section h2 strong { font-weight: 600; }
+    section > p.section-desc {
+      color: var(--silver-dim); max-width: 500px;
+      margin-bottom: 3.5rem; font-size: 15px; font-weight: 300; line-height: 1.7;
+    }
 
-    /* ─── FEATURE GRID ─── */
-    .features-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1px; background: var(--border); border-radius: 12px; overflow: hidden;
+    /* ─── GLASS CARDS ─── */
+    .glass-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 1px; border-radius: 20px; overflow: hidden;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--glass-border);
     }
-    .feature {
-      background: var(--surface); padding: 2rem;
-      transition: background 0.2s;
+    .glass-card {
+      background: var(--bg-2); padding: 2.2rem;
+      transition: all 0.4s; position: relative; overflow: hidden;
     }
-    .feature:hover { background: rgba(255,255,255,0.03); }
-    .feature-icon {
-      width: 36px; height: 36px; border-radius: 8px; margin-bottom: 1rem;
+    .glass-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 50%);
+      opacity: 0; transition: opacity 0.4s;
+    }
+    .glass-card:hover::before { opacity: 1; }
+    .glass-card:hover { background: rgba(255,255,255,0.02); }
+    .card-icon {
+      width: 40px; height: 40px; border-radius: 12px; margin-bottom: 1.2rem;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
       display: flex; align-items: center; justify-content: center;
-      font-size: 18px;
+      font-size: 18px; color: var(--silver);
+      backdrop-filter: blur(8px);
     }
-    .feature h3 { font-size: 15px; font-weight: 600; margin-bottom: 0.5rem; }
-    .feature p { font-size: 13px; color: var(--text-3); line-height: 1.6; }
+    .glass-card h3 {
+      font-size: 15px; font-weight: 500; margin-bottom: 0.6rem;
+      color: var(--silver-bright);
+    }
+    .glass-card p { font-size: 13px; color: var(--silver-dim); line-height: 1.65; font-weight: 300; }
 
-    /* ─── HOW IT WORKS ─── */
+    /* ─── STEPS ─── */
     .steps { display: flex; flex-direction: column; gap: 0; }
     .step {
-      display: grid; grid-template-columns: 60px 1fr; gap: 0;
-      padding: 2rem 0; border-bottom: 1px solid var(--border);
+      display: grid; grid-template-columns: 80px 1fr; gap: 0;
+      padding: 2.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.04);
     }
     .step:last-child { border-bottom: none; }
     .step-num {
-      font-size: 28px; font-weight: 700; color: var(--accent);
-      opacity: 0.3; line-height: 1;
+      font-size: 48px; font-weight: 200; color: var(--silver-faint);
+      line-height: 1; font-family: var(--sans); letter-spacing: -2px;
     }
-    .step h3 { font-size: 15px; font-weight: 600; margin-bottom: 0.5rem; }
-    .step p { font-size: 13px; color: var(--text-3); line-height: 1.7; }
+    .step h3 {
+      font-size: 16px; font-weight: 500; margin-bottom: 0.5rem;
+      color: var(--silver-bright);
+    }
+    .step p { font-size: 14px; color: var(--silver-dim); line-height: 1.7; font-weight: 300; }
 
-    /* ─── CLI SHOWCASE ─── */
+    /* ─── TERMINAL ─── */
     .terminal {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 12px; overflow: hidden; margin-top: 2rem;
+      background: var(--bg-2); border: 1px solid var(--glass-border);
+      border-radius: 14px; overflow: hidden; margin-top: 1.2rem;
+      backdrop-filter: blur(8px);
     }
     .terminal-bar {
-      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.04);
       display: flex; align-items: center; gap: 8px;
     }
-    .terminal-dot {
-      width: 10px; height: 10px; border-radius: 50%;
-      background: rgba(255,255,255,0.1);
+    .terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .terminal-dot:nth-child(1) { background: rgba(255,255,255,0.08); }
+    .terminal-dot:nth-child(2) { background: rgba(255,255,255,0.06); }
+    .terminal-dot:nth-child(3) { background: rgba(255,255,255,0.04); }
+    .terminal-title { font-size: 11px; color: var(--silver-faint); margin-left: 8px; font-family: var(--mono); }
+    .terminal-body {
+      padding: 1.4rem 1.8rem; font-size: 13px; line-height: 2;
+      font-family: var(--mono);
     }
-    .terminal-title { font-size: 12px; color: var(--text-4); margin-left: 8px; }
-    .terminal-body { padding: 1.2rem 1.5rem; font-size: 13px; line-height: 2; }
-    .terminal-body .prompt { color: var(--green); }
-    .terminal-body .cmd { color: var(--text-2); }
-    .terminal-body .flag { color: var(--yellow); }
-    .terminal-body .comment { color: var(--text-4); }
-    .terminal-body .output { color: var(--text-3); }
+    .terminal-body .prompt { color: var(--silver-dim); }
+    .terminal-body .cmd { color: var(--silver-bright); }
+    .terminal-body .flag { color: var(--silver); }
+    .terminal-body .comment { color: var(--silver-faint); }
+    .terminal-body .output { color: var(--silver-dim); }
 
-    /* ─── GRAPH LEGEND ─── */
+    /* ─── CATEGORY LEGEND ─── */
     .legend {
-      display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 2rem;
-      padding: 1.2rem 1.5rem; background: var(--surface);
-      border: 1px solid var(--border); border-radius: 8px;
+      display: flex; gap: 2rem; flex-wrap: wrap; margin-top: 3rem;
+      padding: 1.2rem 1.8rem; border-radius: 12px;
+      background: var(--glass); border: 1px solid var(--glass-border);
     }
-    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-3); }
-    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--silver-dim); }
+    .legend-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      box-shadow: 0 0 8px currentColor;
+    }
 
-    /* ─── INTEGRATION ─── */
-    .integrations {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1rem; margin-top: 2rem;
+    /* ─── INTEGRATIONS ─── */
+    .int-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 14px; margin-top: 2.5rem;
     }
-    .integration {
-      padding: 1.5rem; background: var(--surface); border: 1px solid var(--border);
-      border-radius: 10px; transition: border-color 0.2s;
+    .int-card {
+      padding: 1.8rem; border-radius: 14px;
+      background: var(--glass); border: 1px solid var(--glass-border);
+      transition: all 0.3s; backdrop-filter: blur(8px);
     }
-    .integration:hover { border-color: var(--border-strong); }
-    .integration h4 { font-size: 14px; font-weight: 600; margin-bottom: 0.4rem; }
-    .integration p { font-size: 12px; color: var(--text-3); }
+    .int-card:hover {
+      border-color: rgba(255,255,255,0.12);
+      box-shadow: 0 0 30px rgba(255,255,255,0.02);
+      transform: translateY(-2px);
+    }
+    .int-card h4 { font-size: 14px; font-weight: 500; margin-bottom: 0.4rem; color: var(--silver-bright); }
+    .int-card p { font-size: 12px; color: var(--silver-dim); line-height: 1.6; font-weight: 300; }
+    .int-card code {
+      font-family: var(--mono); font-size: 11px;
+      background: rgba(255,255,255,0.04); padding: 2px 6px; border-radius: 4px;
+    }
 
     /* ─── CTA ─── */
     .cta-section {
-      text-align: center; padding: 80px 2rem 120px;
+      text-align: center; padding: 100px 2rem 140px;
       position: relative;
     }
-    .cta-section h2 {
-      font-size: clamp(1.4rem, 3vw, 1.8rem); font-weight: 600;
-      margin-bottom: 1rem;
+    .cta-section::before {
+      content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 400px; height: 400px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(200,205,214,0.04) 0%, transparent 70%);
+      filter: blur(60px); pointer-events: none;
     }
-    .cta-section p { color: var(--text-3); margin-bottom: 2rem; font-size: 14px; }
+    .cta-section h2 {
+      font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 300;
+      margin-bottom: 0.8rem; color: var(--white); position: relative;
+    }
+    .cta-section p {
+      color: var(--silver-dim); margin-bottom: 2.5rem;
+      font-size: 15px; font-weight: 300; position: relative;
+    }
 
     /* ─── FOOTER ─── */
     footer {
-      border-top: 1px solid var(--border);
-      padding: 2rem; text-align: center; font-size: 12px; color: var(--text-4);
+      border-top: 1px solid rgba(255,255,255,0.04);
+      padding: 2.5rem; text-align: center;
+      font-size: 12px; color: var(--silver-faint); font-weight: 300;
     }
-    footer a { color: var(--text-3); }
+    footer a { color: var(--silver-dim); }
+
+    /* ─── DIVIDER ─── */
+    .divider {
+      width: 60px; height: 1px; margin: 0 auto;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+    }
 
     /* ─── ANIMATIONS ─── */
     @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(20px); }
+      from { opacity: 0; transform: translateY(24px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    .fade-up {
-      opacity: 0; transform: translateY(20px);
-      animation: fadeUp 0.6s ease-out forwards;
-    }
-    .fade-up-d1 { animation-delay: 0.1s; }
-    .fade-up-d2 { animation-delay: 0.2s; }
-    .fade-up-d3 { animation-delay: 0.3s; }
-    .fade-up-d4 { animation-delay: 0.4s; }
-
-    @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.8; } }
+    .fade-up { opacity: 0; animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .fade-d1 { animation-delay: 0.1s; }
+    .fade-d2 { animation-delay: 0.2s; }
+    .fade-d3 { animation-delay: 0.35s; }
+    .fade-d4 { animation-delay: 0.5s; }
+    .fade-d5 { animation-delay: 0.65s; }
 
     /* ─── RESPONSIVE ─── */
+    @media (max-width: 900px) {
+      .glass-grid, .int-grid { grid-template-columns: 1fr; }
+    }
     @media (max-width: 768px) {
-      nav { padding: 0 1rem; }
+      nav { padding: 0 1.2rem; }
       .nav-links { display: none; }
-      section { padding: 60px 1.2rem; }
-      .step { grid-template-columns: 40px 1fr; }
-      .hero { padding: 100px 1.2rem 60px; }
+      section { padding: 80px 1.2rem; }
+      .step { grid-template-columns: 50px 1fr; }
+      .step-num { font-size: 36px; }
+      .hero { padding: 120px 1.2rem 80px; }
       .hero-actions { flex-direction: column; align-items: center; }
+      .hero-install { font-size: 11px; padding: 12px 16px; }
     }
   </style>
 </head>
@@ -267,7 +388,7 @@
 <nav>
   <div class="nav-logo">
     <img src="icon.png" alt="Nexus">
-    <span>NEXUS</span>
+    <span>Nexus</span>
   </div>
   <div class="nav-links">
     <a href="#features">Features</a>
@@ -281,106 +402,100 @@
 
 <!-- ─── HERO ─── -->
 <div class="hero">
-  <div class="hero-glow"></div>
+  <div class="hero-orb hero-orb-1"></div>
+  <div class="hero-orb hero-orb-2"></div>
+  <div class="hero-orb hero-orb-3"></div>
   <canvas class="hero-canvas" id="graphCanvas"></canvas>
+
   <div class="hero-content">
-    <div class="hero-badge fade-up">v0.2.0 &mdash; Open Source</div>
-    <h1 class="fade-up fade-up-d1">Your learning,<br>mapped.</h1>
-    <p class="fade-up fade-up-d2">
-      Every tool, framework, and concept you touch in Claude Code &mdash;
-      captured automatically into a personal knowledge graph.
-      Search it, visualize it, let AI connect the dots.
+    <img src="icon.png" alt="Nexus" class="hero-icon fade-up">
+    <h1 class="fade-up fade-d1">Your learning,<br><strong>mapped.</strong></h1>
+    <p class="fade-up fade-d2">
+      Every tool, framework, and concept you touch &mdash;
+      captured into a personal knowledge graph.
+      Search it. Visualize it. Let AI connect the dots.
     </p>
-    <div class="hero-actions fade-up fade-up-d3">
+    <div class="hero-actions fade-up fade-d3">
       <a href="https://github.com/akashub/nexus/releases/latest" class="btn btn-primary" id="downloadBtn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <span id="downloadText">Download Desktop App</span>
       </a>
-      <a href="https://github.com/akashub/nexus" class="btn btn-secondary" target="_blank">
+      <a href="https://github.com/akashub/nexus" class="btn btn-glass" target="_blank">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
         View Source
       </a>
     </div>
-    <div class="hero-install fade-up fade-up-d4" onclick="copyInstall()" id="installBlock">
-      <code><span style="color:var(--text-4)">$</span> uv tool install "git+https://github.com/akashub/nexus.git#subdirectory=backend"</code>
-      <span class="copy-icon" id="copyIcon">&#x2398;</span>
+    <div class="hero-install fade-up fade-d4" onclick="copyInstall()" id="installBlock">
+      <code><span class="prompt">$</span> uv tool install <span style="color:var(--silver-bright)">"git+https://github.com/akashub/nexus.git#subdirectory=backend"</span></code>
+      <span class="copy-hint" id="copyIcon">copy</span>
     </div>
   </div>
+  <div class="hero-fade"></div>
 </div>
 
 <!-- ─── FEATURES ─── -->
 <section id="features">
-  <div class="section-label">Features</div>
-  <h2>Everything a developer needs to remember</h2>
-  <p>Nexus captures your learning passively and makes it searchable, visual, and actionable.</p>
+  <div class="section-label">Capabilities</div>
+  <h2>Everything you need to <strong>remember</strong></h2>
+  <p class="section-desc">Nexus captures your learning passively and makes it searchable, visual, and actionable.</p>
 
-  <div class="features-grid">
-    <div class="feature">
-      <div class="feature-icon" style="background:rgba(96,165,250,0.12);">
-        <span style="color:var(--accent);">&#9673;</span>
-      </div>
-      <h3>Interactive Knowledge Graph</h3>
-      <p>See every concept as a node, every relationship as an edge. Drag, zoom, filter by category. Your stack visualized.</p>
+  <div class="glass-grid">
+    <div class="glass-card">
+      <div class="card-icon">&#9673;</div>
+      <h3>Interactive Graph</h3>
+      <p>Every concept is a node, every relationship an edge. Drag, zoom, filter by category. Your entire stack, visualized.</p>
     </div>
-    <div class="feature">
-      <div class="feature-icon" style="background:rgba(74,222,128,0.12);">
-        <span style="color:var(--green);">&#8634;</span>
-      </div>
+    <div class="glass-card">
+      <div class="card-icon">&#8634;</div>
       <h3>Passive Capture</h3>
-      <p>Hooks watch for npm install, pip install, brew install, cargo add. Session-end scans catch everything else. Zero effort.</p>
+      <p>Hooks watch for installs. Session-end scans catch changes. Your graph builds itself while you work.</p>
     </div>
-    <div class="feature">
-      <div class="feature-icon" style="background:rgba(167,139,250,0.12);">
-        <span style="color:var(--purple);">&#9881;</span>
-      </div>
+    <div class="glass-card">
+      <div class="card-icon">&#9826;</div>
       <h3>AI Enrichment</h3>
-      <p>Every concept gets a description, summary, install instructions, and embedding. Powered by local Ollama or cloud APIs.</p>
+      <p>Descriptions, summaries, install instructions, and embeddings. Local Ollama or cloud APIs.</p>
     </div>
-    <div class="feature">
-      <div class="feature-icon" style="background:rgba(251,191,36,0.12);">
-        <span style="color:var(--yellow);">&#8645;</span>
-      </div>
+    <div class="glass-card">
+      <div class="card-icon">&#9678;</div>
       <h3>Gap Detection</h3>
-      <p>Companion pattern analysis finds what your stack is missing. Using React without testing? Nexus flags it.</p>
+      <p>Companion pattern analysis surfaces what your stack is missing. React without testing? Flagged.</p>
     </div>
-    <div class="feature">
-      <div class="feature-icon" style="background:rgba(248,113,113,0.12);">
-        <span style="color:var(--red);">&#9776;</span>
-      </div>
+    <div class="glass-card">
+      <div class="card-icon">&#8614;</div>
       <h3>Learning Journey</h3>
       <p>Timeline of when you adopted each tool. See your growth week by week, filter by project.</p>
     </div>
-    <div class="feature">
-      <div class="feature-icon" style="background:rgba(96,165,250,0.12);">
-        <span style="color:var(--accent);">&#9889;</span>
-      </div>
-      <h3>Multi-Project Graphs</h3>
-      <p>Each project gets its own graph. See cross-project connections in the global view. Shared dependencies surface automatically.</p>
+    <div class="glass-card">
+      <div class="card-icon">&#9702;</div>
+      <h3>Multi-Project</h3>
+      <p>Each project gets its own graph. Cross-project connections and shared dependencies surface automatically.</p>
     </div>
   </div>
 
   <div class="legend">
-    <div class="legend-item"><div class="legend-dot" style="background:var(--purple);"></div> devtool</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--accent);"></div> framework</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--green);"></div> concept</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--yellow);"></div> pattern</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--red);"></div> language</div>
+    <div class="legend-item"><div class="legend-dot" style="color:#a78bfa; background:#a78bfa;"></div> devtool</div>
+    <div class="legend-item"><div class="legend-dot" style="color:#7da8d4; background:#7da8d4;"></div> framework</div>
+    <div class="legend-item"><div class="legend-dot" style="color:#6bc88a; background:#6bc88a;"></div> concept</div>
+    <div class="legend-item"><div class="legend-dot" style="color:#d4a847; background:#d4a847;"></div> pattern</div>
+    <div class="legend-item"><div class="legend-dot" style="color:#d47070; background:#d47070;"></div> language</div>
   </div>
 </section>
 
+<div class="divider"></div>
+
 <!-- ─── HOW IT WORKS ─── -->
 <section id="how">
-  <div class="section-label">How It Works</div>
-  <h2>Two minutes to a living knowledge graph</h2>
-  <p>Install, wire into Claude Code, and forget about it. Your graph builds itself.</p>
+  <div class="section-label">Setup</div>
+  <h2>Two minutes to a <strong>living graph</strong></h2>
+  <p class="section-desc">Install, wire into Claude Code, forget about it. Your graph builds itself from there.</p>
 
   <div class="steps">
     <div class="step" id="install">
       <div class="step-num">01</div>
       <div>
-        <h3>Install</h3>
-        <p>One command installs the CLI globally. Works on macOS, Linux, and Windows. Requires Python 3.12+ and uv.</p>
-        <div class="terminal" style="margin-top:1rem;">
+        <h3>Install the CLI</h3>
+        <p>One command. Works on macOS, Linux, and Windows. Requires Python 3.12+ and uv.</p>
+        <div class="terminal">
           <div class="terminal-body">
             <span class="prompt">$</span> <span class="cmd">uv tool install</span> <span class="flag">"git+https://github.com/akashub/nexus.git#subdirectory=backend"</span>
           </div>
@@ -391,13 +506,12 @@
       <div class="step-num">02</div>
       <div>
         <h3>Wire into Claude Code</h3>
-        <p>Installs the MCP server, skill file, and session hooks. Claude Code now reads and writes your graph.</p>
-        <div class="terminal" style="margin-top:1rem;">
+        <p>Installs MCP server, skill file, and session hooks. Claude reads and writes your graph automatically.</p>
+        <div class="terminal">
           <div class="terminal-body">
             <span class="prompt">$</span> <span class="cmd">nexus mcp install</span><br>
-            <span class="output">&nbsp;&nbsp;MCP server registered</span><br>
-            <span class="output">&nbsp;&nbsp;Skill installed</span><br>
-            <span class="output">&nbsp;&nbsp;Hooks registered</span>
+            <span class="output">&ensp; MCP server registered</span><br>
+            <span class="output">&ensp; Skill installed &middot; Hooks registered</span>
           </div>
         </div>
       </div>
@@ -406,12 +520,12 @@
       <div class="step-num">03</div>
       <div>
         <h3>Seed your graph</h3>
-        <p>Scan an existing project to populate your graph from package files. Or just start working &mdash; hooks capture everything.</p>
-        <div class="terminal" style="margin-top:1rem;">
+        <p>Scan a project to populate from package files. Or just start working &mdash; hooks capture everything.</p>
+        <div class="terminal">
           <div class="terminal-body">
-            <span class="prompt">$</span> <span class="cmd">nexus scan</span> <span class="flag">.</span> <span class="flag">--enrich</span><br>
-            <span class="output">&nbsp;&nbsp;Found 47 dependencies in package.json, pyproject.toml</span><br>
-            <span class="output">&nbsp;&nbsp;Enriching React... Enriching FastAPI... done</span>
+            <span class="prompt">$</span> <span class="cmd">nexus scan</span> <span class="flag">. --enrich</span><br>
+            <span class="output">&ensp; Found 47 dependencies in package.json, pyproject.toml</span><br>
+            <span class="output">&ensp; Enriching React... Enriching FastAPI... done</span>
           </div>
         </div>
       </div>
@@ -420,14 +534,14 @@
       <div class="step-num">04</div>
       <div>
         <h3>Explore</h3>
-        <p>Open the desktop app or use the CLI. Search, visualize, ask questions, detect gaps, see your learning journey.</p>
-        <div class="terminal" style="margin-top:1rem;">
+        <p>Desktop app or CLI. Search, visualize, ask questions, detect gaps, track your journey.</p>
+        <div class="terminal">
           <div class="terminal-body">
             <span class="prompt">$</span> <span class="cmd">nexus journey</span><br>
             <span class="output"><br>Week of Apr 28</span><br>
-            <span class="output">&nbsp;&nbsp;&#9500;&#9472;&#9472; React [framework] &mdash; UI library for building interfaces</span><br>
-            <span class="output">&nbsp;&nbsp;&#9500;&#9472;&#9472; Tailwind [framework] &mdash; Utility-first CSS framework</span><br>
-            <span class="output">&nbsp;&nbsp;&#9492;&#9472;&#9472; Playwright [devtool] &mdash; End-to-end testing</span>
+            <span class="output">&ensp; &#9500;&#9472;&#9472; React [framework]</span><br>
+            <span class="output">&ensp; &#9500;&#9472;&#9472; Tailwind [framework]</span><br>
+            <span class="output">&ensp; &#9492;&#9472;&#9472; Playwright [devtool]</span>
           </div>
         </div>
       </div>
@@ -435,82 +549,78 @@
   </div>
 </section>
 
+<div class="divider"></div>
+
 <!-- ─── CLI ─── -->
 <section id="cli">
-  <div class="section-label">CLI</div>
-  <h2>20+ commands for your knowledge graph</h2>
-  <p>Everything works from the terminal. The desktop app is optional.</p>
+  <div class="section-label">Command Line</div>
+  <h2>20+ commands, <strong>zero friction</strong></h2>
+  <p class="section-desc">Everything works from the terminal. The desktop app is optional.</p>
 
   <div class="terminal">
     <div class="terminal-bar">
       <div class="terminal-dot"></div>
       <div class="terminal-dot"></div>
       <div class="terminal-dot"></div>
-      <div class="terminal-title">~/ &mdash; nexus</div>
+      <div class="terminal-title">nexus</div>
     </div>
     <div class="terminal-body">
-      <span class="comment"># Add a concept with AI enrichment</span><br>
+      <span class="comment"># Add with AI enrichment</span><br>
       <span class="prompt">$</span> <span class="cmd">nexus add</span> <span class="flag">"Playwright"</span><br>
-      <span class="output">&nbsp;&nbsp;Added: Playwright (a3f2b1c8)</span><br>
-      <span class="output">&nbsp;&nbsp;Enriching Playwright...</span><br>
-      <span class="output">&nbsp;&nbsp;Updated: description, summary, category, embedding</span><br>
-      <span class="output">&nbsp;&nbsp;Playwright --[related_to]--&gt; Cypress (0.78)</span><br><br>
+      <span class="output">&ensp; Added: Playwright (a3f2b1c8)</span><br>
+      <span class="output">&ensp; Enriching... Updated: description, summary, category, embedding</span><br>
+      <span class="output">&ensp; Playwright --[related_to]--&gt; Cypress (0.78)</span><br><br>
 
-      <span class="comment"># See what your project is missing</span><br>
+      <span class="comment"># Detect gaps in your stack</span><br>
       <span class="prompt">$</span> <span class="cmd">nexus gaps</span><br>
-      <span class="output">&nbsp;&nbsp;React project &mdash; 3 gaps found:</span><br>
-      <span class="output">&nbsp;&nbsp;&nbsp;&nbsp;testing: No test framework detected</span><br>
-      <span class="output">&nbsp;&nbsp;&nbsp;&nbsp;linting: Consider ESLint or Biome</span><br>
-      <span class="output">&nbsp;&nbsp;&nbsp;&nbsp;state: No state management library</span><br><br>
+      <span class="output">&ensp; React project &mdash; 3 gaps:</span><br>
+      <span class="output">&ensp;&ensp; testing &middot; linting &middot; state management</span><br><br>
+
+      <span class="comment"># Semantic search across everything</span><br>
+      <span class="prompt">$</span> <span class="cmd">nexus search</span> <span class="flag">"testing" --semantic</span><br>
+      <span class="output">&ensp; Playwright &middot; pytest &middot; Vitest &middot; Cypress</span><br><br>
 
       <span class="comment"># Full concept detail</span><br>
       <span class="prompt">$</span> <span class="cmd">nexus show</span> <span class="flag">react</span><br>
-      <span class="output">&nbsp;&nbsp;React [framework]</span><br>
-      <span class="output">&nbsp;&nbsp;A JavaScript library for building user interfaces with</span><br>
-      <span class="output">&nbsp;&nbsp;a component-based architecture and virtual DOM.</span><br>
-      <span class="output">&nbsp;&nbsp;Connections: Next.js, Tailwind, TypeScript, Vite</span><br><br>
-
-      <span class="comment"># Search across everything</span><br>
-      <span class="prompt">$</span> <span class="cmd">nexus search</span> <span class="flag">"testing"</span> <span class="flag">--semantic</span><br>
-      <span class="output">&nbsp;&nbsp;Found 4 result(s):</span><br>
-      <span class="output">&nbsp;&nbsp;&nbsp;&nbsp;Playwright [devtool] &mdash; End-to-end testing framework</span><br>
-      <span class="output">&nbsp;&nbsp;&nbsp;&nbsp;pytest [devtool] &mdash; Python testing framework</span><br>
-      <span class="output">&nbsp;&nbsp;&nbsp;&nbsp;Vitest [devtool] &mdash; Vite-native unit test framework</span><br>
-      <span class="output">&nbsp;&nbsp;&nbsp;&nbsp;Cypress [devtool] &mdash; Browser-based E2E testing</span>
+      <span class="output">&ensp; React [framework]</span><br>
+      <span class="output">&ensp; A JavaScript library for building user interfaces</span><br>
+      <span class="output">&ensp; Connections: Next.js, Tailwind, TypeScript, Vite</span>
     </div>
   </div>
 </section>
 
+<div class="divider"></div>
+
 <!-- ─── INTEGRATIONS ─── -->
 <section id="integrations">
-  <div class="section-label">Integrations</div>
-  <h2>Works with your tools</h2>
-  <p>Nexus plugs into the AI coding workflow you already have.</p>
+  <div class="section-label">Ecosystem</div>
+  <h2>Works with your <strong>tools</strong></h2>
+  <p class="section-desc">Plugs into the AI coding workflow you already have.</p>
 
-  <div class="integrations">
-    <div class="integration">
+  <div class="int-grid">
+    <div class="int-card">
       <h4>Claude Code</h4>
-      <p>MCP server gives Claude real-time graph access. Hooks capture installs. Skill teaches the ledger format.</p>
+      <p>MCP server for real-time graph access. Hooks capture installs. Skill teaches the ledger format.</p>
     </div>
-    <div class="integration">
+    <div class="int-card">
       <h4>Codex &amp; MCP Clients</h4>
-      <p>Any tool that supports MCP servers works. Register <code>nexus mcp serve</code> and go.</p>
+      <p>Any MCP-compatible tool works. Register <code>nexus mcp serve</code> and go.</p>
     </div>
-    <div class="integration">
-      <h4>Ollama (Local AI)</h4>
-      <p>Gemma 4B for generation, nomic-embed-text for embeddings. Runs on your machine, no API keys needed.</p>
+    <div class="int-card">
+      <h4>Ollama</h4>
+      <p>Gemma 4B for generation, nomic-embed-text for embeddings. Local, no API keys.</p>
     </div>
-    <div class="integration">
-      <h4>Cloud AI (Optional)</h4>
-      <p>Anthropic or OpenAI for higher-quality enrichment. Set one env var and add <code>--model cloud</code>.</p>
+    <div class="int-card">
+      <h4>Cloud AI</h4>
+      <p>Anthropic or OpenAI for higher-quality enrichment. One env var, add <code>--model cloud</code>.</p>
     </div>
-    <div class="integration">
+    <div class="int-card">
       <h4>Desktop App</h4>
-      <p>Tauri-based native app with interactive graph, search (Cmd+K), side panels, and project switching.</p>
+      <p>Tauri-based native app. Interactive graph, search, side panels, project switching.</p>
     </div>
-    <div class="integration">
+    <div class="int-card">
       <h4>Context7</h4>
-      <p>Fetches real library docs for enrichment. Falls back to PyPI, npm, GitHub, and libraries.io.</p>
+      <p>Real library docs for enrichment. Falls back to PyPI, npm, GitHub, libraries.io.</p>
     </div>
   </div>
 </section>
@@ -519,64 +629,52 @@
 <div class="cta-section">
   <h2>Start mapping your knowledge</h2>
   <p>Two commands. Two minutes. Your graph builds itself from there.</p>
-  <div class="terminal" style="max-width:650px; margin:0 auto; text-align:left;">
+  <div class="terminal" style="max-width:620px; margin:0 auto; text-align:left;">
     <div class="terminal-bar">
       <div class="terminal-dot"></div>
       <div class="terminal-dot"></div>
       <div class="terminal-dot"></div>
-      <div class="terminal-title">Quick Start</div>
+      <div class="terminal-title">quick start</div>
     </div>
     <div class="terminal-body">
       <span class="prompt">$</span> <span class="cmd">uv tool install</span> <span class="flag">"git+https://github.com/akashub/nexus.git#subdirectory=backend"</span><br>
       <span class="prompt">$</span> <span class="cmd">nexus mcp install</span><br>
       <span class="prompt">$</span> <span class="cmd">nexus db init</span><br><br>
-      <span class="comment"># Optional: local AI models</span><br>
+      <span class="comment"># Optional: local AI</span><br>
       <span class="prompt">$</span> <span class="cmd">ollama pull</span> <span class="flag">gemma4</span><br>
-      <span class="prompt">$</span> <span class="cmd">ollama pull</span> <span class="flag">nomic-embed-text</span><br><br>
-      <span class="comment"># Seed from your project</span><br>
-      <span class="prompt">$</span> <span class="cmd">nexus scan</span> <span class="flag">. --enrich</span>
+      <span class="prompt">$</span> <span class="cmd">ollama pull</span> <span class="flag">nomic-embed-text</span>
     </div>
   </div>
 </div>
 
 <footer>
-  <p>Built by <a href="https://github.com/akashub" target="_blank">akashub</a> &mdash; MIT License &mdash; <a href="https://github.com/akashub/nexus" target="_blank">Source on GitHub</a></p>
+  <p>Built by <a href="https://github.com/akashub" target="_blank">akashub</a> &ensp;&middot;&ensp; MIT License &ensp;&middot;&ensp; <a href="https://github.com/akashub/nexus" target="_blank">Source on GitHub</a></p>
 </footer>
 
 <script>
-// Platform-detect download button
 (function() {
-  const btn = document.getElementById('downloadBtn');
-  const txt = document.getElementById('downloadText');
   const ua = navigator.userAgent.toLowerCase();
-  if (ua.includes('mac')) {
-    txt.textContent = 'Download for macOS';
-  } else if (ua.includes('win')) {
-    txt.textContent = 'Download for Windows';
-  } else if (ua.includes('linux')) {
-    txt.textContent = 'Download for Linux';
-  }
+  const txt = document.getElementById('downloadText');
+  if (ua.includes('mac')) txt.textContent = 'Download for macOS';
+  else if (ua.includes('win')) txt.textContent = 'Download for Windows';
+  else if (ua.includes('linux')) txt.textContent = 'Download for Linux';
 })();
 
-// Copy install command
 function copyInstall() {
   const cmd = 'uv tool install "git+https://github.com/akashub/nexus.git#subdirectory=backend"';
   navigator.clipboard.writeText(cmd).then(() => {
-    const icon = document.getElementById('copyIcon');
-    icon.textContent = '✓';
-    setTimeout(() => { icon.textContent = '⎘'; }, 2000);
+    const el = document.getElementById('copyIcon');
+    el.textContent = 'copied';
+    setTimeout(() => { el.textContent = 'copy'; }, 2000);
   });
 }
 
-// Animated graph background
+// Animated graph nodes
 (function() {
   const canvas = document.getElementById('graphCanvas');
   const ctx = canvas.getContext('2d');
-  let w, h, nodes = [], edges = [];
-
-  const COLORS = ['#60a5fa', '#a78bfa', '#4ade80', '#fbbf24', '#f87171', '#94a3b8'];
-  const NODE_COUNT = 40;
-  const MAX_DIST = 180;
+  let w, h, nodes = [];
+  const N = 50, MAX_D = 160;
 
   function resize() {
     w = canvas.width = canvas.parentElement.offsetWidth;
@@ -585,80 +683,58 @@ function copyInstall() {
 
   function init() {
     resize();
-    nodes = [];
-    for (let i = 0; i < NODE_COUNT; i++) {
-      nodes.push({
-        x: Math.random() * w,
-        y: Math.random() * h,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
-        r: 2 + Math.random() * 3,
-        color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      });
-    }
+    nodes = Array.from({ length: N }, () => ({
+      x: Math.random() * w, y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.2, vy: (Math.random() - 0.5) * 0.2,
+      r: 1.5 + Math.random() * 2,
+    }));
   }
 
   function draw() {
     ctx.clearRect(0, 0, w, h);
-
-    // edges
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
-        const dx = nodes[i].x - nodes[j].x;
-        const dy = nodes[i].y - nodes[j].y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < MAX_DIST) {
-          const alpha = (1 - dist / MAX_DIST) * 0.15;
+        const dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d < MAX_D) {
           ctx.beginPath();
           ctx.moveTo(nodes[i].x, nodes[i].y);
           ctx.lineTo(nodes[j].x, nodes[j].y);
-          ctx.strokeStyle = `rgba(100,165,250,${alpha})`;
+          ctx.strokeStyle = `rgba(200,205,214,${(1 - d / MAX_D) * 0.06})`;
           ctx.lineWidth = 0.5;
           ctx.stroke();
         }
       }
     }
-
-    // nodes
     for (const n of nodes) {
       ctx.beginPath();
       ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-      ctx.fillStyle = n.color;
-      ctx.globalAlpha = 0.4;
+      ctx.fillStyle = 'rgba(200,205,214,0.2)';
       ctx.fill();
-      ctx.globalAlpha = 1;
-
-      n.x += n.vx;
-      n.y += n.vy;
+      n.x += n.vx; n.y += n.vy;
       if (n.x < 0 || n.x > w) n.vx *= -1;
       if (n.y < 0 || n.y > h) n.vy *= -1;
     }
-
     requestAnimationFrame(draw);
   }
 
   window.addEventListener('resize', resize);
-  init();
-  draw();
+  init(); draw();
 })();
 
-// Scroll-reveal
+// Scroll reveal
 (function() {
-  const observer = new IntersectionObserver((entries) => {
+  const obs = new IntersectionObserver((entries) => {
     entries.forEach(e => {
       if (e.isIntersecting) {
-        e.target.classList.add('fade-up');
-        e.target.style.animationPlayState = 'running';
+        e.target.style.animation = 'fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) forwards';
+        obs.unobserve(e.target);
       }
     });
-  }, { threshold: 0.1 });
-
-  document.querySelectorAll('.feature, .step, .integration').forEach(el => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(20px)';
-    el.style.animation = 'fadeUp 0.5s ease-out forwards';
-    el.style.animationPlayState = 'paused';
-    observer.observe(el);
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.glass-card, .step, .int-card').forEach(el => {
+    el.style.opacity = '0'; el.style.transform = 'translateY(24px)';
+    obs.observe(el);
   });
 })();
 </script>
