@@ -15,13 +15,7 @@
 
     :root {
       --bg: #08090f;
-      --bg-2: rgba(255,255,255,0.03);
-      --surface: rgba(255,255,255,0.05);
-      --glass: rgba(255,255,255,0.08);
-      --glass-strong: rgba(255,255,255,0.12);
-      --glass-border: rgba(255,255,255,0.12);
-      --glass-border-bright: rgba(255,255,255,0.20);
-      --glass-hover: rgba(255,255,255,0.14);
+      --bg-raised: #0e1017;
       --silver: #c8cdd6;
       --silver-bright: #e8ecf2;
       --silver-dim: #6b7280;
@@ -29,6 +23,22 @@
       --white: #f0f2f7;
       --mono: 'JetBrains Mono', monospace;
       --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+      /* Category colors — matching the desktop app */
+      --c-purple: #a78bfa;
+      --c-blue: #60a5fa;
+      --c-green: #4ade80;
+      --c-orange: #fbbf24;
+      --c-red: #f87171;
+      --c-emerald: #34d399;
+
+      /* Metallic panel */
+      --m-border-t: rgba(255,255,255,0.15);
+      --m-border-r: rgba(255,255,255,0.06);
+      --m-border-b: rgba(255,255,255,0.04);
+      --m-border-l: rgba(255,255,255,0.08);
+      --m-shadow: 0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.25);
+      --m-shadow-lg: 0 2px 4px rgba(0,0,0,0.4), 0 16px 48px rgba(0,0,0,0.3);
     }
 
     html { scroll-behavior: smooth; }
@@ -41,59 +51,59 @@
       line-height: 1.6;
       overflow-x: hidden;
     }
-    body::after {
-      content: ''; position: fixed; inset: 0; z-index: 9999; pointer-events: none;
-      opacity: 0.035;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-      background-size: 200px;
-    }
 
-    ::selection { background: rgba(200,205,214,0.15); }
+    ::selection { background: rgba(167,139,250,0.2); }
 
     a { color: var(--silver-bright); text-decoration: none; transition: all 0.3s; }
     a:hover { color: #fff; }
 
-    /* ─── GLASS PANEL MIXIN (via ::before highlight) ─── */
+    /* ─── METALLIC PANEL ─── */
+    .metal {
+      background: linear-gradient(145deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%);
+      border-top: 1px solid var(--m-border-t);
+      border-right: 1px solid var(--m-border-r);
+      border-bottom: 1px solid var(--m-border-b);
+      border-left: 1px solid var(--m-border-l);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), var(--m-shadow);
+      position: relative; overflow: hidden;
+    }
+    .metal::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(145deg, rgba(255,255,255,0.06) 0%, transparent 40%);
+      pointer-events: none;
+    }
 
     /* ─── NAV ─── */
     nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      background: rgba(8,9,15,0.6);
-      backdrop-filter: blur(24px) saturate(1.4);
-      -webkit-backdrop-filter: blur(24px) saturate(1.4);
+      background: rgba(8,9,15,0.85);
       border-bottom: 1px solid rgba(255,255,255,0.08);
-      box-shadow: 0 1px 0 rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.5);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
       padding: 0 2.5rem; height: 60px;
       display: flex; align-items: center; justify-content: space-between;
-    }
-    nav::after {
-      content: ''; position: absolute; bottom: -1px; left: 10%; right: 10%; height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
-      pointer-events: none;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
     }
     .nav-logo {
       display: flex; align-items: center; gap: 12px;
-      font-family: var(--sans); font-size: 14px; font-weight: 600;
+      font-size: 14px; font-weight: 600;
       letter-spacing: 3px; text-transform: uppercase; color: var(--silver-bright);
     }
-    .nav-logo img {
-      width: 28px; height: 28px; border-radius: 6px;
-      filter: brightness(1.1);
-    }
+    .nav-logo img { width: 28px; height: 28px; border-radius: 6px; filter: brightness(1.1); }
     .nav-links { display: flex; gap: 2rem; font-size: 13px; font-weight: 400; }
     .nav-links a { color: var(--silver-dim); letter-spacing: 0.3px; }
-    .nav-links a:hover { color: var(--silver-bright); }
+    .nav-links a:hover { color: var(--c-purple); }
     .nav-cta {
       font-size: 12px; padding: 8px 18px; border-radius: 100px;
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
-      color: var(--silver-bright); font-family: var(--sans); font-weight: 500;
+      background: linear-gradient(135deg, var(--c-purple), #8b5cf6);
+      color: #fff; font-family: var(--sans); font-weight: 500;
       cursor: pointer; transition: all 0.3s; letter-spacing: 0.3px;
-      backdrop-filter: blur(12px);
+      border: none;
+      box-shadow: 0 2px 12px rgba(167,139,250,0.3);
     }
     .nav-cta:hover {
-      background: rgba(255,255,255,0.12);
-      border-color: rgba(255,255,255,0.22);
-      box-shadow: 0 0 24px rgba(255,255,255,0.06);
+      box-shadow: 0 4px 20px rgba(167,139,250,0.5);
+      transform: translateY(-1px);
     }
 
     /* ─── HERO ─── */
@@ -104,52 +114,47 @@
       overflow: hidden;
     }
     .hero-canvas { position: absolute; inset: 0; z-index: 0; }
-    .hero-orb {
-      position: absolute; border-radius: 50%;
-      animation: orbFloat 20s ease-in-out infinite;
-    }
+
+    .hero-orb { position: absolute; border-radius: 50%; animation: orbFloat 20s ease-in-out infinite; }
     .hero-orb-1 {
-      width: 700px; height: 700px; top: 15%; left: 50%; transform: translate(-50%, -50%);
-      background: radial-gradient(circle, rgba(120,80,220,0.25) 0%, rgba(80,120,240,0.12) 40%, transparent 70%);
+      width: 500px; height: 500px; top: 20%; left: 50%; transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(167,139,250,0.12) 0%, transparent 70%);
       filter: blur(80px);
     }
     .hero-orb-2 {
-      width: 450px; height: 450px; top: 65%; left: 25%;
-      background: radial-gradient(circle, rgba(60,180,200,0.20) 0%, rgba(40,120,180,0.08) 40%, transparent 70%);
-      filter: blur(60px);
-      animation-delay: -7s;
+      width: 400px; height: 400px; top: 60%; left: 20%;
+      background: radial-gradient(circle, rgba(96,165,250,0.08) 0%, transparent 70%);
+      filter: blur(60px); animation-delay: -7s;
     }
     .hero-orb-3 {
-      width: 400px; height: 400px; top: 35%; right: 10%;
-      background: radial-gradient(circle, rgba(160,60,220,0.18) 0%, rgba(100,60,180,0.06) 40%, transparent 70%);
-      filter: blur(60px);
-      animation-delay: -13s;
+      width: 350px; height: 350px; top: 40%; right: 10%;
+      background: radial-gradient(circle, rgba(74,222,128,0.06) 0%, transparent 70%);
+      filter: blur(60px); animation-delay: -13s;
     }
     @keyframes orbFloat {
-      0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
-      50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+      0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+      50% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
     }
 
     .hero-content { position: relative; z-index: 1; max-width: 720px; }
 
     .hero-icon {
       width: 80px; height: 80px; border-radius: 20px; margin: 0 auto 2.5rem;
-      filter: brightness(1.3) drop-shadow(0 0 40px rgba(200,205,214,0.25));
+      filter: brightness(1.3) drop-shadow(0 0 40px rgba(167,139,250,0.3));
       animation: iconGlow 4s ease-in-out infinite;
     }
     @keyframes iconGlow {
-      0%, 100% { filter: brightness(1.3) drop-shadow(0 0 40px rgba(200,205,214,0.25)) drop-shadow(0 0 80px rgba(200,205,214,0.08)); }
-      50% { filter: brightness(1.5) drop-shadow(0 0 60px rgba(200,205,214,0.35)) drop-shadow(0 0 120px rgba(200,205,214,0.15)); }
+      0%, 100% { filter: brightness(1.3) drop-shadow(0 0 40px rgba(167,139,250,0.3)); }
+      50% { filter: brightness(1.5) drop-shadow(0 0 60px rgba(167,139,250,0.45)); }
     }
 
     .hero h1 {
       font-size: clamp(2.2rem, 5.5vw, 3.8rem); font-weight: 300;
-      line-height: 1.1; margin-bottom: 1.5rem; letter-spacing: -1px;
-      color: var(--white);
+      line-height: 1.1; margin-bottom: 1.5rem; letter-spacing: -1px; color: var(--white);
     }
     .hero h1 strong {
       font-weight: 600;
-      background: linear-gradient(135deg, #fff 0%, #a0a8b8 50%, #fff 100%);
+      background: linear-gradient(135deg, var(--c-purple) 0%, var(--c-blue) 50%, var(--c-green) 100%);
       background-size: 200% 100%;
       -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
       animation: shimmer 6s ease-in-out infinite;
@@ -161,8 +166,7 @@
 
     .hero p {
       font-size: clamp(15px, 2vw, 17px); color: var(--silver-dim);
-      max-width: 500px; margin: 0 auto 2.5rem; line-height: 1.7;
-      font-weight: 300;
+      max-width: 500px; margin: 0 auto 2.5rem; line-height: 1.7; font-weight: 300;
     }
 
     .hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
@@ -170,33 +174,31 @@
     .btn {
       display: inline-flex; align-items: center; gap: 8px;
       padding: 14px 28px; border-radius: 100px; font-size: 14px;
-      font-family: var(--sans); font-weight: 500; border: none; cursor: pointer;
+      font-family: var(--sans); font-weight: 500; cursor: pointer;
       transition: all 0.3s; letter-spacing: 0.2px;
     }
-    .btn svg { opacity: 0.7; }
+    .btn svg { opacity: 0.8; }
     .btn-primary {
-      background: rgba(255,255,255,0.15);
-      color: var(--silver-bright);
-      border: 1px solid rgba(255,255,255,0.30);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      background: linear-gradient(135deg, var(--c-purple), #8b5cf6);
+      color: #fff; border: none;
+      box-shadow: 0 2px 8px rgba(167,139,250,0.3), 0 8px 32px rgba(167,139,250,0.15);
     }
     .btn-primary:hover {
-      background: rgba(255,255,255,0.22);
-      color: #fff;
-      border-color: rgba(255,255,255,0.40);
-      box-shadow: 0 0 40px rgba(255,255,255,0.10), 0 4px 20px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 16px rgba(167,139,250,0.5), 0 12px 48px rgba(167,139,250,0.25);
+      transform: translateY(-2px);
     }
     .btn-glass {
-      background: var(--glass); color: var(--silver-bright);
-      border: 1px solid var(--glass-border);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      background: linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+      color: var(--silver-bright);
+      border-top: 1px solid rgba(255,255,255,0.15);
+      border-right: 1px solid rgba(255,255,255,0.05);
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      border-left: 1px solid rgba(255,255,255,0.08);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 4px rgba(0,0,0,0.3);
     }
     .btn-glass:hover {
-      background: var(--glass-hover); opacity: 1;
-      border-color: rgba(255,255,255,0.18);
-      box-shadow: 0 0 30px rgba(255,255,255,0.05);
+      background: linear-gradient(145deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 100%);
+      transform: translateY(-2px);
     }
 
     /* ─── PLATFORM DOWNLOADS ─── */
@@ -207,25 +209,25 @@
     .platform-card {
       display: flex; flex-direction: column; align-items: center; gap: 6px;
       padding: 16px 22px; border-radius: 14px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.08);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      background: linear-gradient(145deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%);
+      border-top: 1px solid var(--m-border-t);
+      border-right: 1px solid var(--m-border-r);
+      border-bottom: 1px solid var(--m-border-b);
+      border-left: 1px solid var(--m-border-l);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), var(--m-shadow);
       transition: all 0.3s; cursor: pointer;
       text-decoration: none; color: var(--silver);
-      position: relative; overflow: hidden;
-      min-width: 140px;
+      position: relative; overflow: hidden; min-width: 140px;
     }
     .platform-card::before {
       content: ''; position: absolute; inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 50%);
+      background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, transparent 40%);
       pointer-events: none;
     }
     .platform-card:hover {
-      background: rgba(255,255,255,0.06);
-      border-color: rgba(255,255,255,0.15);
+      border-top-color: rgba(167,139,250,0.3);
       transform: translateY(-2px);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      box-shadow: inset 0 1px 0 rgba(167,139,250,0.15), 0 4px 8px rgba(0,0,0,0.3), 0 12px 40px rgba(167,139,250,0.08);
       color: var(--silver-bright);
     }
     .platform-icon { font-size: 22px; line-height: 1; }
@@ -235,14 +237,16 @@
     /* ─── INSTALL METHODS ─── */
     .install-methods {
       margin-top: 2rem;
-      display: flex; flex-direction: column; gap: 10px;
-      align-items: center;
+      display: flex; flex-direction: column; gap: 10px; align-items: center;
     }
     .hero-install {
       padding: 16px 28px; border-radius: 14px;
-      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.10);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      background: linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+      border-top: 1px solid var(--m-border-t);
+      border-right: 1px solid var(--m-border-r);
+      border-bottom: 1px solid var(--m-border-b);
+      border-left: 1px solid var(--m-border-l);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), var(--m-shadow);
       font-size: 13px; font-family: var(--mono); color: var(--silver-dim);
       display: inline-flex; align-items: center; gap: 14px;
       cursor: pointer; transition: all 0.3s;
@@ -250,26 +254,23 @@
     }
     .hero-install::before {
       content: ''; position: absolute; inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 50%);
+      background: linear-gradient(145deg, rgba(255,255,255,0.04) 0%, transparent 40%);
       pointer-events: none;
     }
     .hero-install:hover {
-      border-color: rgba(255,255,255,0.18);
-      background: rgba(255,255,255,0.06);
-      box-shadow: 0 0 30px rgba(255,255,255,0.03);
+      border-top-color: rgba(96,165,250,0.3);
+      box-shadow: inset 0 1px 0 rgba(96,165,250,0.1), 0 4px 8px rgba(0,0,0,0.3);
     }
     .hero-install code { color: var(--silver-bright); position: relative; }
     .hero-install .copy-hint {
       color: var(--silver-faint); font-size: 11px;
       padding: 2px 8px; border-radius: 4px;
-      background: rgba(255,255,255,0.04);
-      position: relative;
+      background: rgba(255,255,255,0.06); position: relative;
     }
     .install-label {
       font-size: 11px; color: var(--silver-faint);
       text-transform: uppercase; letter-spacing: 1.5px; font-weight: 500;
-      font-family: var(--sans);
-      margin-bottom: 2px;
+      font-family: var(--sans); margin-bottom: 2px;
     }
 
     .hero-fade {
@@ -279,31 +280,10 @@
     }
 
     /* ─── SECTIONS ─── */
-    section { padding: 120px 2rem; max-width: 1080px; margin: 0 auto; position: relative; }
-    #features::before {
-      content: ''; position: absolute; top: -100px; left: -200px; width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(100,60,200,0.12) 0%, transparent 70%);
-      filter: blur(80px); pointer-events: none; z-index: -1;
-    }
-    #features::after {
-      content: ''; position: absolute; bottom: -50px; right: -150px; width: 500px; height: 500px;
-      background: radial-gradient(circle, rgba(40,160,200,0.10) 0%, transparent 70%);
-      filter: blur(80px); pointer-events: none; z-index: -1;
-    }
-    #cli::before {
-      content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      width: 800px; height: 500px;
-      background: radial-gradient(ellipse, rgba(80,60,180,0.08) 0%, transparent 70%);
-      filter: blur(60px); pointer-events: none; z-index: -1;
-    }
-    #integrations::before {
-      content: ''; position: absolute; top: -50px; right: -100px; width: 500px; height: 500px;
-      background: radial-gradient(circle, rgba(140,60,200,0.10) 0%, transparent 70%);
-      filter: blur(80px); pointer-events: none; z-index: -1;
-    }
+    section { padding: 120px 2rem; max-width: 1080px; margin: 0 auto; }
     .section-label {
       font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
-      color: var(--silver-faint); margin-bottom: 1rem; font-weight: 500;
+      color: var(--c-purple); margin-bottom: 1rem; font-weight: 600;
     }
     section h2 {
       font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 300;
@@ -315,46 +295,42 @@
       margin-bottom: 3.5rem; font-size: 15px; font-weight: 300; line-height: 1.7;
     }
 
-    /* ─── GLASS CARDS ─── */
+    /* ─── FEATURE CARDS ─── */
     .glass-grid {
       display: grid; grid-template-columns: repeat(3, 1fr);
       gap: 1px; border-radius: 20px; overflow: hidden;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.15);
-      box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 80px rgba(100,80,200,0.06);
-      position: relative;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3), 0 16px 48px rgba(0,0,0,0.2);
     }
     .glass-card {
-      background: rgba(255,255,255,0.05); padding: 2.2rem;
-      backdrop-filter: blur(20px) saturate(1.3);
-      -webkit-backdrop-filter: blur(20px) saturate(1.3);
+      background: linear-gradient(155deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.015) 100%);
+      padding: 2.2rem;
       transition: all 0.4s; position: relative; overflow: hidden;
-      border-top: 1px solid rgba(255,255,255,0.08);
-      border-left: 1px solid rgba(255,255,255,0.06);
     }
     .glass-card::before {
       content: ''; position: absolute; inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%);
-      opacity: 0.4; transition: opacity 0.4s;
-      pointer-events: none;
+      background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, transparent 40%);
+      pointer-events: none; transition: opacity 0.3s;
     }
-    .glass-card:hover::before { opacity: 1; }
     .glass-card:hover {
-      background: rgba(255,255,255,0.10);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+      background: linear-gradient(155deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.03) 100%);
     }
     .card-icon {
-      width: 40px; height: 40px; border-radius: 12px; margin-bottom: 1.2rem;
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+      width: 42px; height: 42px; border-radius: 12px; margin-bottom: 1.2rem;
       display: flex; align-items: center; justify-content: center;
-      font-size: 18px; color: var(--silver);
-      backdrop-filter: blur(8px);
+      font-size: 18px; position: relative;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.3);
     }
-    .glass-card h3 {
-      font-size: 15px; font-weight: 500; margin-bottom: 0.6rem;
-      color: var(--silver-bright);
-    }
+    .card-icon.purple { background: linear-gradient(135deg, rgba(167,139,250,0.2), rgba(167,139,250,0.05)); color: var(--c-purple); border-color: rgba(167,139,250,0.2); }
+    .card-icon.blue { background: linear-gradient(135deg, rgba(96,165,250,0.2), rgba(96,165,250,0.05)); color: var(--c-blue); border-color: rgba(96,165,250,0.2); }
+    .card-icon.green { background: linear-gradient(135deg, rgba(74,222,128,0.2), rgba(74,222,128,0.05)); color: var(--c-green); border-color: rgba(74,222,128,0.2); }
+    .card-icon.orange { background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(251,191,36,0.05)); color: var(--c-orange); border-color: rgba(251,191,36,0.2); }
+    .card-icon.red { background: linear-gradient(135deg, rgba(248,113,113,0.2), rgba(248,113,113,0.05)); color: var(--c-red); border-color: rgba(248,113,113,0.2); }
+    .card-icon.emerald { background: linear-gradient(135deg, rgba(52,211,153,0.2), rgba(52,211,153,0.05)); color: var(--c-emerald); border-color: rgba(52,211,153,0.2); }
+
+    .glass-card h3 { font-size: 15px; font-weight: 500; margin-bottom: 0.6rem; color: var(--silver-bright); }
     .glass-card p { font-size: 13px; color: var(--silver-dim); line-height: 1.65; font-weight: 300; }
 
     /* ─── STEPS ─── */
@@ -365,49 +341,46 @@
     }
     .step:last-child { border-bottom: none; }
     .step-num {
-      font-size: 48px; font-weight: 200; color: var(--silver-faint);
-      line-height: 1; font-family: var(--sans); letter-spacing: -2px;
+      font-size: 48px; font-weight: 200;
+      line-height: 1; letter-spacing: -2px;
+      background: linear-gradient(180deg, var(--c-purple), rgba(167,139,250,0.3));
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
     }
-    .step h3 {
-      font-size: 16px; font-weight: 500; margin-bottom: 0.5rem;
-      color: var(--silver-bright);
-    }
+    .step h3 { font-size: 16px; font-weight: 500; margin-bottom: 0.5rem; color: var(--silver-bright); }
     .step p { font-size: 14px; color: var(--silver-dim); line-height: 1.7; font-weight: 300; }
 
-    /* ─── TERMINAL (GLASS) ─── */
+    /* ─── TERMINAL ─── */
     .terminal {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.14);
-      border-top: 1px solid rgba(255,255,255,0.20);
-      border-left: 1px solid rgba(255,255,255,0.16);
+      background: linear-gradient(155deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.015) 100%);
+      border-top: 1px solid var(--m-border-t);
+      border-right: 1px solid var(--m-border-r);
+      border-bottom: 1px solid var(--m-border-b);
+      border-left: 1px solid var(--m-border-l);
       border-radius: 14px; overflow: hidden; margin-top: 1.2rem;
-      backdrop-filter: blur(20px) saturate(1.4);
-      -webkit-backdrop-filter: blur(20px) saturate(1.4);
       position: relative;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 60px rgba(80,60,180,0.04);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), var(--m-shadow);
     }
     .terminal::before {
       content: ''; position: absolute; inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 40%);
+      background: linear-gradient(145deg, rgba(255,255,255,0.04) 0%, transparent 40%);
       pointer-events: none; border-radius: 14px;
     }
     .terminal-bar {
       padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.06);
-      display: flex; align-items: center; gap: 8px;
-      position: relative;
+      display: flex; align-items: center; gap: 8px; position: relative;
     }
     .terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
-    .terminal-dot:nth-child(1) { background: rgba(255,255,255,0.10); }
-    .terminal-dot:nth-child(2) { background: rgba(255,255,255,0.07); }
-    .terminal-dot:nth-child(3) { background: rgba(255,255,255,0.04); }
+    .terminal-dot:nth-child(1) { background: var(--c-red); opacity: 0.7; }
+    .terminal-dot:nth-child(2) { background: var(--c-orange); opacity: 0.7; }
+    .terminal-dot:nth-child(3) { background: var(--c-green); opacity: 0.7; }
     .terminal-title { font-size: 11px; color: var(--silver-faint); margin-left: 8px; font-family: var(--mono); }
     .terminal-body {
       padding: 1.4rem 1.8rem; font-size: 13px; line-height: 2;
       font-family: var(--mono); position: relative;
     }
-    .terminal-body .prompt { color: var(--silver-dim); }
+    .terminal-body .prompt { color: var(--c-green); }
     .terminal-body .cmd { color: var(--silver-bright); }
-    .terminal-body .flag { color: var(--silver); }
+    .terminal-body .flag { color: var(--c-blue); }
     .terminal-body .comment { color: var(--silver-faint); }
     .terminal-body .output { color: var(--silver-dim); }
 
@@ -415,66 +388,65 @@
     .legend {
       display: flex; gap: 2rem; flex-wrap: wrap; margin-top: 3rem;
       padding: 1.2rem 1.8rem; border-radius: 12px;
-      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.10);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.015) 100%);
+      border-top: 1px solid var(--m-border-t);
+      border-right: 1px solid var(--m-border-r);
+      border-bottom: 1px solid var(--m-border-b);
+      border-left: 1px solid var(--m-border-l);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.2);
       position: relative; overflow: hidden;
     }
     .legend::before {
       content: ''; position: absolute; inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 50%);
+      background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, transparent 40%);
       pointer-events: none;
     }
     .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--silver-dim); position: relative; }
-    .legend-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      box-shadow: 0 0 8px currentColor;
-    }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
 
-    /* ─── INTEGRATIONS ─── */
+    /* ─── INTEGRATION CARDS ─── */
     .int-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 14px; margin-top: 2.5rem;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 2.5rem;
     }
     .int-card {
       padding: 1.8rem; border-radius: 14px;
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
-      border-top: 1px solid rgba(255,255,255,0.18);
-      border-left: 1px solid rgba(255,255,255,0.16);
-      transition: all 0.3s;
-      backdrop-filter: blur(20px) saturate(1.3);
-      -webkit-backdrop-filter: blur(20px) saturate(1.3);
-      position: relative; overflow: hidden;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      background: linear-gradient(155deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.015) 100%);
+      border-top: 1px solid var(--m-border-t);
+      border-right: 1px solid var(--m-border-r);
+      border-bottom: 1px solid var(--m-border-b);
+      border-left: 1px solid var(--m-border-l);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), var(--m-shadow);
+      transition: all 0.3s; position: relative; overflow: hidden;
     }
     .int-card::before {
-      content: ''; position: absolute; inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, transparent 50%);
-      pointer-events: none; opacity: 0.4; transition: opacity 0.3s;
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent, var(--c-purple)), transparent);
+      opacity: 0; transition: opacity 0.3s;
     }
     .int-card:hover::before { opacity: 1; }
     .int-card:hover {
-      border-color: rgba(255,255,255,0.15);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
       transform: translateY(-2px);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), var(--m-shadow-lg);
     }
-    .int-card h4 { font-size: 14px; font-weight: 500; margin-bottom: 0.4rem; color: var(--silver-bright); }
+    .int-card h4 {
+      font-size: 14px; font-weight: 500; margin-bottom: 0.4rem;
+      color: var(--silver-bright);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .int-card h4 .int-dot {
+      width: 6px; height: 6px; border-radius: 50;
+      display: inline-block;
+    }
     .int-card p { font-size: 12px; color: var(--silver-dim); line-height: 1.6; font-weight: 300; }
     .int-card code {
       font-family: var(--mono); font-size: 11px;
-      background: rgba(255,255,255,0.04); padding: 2px 6px; border-radius: 4px;
+      background: rgba(167,139,250,0.1); color: var(--c-purple);
+      padding: 2px 6px; border-radius: 4px;
     }
 
     /* ─── CTA ─── */
     .cta-section {
-      text-align: center; padding: 100px 2rem 140px;
-      position: relative;
-    }
-    .cta-section::before {
-      content: ''; position: absolute; top: -100px; left: 50%; transform: translateX(-50%);
-      width: 700px; height: 600px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(100,60,200,0.14) 0%, rgba(60,140,200,0.06) 50%, transparent 70%);
-      filter: blur(80px); pointer-events: none;
+      text-align: center; padding: 100px 2rem 140px; position: relative;
     }
     .cta-section h2 {
       font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 300;
@@ -492,11 +464,12 @@
       font-size: 12px; color: var(--silver-faint); font-weight: 300;
     }
     footer a { color: var(--silver-dim); }
+    footer a:hover { color: var(--c-purple); }
 
-    /* ─── DIVIDER ─── */
     .divider {
-      width: 60px; height: 1px; margin: 0 auto;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+      width: 60px; height: 2px; margin: 0 auto;
+      background: linear-gradient(90deg, transparent, var(--c-purple), transparent);
+      opacity: 0.4;
     }
 
     /* ─── ANIMATIONS ─── */
@@ -585,7 +558,7 @@
       </a>
       <a href="https://github.com/akashub/nexus/releases/latest" class="platform-card">
         <div class="platform-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a7.027 7.027 0 0 0-.09-.986c-.096-1.15.157-2.427.725-3.558a9.77 9.77 0 0 1 1.393-2.161c.525-.605.98-1.162 1.268-1.87.263-.648.393-1.35.393-2.16 0-2.003-.675-3.326-1.163-3.95-.488-.625-.862-.86-.862-.86l-.015-.01s.373-.19 1.023-.34c.75-.174 1.727-.236 2.635.223 1.26.638 2.032 1.99 2.032 4.088 0 .857-.173 1.596-.493 2.284-.318.682-.736 1.19-1.224 1.755-.49.563-.987 1.175-1.393 2.04-.406.864-.667 1.91-.667 3.21 0 .263.014.528.04.796.066.585.233 1.105.481 1.556a4.24 4.24 0 0 0 .653.88c.316.335.652.545.893.667.003 0 .005.002.008.003a1 1 0 0 0 .003.002 5.04 5.04 0 0 0 .218.103c.067.03.125.056.17.073.09.032.155.048.155.048s-.026-.005-.072-.018a2.146 2.146 0 0 1-.164-.06 4.482 4.482 0 0 1-.677-.368 3.958 3.958 0 0 1-.814-.75 4.041 4.041 0 0 1-.561-.97 3.989 3.989 0 0 1-.278-1.015 6.702 6.702 0 0 1-.025-.718c0-1.213.23-2.175.604-2.975.373-.8.84-1.377 1.317-1.918.478-.54.953-1.073 1.309-1.807.354-.73.546-1.594.546-2.772 0-2.278-.85-3.827-2.27-4.548-.946-.48-2.063-.55-2.903-.39-.84.16-1.323.411-1.323.411s.487.303 1.035.994c.548.69 1.268 2.069 1.268 4.18 0 .87-.146 1.634-.437 2.354-.29.718-.697 1.236-1.177 1.79-.48.554-1.018 1.17-1.449 2.037-.432.867-.74 1.978-.74 3.392 0 .345.02.695.06 1.05.156 1.38.68 2.483 1.321 3.213.642.73 1.36 1.15 1.918 1.4.558.25.946.35.946.35h.004s-.012-.003-.036-.01a3.558 3.558 0 0 1-.15-.054 6.04 6.04 0 0 1-.396-.177 5.908 5.908 0 0 1-1.053-.69 5.748 5.748 0 0 1-1.143-1.262A5.736 5.736 0 0 1 6.9 18.41a7.7 7.7 0 0 1-.06-1.207c0-1.522.336-2.73.81-3.695.474-.965 1.055-1.64 1.577-2.24.522-.6.988-1.12 1.322-1.77.334-.652.517-1.43.517-2.453 0-2.29-.786-3.88-1.4-4.618-.614-.738-1.1-.994-1.1-.994l.006.003c.368-.182.976-.374 1.636-.452.66-.078 1.39-.046 2.057.19 1.302.46 2.337 1.824 2.337 4.293 0 .93-.162 1.743-.5 2.516-.336.773-.808 1.35-1.308 1.936-.5.587-.996 1.176-1.384 2.002-.387.826-.639 1.88-.639 3.277 0 .37.017.732.054 1.084.128 1.255.53 2.253 1.067 2.923.536.67 1.155 1.05 1.642 1.264.487.214.84.286.84.286h.002s-.003-.001-.01-.003c-.006-.002-.015-.005-.027-.01a2.504 2.504 0 0 1-.12-.05l.02.008Z"/><path d="M19.741 16.847c-.6-.043-1.098.528-1.098 1.068 0 .54.498 1.111 1.098 1.068.599-.043.902-.528.902-1.068 0-.54-.302-1.025-.902-1.068zm-2.13-1.26c-.34-.113-.63.236-.63.477s.29.59.63.477c.34-.113.483-.236.483-.477s-.143-.364-.483-.477zm4.261 0c-.34.113-.483.236-.483.477s.143.59.483.477c.34-.113.63-.236.63-.477s-.29-.59-.63-.477zM12 24c6.627 0 12-5.373 12-12S18.627 0 12 0 0 5.373 0 12s5.373 12 12 12z" fill-opacity=".05"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20.581 19.049c-.55-.446-.336-1.431-.907-1.917.553-3.365-.997-6.331-2.845-8.232-1.551-1.595-3.005-2.032-3.409-2.32a4.858 4.858 0 0 0-.22-.146c-.04-.025-.06-.036-.06-.036s.01.011.04.036L12 8l-1.18-1.566s-.02-.025-.06-.036a4.858 4.858 0 0 0-.22.146c-.404.288-1.858.725-3.409 2.32-1.848 1.901-3.398 4.867-2.845 8.232-.571.486-.357 1.471-.907 1.917C2.598 19.7 2 22 2 22h20s-.598-2.3-1.419-2.951z"/></svg>
         </div>
         <div class="platform-name">Linux</div>
         <div class="platform-arch">x86_64</div>
@@ -603,11 +576,11 @@
     <div class="install-methods fade-up fade-d5">
       <div class="install-label">Install via CLI</div>
       <div class="hero-install" onclick="copyInstall('uv')" id="installBlock">
-        <code><span class="prompt">$</span> uv tool install <span style="color:var(--silver-bright)">"git+https://github.com/akashub/nexus.git#subdirectory=backend"</span></code>
+        <code><span class="prompt">$</span> uv tool install <span style="color:var(--c-blue)">"git+https://github.com/akashub/nexus.git#subdirectory=backend"</span></code>
         <span class="copy-hint" id="copyIcon">copy</span>
       </div>
       <div class="hero-install" onclick="copyInstall('pip')" id="installBlockPip">
-        <code><span class="prompt">$</span> pip install <span style="color:var(--silver-bright)">"nexus-graph @ git+https://github.com/akashub/nexus.git#subdirectory=backend"</span></code>
+        <code><span class="prompt">$</span> pip install <span style="color:var(--c-blue)">"nexus-graph @ git+https://github.com/akashub/nexus.git#subdirectory=backend"</span></code>
         <span class="copy-hint" id="copyIconPip">copy</span>
       </div>
     </div>
@@ -623,43 +596,43 @@
 
   <div class="glass-grid">
     <div class="glass-card">
-      <div class="card-icon">&#9673;</div>
+      <div class="card-icon purple">&#9673;</div>
       <h3>Interactive Graph</h3>
       <p>Every concept is a node, every relationship an edge. Drag, zoom, filter by category. Your entire stack, visualized.</p>
     </div>
     <div class="glass-card">
-      <div class="card-icon">&#8634;</div>
+      <div class="card-icon blue">&#8634;</div>
       <h3>Passive Capture</h3>
       <p>Hooks watch for installs. Session-end scans catch changes. Your graph builds itself while you work.</p>
     </div>
     <div class="glass-card">
-      <div class="card-icon">&#9826;</div>
+      <div class="card-icon green">&#9826;</div>
       <h3>AI Enrichment</h3>
       <p>Descriptions, summaries, install instructions, and embeddings. Local Ollama or cloud APIs.</p>
     </div>
     <div class="glass-card">
-      <div class="card-icon">&#9678;</div>
+      <div class="card-icon orange">&#9678;</div>
       <h3>Gap Detection</h3>
       <p>Companion pattern analysis surfaces what your stack is missing. React without testing? Flagged.</p>
     </div>
     <div class="glass-card">
-      <div class="card-icon">&#8614;</div>
+      <div class="card-icon red">&#8614;</div>
       <h3>Learning Journey</h3>
       <p>Timeline of when you adopted each tool. See your growth week by week, filter by project.</p>
     </div>
     <div class="glass-card">
-      <div class="card-icon">&#9702;</div>
+      <div class="card-icon emerald">&#9702;</div>
       <h3>Multi-Project</h3>
       <p>Each project gets its own graph. Cross-project connections and shared dependencies surface automatically.</p>
     </div>
   </div>
 
   <div class="legend">
-    <div class="legend-item"><div class="legend-dot" style="color: #e8ecf2; background: #e8ecf2;"></div> devtool</div>
-    <div class="legend-item"><div class="legend-dot" style="color: #c8cdd6; background: #c8cdd6;"></div> framework</div>
-    <div class="legend-item"><div class="legend-dot" style="color: #a0a8b4; background: #a0a8b4;"></div> concept</div>
-    <div class="legend-item"><div class="legend-dot" style="color: #7f8694; background: #7f8694;"></div> pattern</div>
-    <div class="legend-item"><div class="legend-dot" style="color: #5c6370; background: #5c6370;"></div> language</div>
+    <div class="legend-item"><div class="legend-dot" style="background: var(--c-purple); box-shadow: 0 0 8px var(--c-purple);"></div> devtool</div>
+    <div class="legend-item"><div class="legend-dot" style="background: var(--c-blue); box-shadow: 0 0 8px var(--c-blue);"></div> framework</div>
+    <div class="legend-item"><div class="legend-dot" style="background: var(--c-green); box-shadow: 0 0 8px var(--c-green);"></div> concept</div>
+    <div class="legend-item"><div class="legend-dot" style="background: var(--c-orange); box-shadow: 0 0 8px var(--c-orange);"></div> pattern</div>
+    <div class="legend-item"><div class="legend-dot" style="background: var(--c-red); box-shadow: 0 0 8px var(--c-red);"></div> language</div>
   </div>
 </section>
 
@@ -721,9 +694,9 @@
           <div class="terminal-body">
             <span class="prompt">$</span> <span class="cmd">nexus journey</span><br>
             <span class="output"><br>Week of Apr 28</span><br>
-            <span class="output">&ensp; &#9500;&#9472;&#9472; React [framework]</span><br>
-            <span class="output">&ensp; &#9500;&#9472;&#9472; Tailwind [framework]</span><br>
-            <span class="output">&ensp; &#9492;&#9472;&#9472; Playwright [devtool]</span>
+            <span class="output">&ensp; &#9500;&#9472;&#9472; React <span style="color:var(--c-blue)">[framework]</span></span><br>
+            <span class="output">&ensp; &#9500;&#9472;&#9472; Tailwind <span style="color:var(--c-blue)">[framework]</span></span><br>
+            <span class="output">&ensp; &#9492;&#9472;&#9472; Playwright <span style="color:var(--c-purple)">[devtool]</span></span>
           </div>
         </div>
       </div>
@@ -751,20 +724,20 @@
       <span class="prompt">$</span> <span class="cmd">nexus add</span> <span class="flag">"Playwright"</span><br>
       <span class="output">&ensp; Added: Playwright (a3f2b1c8)</span><br>
       <span class="output">&ensp; Enriching... Updated: description, summary, category, embedding</span><br>
-      <span class="output">&ensp; Playwright --[related_to]--&gt; Cypress (0.78)</span><br><br>
+      <span class="output">&ensp; Playwright --[<span style="color:var(--c-purple)">related_to</span>]--&gt; Cypress (0.78)</span><br><br>
 
       <span class="comment"># Detect gaps in your stack</span><br>
       <span class="prompt">$</span> <span class="cmd">nexus gaps</span><br>
       <span class="output">&ensp; React project &mdash; 3 gaps:</span><br>
-      <span class="output">&ensp;&ensp; testing &middot; linting &middot; state management</span><br><br>
+      <span class="output">&ensp;&ensp; <span style="color:var(--c-orange)">testing</span> &middot; <span style="color:var(--c-orange)">linting</span> &middot; <span style="color:var(--c-orange)">state management</span></span><br><br>
 
       <span class="comment"># Semantic search across everything</span><br>
       <span class="prompt">$</span> <span class="cmd">nexus search</span> <span class="flag">"testing" --semantic</span><br>
-      <span class="output">&ensp; Playwright &middot; pytest &middot; Vitest &middot; Cypress</span><br><br>
+      <span class="output">&ensp; <span style="color:var(--c-purple)">Playwright</span> &middot; <span style="color:var(--c-purple)">pytest</span> &middot; <span style="color:var(--c-purple)">Vitest</span> &middot; <span style="color:var(--c-purple)">Cypress</span></span><br><br>
 
       <span class="comment"># Full concept detail</span><br>
       <span class="prompt">$</span> <span class="cmd">nexus show</span> <span class="flag">react</span><br>
-      <span class="output">&ensp; React [framework]</span><br>
+      <span class="output">&ensp; React <span style="color:var(--c-blue)">[framework]</span></span><br>
       <span class="output">&ensp; A JavaScript library for building user interfaces</span><br>
       <span class="output">&ensp; Connections: Next.js, Tailwind, TypeScript, Vite</span>
     </div>
@@ -780,27 +753,27 @@
   <p class="section-desc">Plugs into the AI coding workflow you already have.</p>
 
   <div class="int-grid">
-    <div class="int-card">
+    <div class="int-card" style="--accent: var(--c-purple);">
       <h4>Claude Code</h4>
       <p>MCP server for real-time graph access. Hooks capture installs. Skill teaches the ledger format.</p>
     </div>
-    <div class="int-card">
+    <div class="int-card" style="--accent: var(--c-blue);">
       <h4>Codex &amp; MCP Clients</h4>
       <p>Any MCP-compatible tool works. Register <code>nexus mcp serve</code> and go.</p>
     </div>
-    <div class="int-card">
+    <div class="int-card" style="--accent: var(--c-green);">
       <h4>Ollama</h4>
       <p>Gemma 4B for generation, nomic-embed-text for embeddings. Local, no API keys.</p>
     </div>
-    <div class="int-card">
+    <div class="int-card" style="--accent: var(--c-orange);">
       <h4>Cloud AI</h4>
       <p>Anthropic or OpenAI for higher-quality enrichment. One env var, add <code>--model cloud</code>.</p>
     </div>
-    <div class="int-card">
+    <div class="int-card" style="--accent: var(--c-red);">
       <h4>Desktop App</h4>
       <p>Tauri-based native app. Interactive graph, search, side panels, project switching.</p>
     </div>
-    <div class="int-card">
+    <div class="int-card" style="--accent: var(--c-emerald);">
       <h4>Context7</h4>
       <p>Real library docs for enrichment. Falls back to PyPI, npm, GitHub, libraries.io.</p>
     </div>
@@ -857,12 +830,13 @@ function copyInstall(method) {
   });
 }
 
-// Animated graph nodes
+// Animated graph — uses category colors
 (function() {
   const canvas = document.getElementById('graphCanvas');
   const ctx = canvas.getContext('2d');
   let w, h, nodes = [];
   const N = 50, MAX_D = 160;
+  const colors = ['167,139,250', '96,165,250', '74,222,128', '251,191,36', '248,113,113'];
 
   function resize() {
     w = canvas.width = canvas.parentElement.offsetWidth;
@@ -875,6 +849,7 @@ function copyInstall(method) {
       x: Math.random() * w, y: Math.random() * h,
       vx: (Math.random() - 0.5) * 0.2, vy: (Math.random() - 0.5) * 0.2,
       r: 1.5 + Math.random() * 2,
+      c: colors[Math.floor(Math.random() * colors.length)],
     }));
   }
 
@@ -888,7 +863,7 @@ function copyInstall(method) {
           ctx.beginPath();
           ctx.moveTo(nodes[i].x, nodes[i].y);
           ctx.lineTo(nodes[j].x, nodes[j].y);
-          ctx.strokeStyle = `rgba(200,205,214,${(1 - d / MAX_D) * 0.06})`;
+          ctx.strokeStyle = `rgba(${nodes[i].c},${(1 - d / MAX_D) * 0.08})`;
           ctx.lineWidth = 0.5;
           ctx.stroke();
         }
@@ -897,7 +872,7 @@ function copyInstall(method) {
     for (const n of nodes) {
       ctx.beginPath();
       ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(200,205,214,0.2)';
+      ctx.fillStyle = `rgba(${n.c},0.35)`;
       ctx.fill();
       n.x += n.vx; n.y += n.vy;
       if (n.x < 0 || n.x > w) n.vx *= -1;
