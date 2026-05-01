@@ -107,10 +107,10 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
       const nodeMap = new Map(simNodes.map((n) => [n.id, n]));
       let labelsAdded = false;
       const sim = forceSimulation(simNodes)
-        .force("charge", forceManyBody().strength(-120))
-        .force("link", forceLink(simLinks).id((d: any) => d.id).distance(70).strength(0.4))
-        .force("center", forceCenter(w / 2, h / 2).strength(0.08))
-        .force("collide", forceCollide(22))
+        .force("charge", forceManyBody().strength(-300))
+        .force("link", forceLink(simLinks).id((d: any) => d.id).distance(160).strength(0.3))
+        .force("center", forceCenter(w / 2, h / 2).strength(0.05))
+        .force("collide", forceCollide(45))
         .alphaDecay(0.02)
         .on("tick", () => {
           cy.batch(() => simNodes.forEach((sn) => {
