@@ -9,7 +9,7 @@ const CATEGORY_DOTS: Record<string, string> = {
 interface Props {
   projectId: string | null;
   onClose: () => void;
-  onSelectConcept?: (name: string) => void;
+  onSelectConcept?: (id: string) => void;
 }
 
 export default function JourneyPanel({ projectId, onClose, onSelectConcept }: Props) {
@@ -47,7 +47,7 @@ export default function JourneyPanel({ projectId, onClose, onSelectConcept }: Pr
   );
 }
 
-function WeekGroup({ week, onSelect }: { week: JourneyWeek; onSelect?: (name: string) => void }) {
+function WeekGroup({ week, onSelect }: { week: JourneyWeek; onSelect?: (id: string) => void }) {
   const dt = new Date(week.week_start);
   const label = dt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
@@ -61,7 +61,7 @@ function WeekGroup({ week, onSelect }: { week: JourneyWeek; onSelect?: (name: st
         const isLast = i === week.concepts.length - 1;
         const color = CATEGORY_DOTS[c.category ?? ""] ?? "#94a3b8";
         return (
-          <button key={c.name} onClick={() => onSelect?.(c.name)}
+          <button key={c.id} onClick={() => onSelect?.(c.id)}
             className="flex items-start gap-2 w-full text-left py-0.5 pl-2 hover:bg-[var(--nx-hover)] rounded transition-colors group">
             <span className="text-[var(--nx-text-4)] text-[10px] mt-0.5 shrink-0">{isLast ? "└" : "├"}</span>
             <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: color }} />

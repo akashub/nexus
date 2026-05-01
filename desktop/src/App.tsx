@@ -162,7 +162,7 @@ export default function App() {
             onReplicate={(p) => { setReplicateProject(p); setSelectedProject(null); }} />
         )}
         {showChat && !selectedId && <ChatPanel onClose={() => setShowChat(false)} />}
-        {showJourney && <JourneyPanel projectId={activeProject?.id ?? null} onClose={() => setShowJourney(false)} />}
+        {showJourney && <JourneyPanel projectId={activeProject?.id ?? null} onClose={() => setShowJourney(false)} onSelectConcept={setSelectedId} />}
         {showGaps && activeProject && <GapsPanel projectId={activeProject.id} projectName={activeProject.name} onClose={() => setShowGaps(false)} />}
       </div>
       {showSearch && <SearchBar onSelect={setSelectedId} onClose={() => setShowSearch(false)} />}

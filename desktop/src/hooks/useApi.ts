@@ -199,7 +199,7 @@ export function useConceptContext(id: string) {
 export interface JourneyWeek {
   week: string;
   week_start: string;
-  concepts: Array<{ name: string; category: string | null; summary: string | null; description: string | null }>;
+  concepts: Array<{ id: string; name: string; category: string | null; summary: string | null; description: string | null }>;
 }
 
 export function useJourney(projectId?: string | null, days = 90) {
