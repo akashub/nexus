@@ -53,8 +53,8 @@ def status_cmd() -> None:
         hooks_ok = has_ptu and has_se
     _check("Hooks", hooks_ok, "PostToolUse + SessionEnd" if hooks_ok else "not installed")
 
-    skill_ok = (SKILL_DIR / "nexus.md").exists()
-    _check("Skill", skill_ok, str(SKILL_DIR / "nexus.md") if skill_ok else "not installed")
+    skill_ok = (SKILL_DIR / "SKILL.md").exists()
+    _check("Skill", skill_ok, str(SKILL_DIR / "SKILL.md") if skill_ok else "not installed")
 
     try:
         import httpx
