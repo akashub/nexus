@@ -110,6 +110,20 @@ def replicate_project_route(
     }
 
 
+@router.post("/projects/{project_id}/compact")
+def compact_project_route(
+    project_id: str, conn: ConnDep, dry_run: bool = Query(default=False),
+):
+    from nexus.compact import compact_project
+    if not get_project(conn, project_id):
+        raise HTTPException(404, f"Project not found: {project_id}")
+    stats = compact_project(conn, project_id, dry_run=dry_run)
+    return {
+        "merged": stats.merged, "stale_removed": stats.stale_removed,
+        "edges_deduped": stats.edges_deduped, "dry_run": dry_run,
+    }
+
+
 @router.post("/projects/{project_id}/infer-relationships")
 def infer_relationships_route(
     project_id: str, conn: ConnDep, background_tasks: BackgroundTasks,

@@ -44,6 +44,7 @@ export function graphStyles(dark = true): cytoscape.StylesheetStyle[] {
     { selector: "edge[rel='part_of'], edge[rel='similar_to']", style: { "line-style": "dashed", "line-dash-pattern": [6, 3] } as cytoscape.Css.Edge },
     { selector: "edge[rel='tested_with']", style: { "line-style": "dashed", "line-color": "#4a8066", "target-arrow-color": "#4a8066" } as cytoscape.Css.Edge },
     { selector: "edge[rel='configured_by']", style: { "line-style": "dotted", width: 0.8 } as cytoscape.Css.Edge },
+    { selector: "edge[rel='sends_data_to'], edge[rel='triggers']", style: { "line-style": "dashed", "line-dash-pattern": [4, 2], width: 1.2, "line-color": "#7c9dbd", "target-arrow-color": "#7c9dbd" } as cytoscape.Css.Edge },
     { selector: "edge[rel='builds_into']", style: { width: 1.5, "line-color": "#5b8cb8", "target-arrow-color": "#5b8cb8" } as cytoscape.Css.Edge },
     { selector: "edge[rel='wraps'], edge[rel='serves']", style: { width: 2 } as cytoscape.Css.Edge },
     { selector: "edge[rel='deployed_via']", style: { "line-style": "dotted", "line-color": "#b89060", "target-arrow-color": "#b89060" } as cytoscape.Css.Edge },

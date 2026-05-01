@@ -3,6 +3,7 @@ from __future__ import annotations
 import click
 
 from nexus.cli_ask import ask_cmd
+from nexus.cli_compact import compact_cmd
 from nexus.cli_concept import remove_cmd, show_cmd
 from nexus.cli_ingest import ingest_cmd
 from nexus.cli_mcp import mcp_group
@@ -175,6 +176,7 @@ def cluster_cmd(project: str | None, verbose: bool) -> None:
 
 
 main.add_command(ask_cmd)
+main.add_command(compact_cmd)
 main.add_command(scan_cmd)
 main.add_command(show_cmd)
 main.add_command(remove_cmd)
