@@ -18,23 +18,25 @@ def ingest_cmd(ledger_path: str, quiet: bool) -> None:
     conn = get_connection()
     added = errors = 0
     try:
-        for line in path.read_text().splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                entry = json.loads(line)
-                _process_entry(conn, entry)
-                added += 1
-            except (json.JSONDecodeError, KeyError):
-                errors += 1
+        with path.open() as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                    _process_entry(conn, entry)
+                    added += 1
+                except (json.JSONDecodeError, KeyError):
+                    errors += 1
     finally:
         conn.close()
 
     if not quiet:
         click.echo(f"Ingested: {added} entries, {errors} errors")
 
-    path.unlink(missing_ok=True)
+    if errors == 0:
+        path.unlink(missing_ok=True)
 
 
 def _process_entry(conn, entry: dict) -> None:

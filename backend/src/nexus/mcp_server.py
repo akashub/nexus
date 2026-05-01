@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import sqlite3
+from pathlib import Path
+
 from mcp.server.fastmcp import FastMCP
 
-from nexus.cli_track import track_concept
+from nexus.cli_track import SOURCE_CATEGORIES, track_concept
 from nexus.db import (
     get_connection,
     get_project_by_path,
@@ -15,11 +18,13 @@ from nexus.db_concepts import (
     add_concept as db_add_concept,
 )
 from nexus.db_concepts import (
+    count_concepts,
     get_concept,
     get_edges,
-    list_concepts,
 )
 from nexus.expertise import classify_expertise
+
+VALID_SOURCES = frozenset(SOURCE_CATEGORIES.keys())
 
 mcp = FastMCP(
     "nexus",
@@ -56,8 +61,14 @@ def get_concept_detail(name: str) -> dict:
         if not c:
             return {"error": f"not found: {name}"}
         edges = get_edges(conn, c.id)
-        all_concepts = list_concepts(conn, limit=10000)
-        name_map = {x.id: x.name for x in all_concepts}
+        related_ids = {e.target_id for e in edges if e.source_id == c.id}
+        related_ids |= {e.source_id for e in edges if e.target_id == c.id}
+        related_ids.discard(c.id)
+        name_map = {c.id: c.name}
+        for rid in related_ids:
+            rc = get_concept(conn, rid)
+            if rc:
+                name_map[rid] = rc.name
         return {
             **_concept_dict(c),
             "tags": c.tags, "quickstart": c.quickstart,
@@ -81,9 +92,9 @@ def list_projects() -> list[dict]:
         projects = db_list_projects(conn)
         result = []
         for p in projects:
-            count = len(list_concepts(conn, project_id=p.id, limit=10000))
             result.append({
-                "name": p.name, "path": p.path, "concept_count": count,
+                "name": p.name, "path": p.path,
+                "concept_count": count_concepts(conn, project_id=p.id),
                 "last_scanned_at": p.last_scanned_at,
             })
         return result
@@ -98,7 +109,7 @@ def get_expertise(project_id: str | None = None, project_dir: str | None = None)
     try:
         pid = project_id
         if not pid and project_dir:
-            p = get_project_by_path(conn, project_dir)
+            p = get_project_by_path(conn, str(Path(project_dir).resolve()))
             if p:
                 pid = p.id
         if not pid:
@@ -116,7 +127,7 @@ def onboard(project_id: str | None = None, project_dir: str | None = None) -> di
         pid = project_id
         proj = None
         if not pid and project_dir:
-            proj = get_project_by_path(conn, project_dir)
+            proj = get_project_by_path(conn, str(Path(project_dir).resolve()))
             if proj:
                 pid = proj.id
         if not pid:
@@ -139,13 +150,22 @@ def add_concept(name: str, project_dir: str | None = None, category: str | None 
     """Add a concept to the knowledge graph."""
     conn = get_connection()
     try:
+        existing = get_concept(conn, name)
+        if existing:
+            return {"status": "exists", "id": existing.id, "name": existing.name}
         project_id = None
         if project_dir:
-            p = get_project_by_path(conn, project_dir)
+            p = get_project_by_path(conn, str(Path(project_dir).resolve()))
             if p:
                 project_id = p.id
-        c = db_add_concept(conn, name, category=category, project_id=project_id)
-        return {"id": c.id, "name": c.name, "category": c.category}
+        try:
+            c = db_add_concept(conn, name, category=category, project_id=project_id)
+        except sqlite3.IntegrityError:
+            c = get_concept(conn, name)
+            if c:
+                return {"status": "exists", "id": c.id, "name": c.name}
+            return {"error": f"Failed to add concept: {name}"}
+        return {"status": "added", "id": c.id, "name": c.name, "category": c.category}
     finally:
         conn.close()
 
