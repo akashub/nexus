@@ -35,6 +35,37 @@ and concepts you learn across projects.
 - **When suggesting tools**: Check `get_expertise` to avoid suggesting things
   the developer already knows well
 
+## First Run — Bootstrap
+
+When `onboard` returns an empty or very sparse graph (< 5 concepts) for a
+project that clearly has existing code, offer to bootstrap the knowledge graph:
+
+> "Your Nexus graph is empty but this project already uses several tools.
+> Want me to scan the project and populate your knowledge graph?"
+
+If the user agrees:
+
+1. **Scan declared dependencies** — read package.json, pyproject.toml,
+   Cargo.toml, go.mod, Gemfile, requirements.txt, etc.
+2. **Scan config files** — Dockerfile, docker-compose.yml, CI configs
+   (.github/workflows/), tailwind.config, tsconfig.json, vite.config, etc.
+3. **Scan imports** — skim key source files for major frameworks/libraries
+   actually used (not just declared).
+4. **Write a ledger file** — for every tool/framework/concept found, write a
+   rich entry to `/tmp/nexus-ledger.jsonl` with description, category,
+   quickstart, and relationships between them. Use YOUR knowledge of these
+   tools — you have full context from reading the codebase.
+5. **Ingest** — call `nexus ingest /tmp/nexus-ledger.jsonl` via shell to
+   import everything in one batch.
+
+Write entries for 10–30 concepts depending on project size. Focus on things
+the developer would actually want to recall: frameworks, major libraries,
+dev tools, deployment targets, architectural patterns. Skip trivial utils
+and standard library modules.
+
+After bootstrap, call `onboard` again to confirm the graph is populated and
+show the developer their expertise profile.
+
 ## Knowledge Ledger (session-end capture)
 
 Before your final response in every session, write a knowledge ledger file
