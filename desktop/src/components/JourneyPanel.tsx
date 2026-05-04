@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useJourney, type JourneyWeek } from "../hooks/useApi";
+import { useJourney, type JourneyWeek } from "../hooks/useApiExtra";
 
 const CATEGORY_DOTS: Record<string, string> = {
   devtool: "#a78bfa", framework: "#60a5fa", concept: "#4ade80",

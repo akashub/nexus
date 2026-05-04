@@ -1,4 +1,5 @@
-import { useProjects, useRecentConcepts, useStats } from "../hooks/useApi";
+import { useProjects, useStats } from "../hooks/useApi";
+import { useRecentConcepts } from "../hooks/useApiExtra";
 import type { Project } from "../types";
 import { slugify } from "../types";
 

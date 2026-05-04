@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useConcept, useConceptContext, useConcepts, useEdges, useEnrichConcept, useUpdateConcept } from "../hooks/useApi";
+import { useConcept, useConcepts, useEdges, useEnrichConcept, useUpdateConcept } from "../hooks/useApi";
+import { useConceptContext } from "../hooks/useApiExtra";
 import { slugify } from "../types";
 import ConnectModal from "./ConnectModal";
 import QuickstartContent from "./QuickstartContent";

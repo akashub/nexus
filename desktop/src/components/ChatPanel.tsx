@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { API, useConversations } from "../hooks/useApi";
+import { API } from "../hooks/useApi";
+import { useConversations } from "../hooks/useApiExtra";
 
 interface ChatEntry { key: number; question: string; answer: string; streaming?: boolean; }
 interface Props { onClose: () => void; }

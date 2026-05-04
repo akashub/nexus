@@ -1,4 +1,4 @@
-import { useGaps, type GapResult } from "../hooks/useApi";
+import { useGaps, type GapResult } from "../hooks/useApiExtra";
 
 interface Props {
   projectId: string;

@@ -71,3 +71,48 @@ def ask_route(body: AskRequest, conn: ConnDep):
 def ai_status_route():
     from nexus.ai import is_available
     return {"available": is_available()}
+
+
+_GITHUB_RELEASE_URL = "https://api.github.com/repos/akashub/nexus/releases/latest"
+_version_cache: dict | None = None
+_version_ts: float = 0
+
+
+@router.get("/version")
+def version_route():
+    import importlib.metadata
+    import time
+
+    import httpx
+
+    global _version_cache, _version_ts
+    current = importlib.metadata.version("nexus-graph")
+    if _version_cache and time.time() - _version_ts < 3600:
+        _version_cache["current"] = current
+        return _version_cache
+
+    result: dict = {"current": current, "latest": current, "update_available": False}
+    try:
+        r = httpx.get(_GITHUB_RELEASE_URL, timeout=5.0)
+        if r.status_code == 200:
+            data = r.json()
+            latest = data["tag_name"].lstrip("v")
+            result["latest"] = latest
+            result["update_available"] = latest != current
+            assets = data.get("assets", [])
+
+            def find(suffix: str) -> str | None:
+                return next(
+                    (a["browser_download_url"] for a in assets if a["name"].endswith(suffix)), None,
+                )
+
+            result["assets"] = {
+                "macos_arm": find("_aarch64.dmg"), "macos_x64": find("_x64.dmg"),
+                "windows": find("_x64-setup.exe"), "linux": find(".AppImage"),
+            }
+            result["release_url"] = data.get("html_url", "")
+    except Exception:
+        pass
+    _version_cache = result
+    _version_ts = time.time()
+    return result

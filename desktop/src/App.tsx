@@ -13,6 +13,7 @@ import ReplicateModal from "./components/ReplicateModal";
 import SearchBar from "./components/SearchBar";
 import SidePanel from "./components/SidePanel";
 import { useGlobalGraph, useGraph, useOllamaStatus, useStats } from "./hooks/useApi";
+import { useVersionCheck } from "./hooks/useApiExtra";
 import { useBackend } from "./hooks/useBackend";
 import { useTheme, type Theme } from "./hooks/useTheme";
 import type { Project } from "./types";
@@ -35,6 +36,7 @@ export default function App() {
   const { data: stats } = useStats();
   const { data: aiStatus } = useOllamaStatus();
   const { theme, set: setTheme } = useTheme();
+  const { data: version } = useVersionCheck();
 
   const handleSelectProjectById = useCallback((id: string) => {
     const proj = globalGraph?.nodes.find((n) => n.id === id);
@@ -109,6 +111,17 @@ export default function App() {
             <div className={`w-1.5 h-1.5 rounded-full ${aiStatus?.available ? "bg-emerald-500" : "bg-gray-500"}`} />
             <span>ollama</span>
           </div>
+          {version && (
+            <span className={version.update_available ? "text-[var(--nx-accent)]" : ""}>
+              v{version.current}
+              {version.update_available && (
+                <a href={version.release_url || "#"} target="_blank" rel="noopener noreferrer"
+                  className="ml-1 px-1.5 py-0.5 bg-[var(--nx-accent-bg)] border border-[var(--nx-accent)]/20 rounded text-[var(--nx-accent)] hover:underline">
+                  v{version.latest} available
+                </a>
+              )}
+            </span>
+          )}
           {stats && <span>{stats.concept_count} nodes &middot; {stats.edge_count} edges</span>}
         </div>
       </header>
