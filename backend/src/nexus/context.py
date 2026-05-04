@@ -29,20 +29,29 @@ def get_eagle_overview(project_name: str) -> str | None:
         conn.close()
 
 
-def search_eagle_observations(
-    project_name: str, query: str, limit: int = 10,
+def search_session_context(
+    project_name: str, query: str, limit: int = 5,
 ) -> list[str]:
     conn = _eagle_conn()
     if not conn:
         return []
     try:
-        rows = conn.execute(
-            "SELECT tool_input_summary FROM observations "
-            "WHERE project = ? AND tool_input_summary LIKE ? "
-            "ORDER BY created_at DESC LIMIT ?",
-            (project_name, f"%{query}%", limit),
-        ).fetchall()
-        return [r["tool_input_summary"] for r in rows if r["tool_input_summary"]]
+        snippets: list[str] = []
+        q = f"%{query}%"
+        for col in ("learned", "completed", "decisions"):
+            try:
+                rows = conn.execute(
+                    f"SELECT {col} FROM summaries "  # noqa: S608
+                    "WHERE project = ? AND " + col + " LIKE ? "
+                    "ORDER BY created_at DESC LIMIT ?",
+                    (project_name, q, limit),
+                ).fetchall()
+                for r in rows:
+                    if r[col]:
+                        snippets.append(r[col][:200])
+            except sqlite3.OperationalError:
+                continue
+        return snippets[:limit]
     finally:
         conn.close()
 
@@ -139,9 +148,9 @@ def get_concept_context(
     project_name: str, project_path: str, concept_name: str,
 ) -> str:
     parts: list[str] = []
-    obs = search_eagle_observations(project_name, concept_name, limit=5)
-    if obs:
-        parts.append("Session activity:\n" + "\n".join(obs[:5]))
+    sessions = search_session_context(project_name, concept_name, limit=5)
+    if sessions:
+        parts.append("From sessions:\n" + "\n".join(sessions))
     memories = get_claude_memories(project_path)
     relevant = [m for m in memories if concept_name.lower() in m["content"].lower()]
     if relevant:
