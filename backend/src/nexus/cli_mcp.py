@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
-from importlib.resources import files
 from pathlib import Path
 
 import click
@@ -11,12 +11,12 @@ CLAUDE_JSON = Path.home() / ".claude.json"
 CLAUDE_SETTINGS = Path.home() / ".claude" / "settings.json"
 SKILL_DIR = Path.home() / ".claude" / "skills" / "nexus"
 SKILL_SRC = Path(__file__).parent / "skill" / "nexus.md"
+HOOKS_DIR = Path.home() / ".nexus" / "hooks"
+_PKG_HOOKS = Path(__file__).parent / "hooks"
 
 MCP_ENTRY = {"command": "nexus", "args": ["mcp", "serve"], "env": {}}
 
-
-def _hook_path(name: str) -> str:
-    return str(files("nexus") / "hooks" / name)
+HOOK_SCRIPTS = ("post-tool-use.sh", "session-end.sh")
 
 
 def _read_json(path: Path) -> dict:
@@ -28,6 +28,30 @@ def _read_json(path: Path) -> dict:
 def _write_json(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2) + "\n")
+
+
+def _copy_hooks() -> None:
+    HOOKS_DIR.mkdir(parents=True, exist_ok=True)
+    for name in HOOK_SCRIPTS:
+        src = _PKG_HOOKS / name
+        if src.exists():
+            dest = HOOKS_DIR / name
+            shutil.copy2(src, dest)
+            os.chmod(dest, 0o755)
+
+
+_NEXUS_HOOK_SUFFIXES = (
+    "hooks/post-tool-use.sh",
+    "hooks/session-end.sh",
+)
+
+
+def _is_nexus_hook(entry: dict) -> bool:
+    for h in entry.get("hooks", []):
+        cmd = h.get("command", "")
+        if any(cmd.endswith(s) for s in _NEXUS_HOOK_SUFFIXES):
+            return True
+    return False
 
 
 def _install_mcp(quiet: bool) -> None:
@@ -44,37 +68,32 @@ def _install_mcp(quiet: bool) -> None:
 
 
 def _install_hooks(quiet: bool) -> None:
+    _copy_hooks()
+
     data = _read_json(CLAUDE_SETTINGS)
     hooks = data.setdefault("hooks", {})
 
+    ptu_cmd = str(HOOKS_DIR / "post-tool-use.sh")
+    se_cmd = str(HOOKS_DIR / "session-end.sh")
+
     post_tool = hooks.setdefault("PostToolUse", [])
-    ptu_cmd = _hook_path("post-tool-use.sh")
-    if not any(_has_command(entry, ptu_cmd) for entry in post_tool):
-        post_tool.append({
-            "matcher": "Bash",
-            "hooks": [{"type": "command", "command": ptu_cmd}],
-        })
-        if not quiet:
-            click.echo("  PostToolUse hook: installed")
-    elif not quiet:
-        click.echo("  PostToolUse hook: already installed")
+    hooks["PostToolUse"] = [e for e in post_tool if not _is_nexus_hook(e)]
+    hooks["PostToolUse"].append({
+        "matcher": "Bash",
+        "hooks": [{"type": "command", "command": ptu_cmd}],
+    })
+    if not quiet:
+        click.echo("  PostToolUse hook: installed")
 
     session_end = hooks.setdefault("SessionEnd", [])
-    se_cmd = _hook_path("session-end.sh")
-    if not any(_has_command(entry, se_cmd) for entry in session_end):
-        session_end.append({
-            "hooks": [{"type": "command", "command": se_cmd}],
-        })
-        if not quiet:
-            click.echo("  SessionEnd hook: installed")
-    elif not quiet:
-        click.echo("  SessionEnd hook: already installed")
+    hooks["SessionEnd"] = [e for e in session_end if not _is_nexus_hook(e)]
+    hooks["SessionEnd"].append({
+        "hooks": [{"type": "command", "command": se_cmd}],
+    })
+    if not quiet:
+        click.echo("  SessionEnd hook: installed")
 
     _write_json(CLAUDE_SETTINGS, data)
-
-
-def _has_command(entry: dict, cmd: str) -> bool:
-    return any(h.get("command") == cmd for h in entry.get("hooks", []))
 
 
 def _install_skill(quiet: bool) -> None:

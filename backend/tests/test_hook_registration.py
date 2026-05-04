@@ -11,6 +11,7 @@ def settings_path(tmp_path, monkeypatch):
     monkeypatch.setattr("nexus.cli_mcp.CLAUDE_SETTINGS", path)
     monkeypatch.setattr("nexus.cli_mcp.CLAUDE_JSON", tmp_path / ".claude.json")
     monkeypatch.setattr("nexus.cli_mcp.SKILL_DIR", tmp_path / "skills" / "nexus")
+    monkeypatch.setattr("nexus.cli_mcp.HOOKS_DIR", tmp_path / "hooks")
     return path
 
 
@@ -52,3 +53,45 @@ def test_no_duplicate_hooks(settings_path):
     ptu = data["hooks"]["PostToolUse"]
     nexus_hooks = [e for e in ptu if "post-tool-use" in str(e)]
     assert len(nexus_hooks) == 1
+
+
+def test_cleans_stale_entries(settings_path):
+    from nexus.cli_mcp import _install_hooks
+    settings_path.write_text(json.dumps({
+        "hooks": {
+            "PostToolUse": [
+                {"matcher": "Bash", "hooks": [
+                    {"type": "command", "command": "/tmp/dead1/nexus/hooks/post-tool-use.sh"},
+                ]},
+                {"matcher": "Bash", "hooks": [
+                    {"type": "command", "command": "/tmp/dead2/nexus/hooks/post-tool-use.sh"},
+                ]},
+                {"matcher": "Bash", "hooks": [{
+                    "type": "command",
+                    "command": "/real/nexus/src/nexus/hooks/post-tool-use.sh",
+                }]},
+                {"matcher": "Bash", "hooks": [
+                    {"type": "command", "command": "/path/to/eagle-mem.sh"},
+                ]},
+            ],
+            "SessionEnd": [
+                {"hooks": [
+                    {"type": "command", "command": "/tmp/dead1/nexus/hooks/session-end.sh"},
+                ]},
+            ],
+        }
+    }))
+
+    _install_hooks(quiet=True)
+    data = json.loads(settings_path.read_text())
+
+    ptu = data["hooks"]["PostToolUse"]
+    nexus_hooks = [e for e in ptu if "post-tool-use" in str(e)]
+    assert len(nexus_hooks) == 1, f"Expected 1 nexus hook, got {len(nexus_hooks)}: {nexus_hooks}"
+
+    assert any("eagle-mem" in str(e) for e in ptu)
+    assert len(ptu) == 2
+
+    se = data["hooks"]["SessionEnd"]
+    nexus_se = [e for e in se if "session-end" in str(e)]
+    assert len(nexus_se) == 1
