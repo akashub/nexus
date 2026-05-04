@@ -85,15 +85,18 @@ def format_journey(weeks: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def merge_concept_fields(existing: Concept, description, summary, category, quickstart, notes):
+def merge_concept_fields(
+    existing: Concept, description, summary, category, quickstart, notes,
+    overwrite: bool = False,
+):
     updates = {}
-    if description and not existing.description:
+    if description and (overwrite or not existing.description):
         updates["description"] = description
-    if summary and not existing.summary:
+    if summary and (overwrite or not existing.summary):
         updates["summary"] = summary
-    if category and not existing.category:
+    if category and (overwrite or not existing.category):
         updates["category"] = category
-    if quickstart and not existing.quickstart:
+    if quickstart and (overwrite or not existing.quickstart):
         updates["quickstart"] = quickstart
     if notes:
         current = existing.notes or ""

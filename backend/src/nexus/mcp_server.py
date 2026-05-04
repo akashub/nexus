@@ -123,8 +123,9 @@ def add_concept(
     quickstart: str | None = None,
     notes: str | None = None,
     relationships: list[dict] | None = None,
+    overwrite: bool = False,
 ) -> dict:
-    """Add or enrich a concept. Existing concepts get empty fields filled in."""
+    """Add or update a concept. Set overwrite=True to replace existing fields."""
     conn = get_connection()
     try:
         project_id = _resolve_pid(conn, None, project_dir)
@@ -132,6 +133,7 @@ def add_concept(
         if existing:
             updates = merge_concept_fields(
                 existing, description, summary, category, quickstart, notes,
+                overwrite=overwrite,
             )
             if updates:
                 db_update_concept(conn, existing.id, **updates)
@@ -195,5 +197,4 @@ def get_journey(project_dir: str | None = None, days: int = 90) -> str:
     finally:
         conn.close()
 
-def run_server():
-    mcp.run(transport="stdio")
+def run_server(): mcp.run(transport="stdio")
