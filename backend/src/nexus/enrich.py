@@ -31,7 +31,7 @@ Respond in EXACTLY this JSON format, nothing else:
  "summary": "one-line summary under 15 words",\
  "category": "one of: {categories}"}}"""
 
-_AI_FIELDS = {"description", "summary", "quickstart", "context7_id", "doc_url", "embedding"}
+_AI_FIELDS = {"description", "summary", "quickstart", "context7_id", "embedding"}
 
 
 def _set_status(conn: sqlite3.Connection, cid: str, status: str | None) -> None:

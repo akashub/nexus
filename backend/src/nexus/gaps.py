@@ -70,7 +70,10 @@ def detect_gaps(conn: sqlite3.Connection, project_id: str | None = None) -> list
         matched_signals = [s for s in pattern["signals"] if s in normalized]
         if not matched_signals:
             continue
-        has_companion = any(c in normalized for c in pattern["companions"])
+        has_companion = any(
+            any(c == n or n.startswith(c + "-") or n.endswith("-" + c) for n in normalized)
+            for c in pattern["companions"]
+        )
         if has_companion:
             continue
         gaps.append({

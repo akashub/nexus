@@ -65,6 +65,10 @@ _SKIP_GENERIC = {
     "client", "desktop", "mobile", "web", "docs", "tests", "scripts",
     "styling", "hard rules", "development workflow", "directory layout",
     "ai", "docs fetch", "graph viz", "package management",
+    "framework", "auth", "repo", "real-time", "offline", "offline/pwa",
+    "deployment", "hosting", "infra", "infrastructure", "storage",
+    "cache", "queue", "messaging", "analytics", "security", "logging",
+    "monitoring", "ci/cd", "build system",
 }
 
 
