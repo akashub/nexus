@@ -753,6 +753,7 @@
       <div class="demo-status">
         <span class="demo-status-dot green"></span>
         <span>ollama</span>
+        <span id="demoVersion" style="color:var(--silver-dim)">v0.2.11</span>
         <span class="demo-stats" id="demoStats">12 nodes &middot; 18 edges</span>
       </div>
     </div>
@@ -1075,6 +1076,8 @@
       if (urls.mac_arm) document.getElementById('dl-macos').href = urls.mac_arm;
       if (urls.win) document.getElementById('dl-windows').href = urls.win;
       if (urls.linux) document.getElementById('dl-linux').href = urls.linux;
+      var ver = document.getElementById('demoVersion');
+      if (ver && data.tag_name) ver.textContent = data.tag_name;
     })
     .catch(function() {});
 })();
