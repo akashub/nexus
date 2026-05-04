@@ -23,6 +23,7 @@ _SYSTEM = (
 _ENRICH_PROMPT = """Analyze '{name}' for a developer's knowledge graph.
 {context}
 Focus on WHAT '{name}' IS and WHY a developer would use it.
+If existing knowledge is provided, improve and expand on it — don't repeat it verbatim.
 If workflow context is provided, incorporate HOW it's used in this developer's projects.
 Do NOT summarize installation steps, onboarding docs, or setup instructions.
 Respond in EXACTLY this JSON format, nothing else:
@@ -72,7 +73,10 @@ def enrich_concept(
 
     _set_status(conn, concept_id, "generating")
     docs_text = docs_result.text[:3000] if docs_result else None
-    llm_fields = _generate_all(c.name, docs_text, c.category, eagle_ctx, prefer_cloud)
+    existing_ctx = _build_existing_context(c)
+    llm_fields = _generate_all(
+        c.name, docs_text, c.category, eagle_ctx, prefer_cloud, existing_ctx,
+    )
     fields.update(llm_fields)
 
     if docs_result and docs_result.library_id:
@@ -108,6 +112,17 @@ def enrich_concept(
     _set_status(conn, concept_id, None)
 
 
+def _build_existing_context(c) -> str | None:
+    parts: list[str] = []
+    if c.description:
+        parts.append(f"Current description: {c.description}")
+    if c.summary:
+        parts.append(f"Current summary: {c.summary}")
+    if c.notes:
+        parts.append(f"User notes: {c.notes[:500]}")
+    return "\n".join(parts) if parts else None
+
+
 def _fetch_eagle_mem_context(name: str) -> str | None:
     try:
         from nexus.scanners.eagle_mem import get_enrichment_context
@@ -119,8 +134,11 @@ def _fetch_eagle_mem_context(name: str) -> str | None:
 def _generate_all(
     name: str, docs: str | None, existing_cat: str | None,
     eagle_ctx: str | None = None, prefer_cloud: bool = False,
+    existing_ctx: str | None = None,
 ) -> dict:
     parts: list[str] = []
+    if existing_ctx:
+        parts.append(f"Existing knowledge (improve on this):\n{existing_ctx}")
     if eagle_ctx:
         parts.append(f"Workflow context (how this developer uses it):\n{eagle_ctx[:1500]}")
     if docs:
