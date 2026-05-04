@@ -53,7 +53,13 @@ function Section({ data }: { data: SectionData }) {
 }
 
 export default function QuickstartContent({ text }: { text: string }) {
-  const sections = text.split(/\n-{3,}\n/).map(parseSection).filter(s => s.title || s.codeBlocks.length);
+  const sections = text.split(/\n-{3,}\n/).map(parseSection).filter(s => s.title || s.text || s.codeBlocks.length);
+  if (!sections.length) {
+    return (
+      <pre className="bg-[var(--nx-input)] border border-[var(--nx-border)] rounded px-2.5 py-2 text-[11px] text-[var(--nx-text-2)] leading-relaxed overflow-x-auto whitespace-pre-wrap font-mono">
+        {text}</pre>
+    );
+  }
   return (
     <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
       {sections.map((s, i) => <Section key={i} data={s} />)}

@@ -91,14 +91,24 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
           {ctx?.install_commands && ctx.install_commands.length > 0 && (
             <Sec title="install history">
               {ctx.install_commands.map((cmd, i) => (
-                <code key={i} className="block text-[11px] text-[var(--nx-text-3)] bg-[var(--nx-input)] px-2 py-1 rounded mb-1 font-mono truncate">{cmd}</code>
+                <div key={i} className="relative group mb-1.5">
+                  <pre className="text-[11px] text-[var(--nx-text-2)] bg-[var(--nx-input)] border border-[var(--nx-border)] px-2.5 py-1.5 rounded font-mono whitespace-pre-wrap break-all leading-relaxed">{cmd}</pre>
+                  <button onClick={() => navigator.clipboard.writeText(cmd)}
+                    className="absolute top-1 right-1 px-1.5 py-0.5 text-[10px] text-[var(--nx-text-4)] hover:text-[var(--nx-text)] bg-[var(--nx-hover)] rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                    copy</button>
+                </div>
               ))}
             </Sec>
           )}
           {concept.setup_commands?.length > 0 && (
             <Sec title="setup">
               {concept.setup_commands.map((cmd, i) => (
-                <code key={i} className="block text-[11px] text-[var(--nx-text-3)] bg-[var(--nx-input)] px-2 py-1 rounded mb-1 font-mono truncate">{cmd}</code>
+                <div key={i} className="relative group mb-1.5">
+                  <pre className="text-[11px] text-[var(--nx-text-2)] bg-[var(--nx-input)] border border-[var(--nx-border)] px-2.5 py-1.5 rounded font-mono whitespace-pre-wrap break-all leading-relaxed">{cmd}</pre>
+                  <button onClick={() => navigator.clipboard.writeText(cmd)}
+                    className="absolute top-1 right-1 px-1.5 py-0.5 text-[10px] text-[var(--nx-text-4)] hover:text-[var(--nx-text)] bg-[var(--nx-hover)] rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                    copy</button>
+                </div>
               ))}
             </Sec>
           )}
