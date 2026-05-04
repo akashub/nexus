@@ -7,22 +7,41 @@ import struct
 import httpx
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
-LLM_MODEL = os.environ.get("NEXUS_LLM_MODEL", "gemma3")
 EMBED_MODEL = os.environ.get("NEXUS_EMBED_MODEL", "nomic-embed-text")
 
 _TIMEOUT = httpx.Timeout(30.0, connect=5.0)
+_SKIP_MODELS = {"nomic-embed-text"}
+_resolved_llm: str | None = None
+
+
+def _resolve_llm_model() -> str | None:
+    global _resolved_llm
+    if _resolved_llm:
+        return _resolved_llm
+    explicit = os.environ.get("NEXUS_LLM_MODEL")
+    if explicit:
+        _resolved_llm = explicit
+        return explicit
+    try:
+        r = httpx.get(f"{OLLAMA_URL}/api/tags", timeout=3.0)
+        if r.status_code != 200:
+            return None
+        models = [m["name"] for m in r.json().get("models", [])]
+        candidates = [m for m in models if m.split(":")[0] not in _SKIP_MODELS]
+        if candidates:
+            _resolved_llm = candidates[0]
+            return _resolved_llm
+    except httpx.HTTPError:
+        pass
+    return None
 
 
 def is_available() -> bool:
-    try:
-        r = httpx.get(f"{OLLAMA_URL}/api/tags", timeout=3.0)
-        return r.status_code == 200
-    except httpx.HTTPError:
-        return False
+    return _resolve_llm_model() is not None
 
 
 def generate(prompt: str, *, model: str | None = None, system: str | None = None) -> str:
-    model = model or LLM_MODEL
+    model = model or _resolve_llm_model() or "gemma3"
     payload: dict = {
         "model": model,
         "prompt": prompt,
@@ -37,7 +56,7 @@ def generate(prompt: str, *, model: str | None = None, system: str | None = None
 
 
 def generate_stream(prompt: str, *, model: str | None = None, system: str | None = None):
-    model = model or LLM_MODEL
+    model = model or _resolve_llm_model() or "gemma3"
     payload: dict = {"model": model, "prompt": prompt, "stream": True}
     if system:
         payload["system"] = system

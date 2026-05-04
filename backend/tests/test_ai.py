@@ -6,12 +6,17 @@ from unittest.mock import MagicMock, patch
 import httpx
 import pytest
 
+import nexus.ai as ai_mod
 from nexus.ai import cosine_similarity, embed, generate, is_available
 
 
 class TestIsAvailable:
+    def setup_method(self):
+        ai_mod._resolved_llm = None
+
     def test_available(self):
         mock_resp = MagicMock(status_code=200)
+        mock_resp.json.return_value = {"models": [{"name": "gemma4:e2b"}]}
         with patch("nexus.ai.httpx.get", return_value=mock_resp):
             assert is_available() is True
 
@@ -19,8 +24,17 @@ class TestIsAvailable:
         with patch("nexus.ai.httpx.get", side_effect=httpx.ConnectError("")):
             assert is_available() is False
 
+    def test_skips_embed_only(self):
+        mock_resp = MagicMock(status_code=200)
+        mock_resp.json.return_value = {"models": [{"name": "nomic-embed-text"}]}
+        with patch("nexus.ai.httpx.get", return_value=mock_resp):
+            assert is_available() is False
+
 
 class TestGenerate:
+    def setup_method(self):
+        ai_mod._resolved_llm = "gemma4:e2b"
+
     def test_returns_response(self):
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"response": "Hello world"}
