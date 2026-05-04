@@ -5,8 +5,8 @@ from collections import defaultdict
 from datetime import datetime
 
 from nexus.db import list_concepts
-from nexus.db_concepts import get_concept
-from nexus.models import Concept, Project
+from nexus.db_concepts import add_edge, get_concept
+from nexus.models import RELATIONSHIP_TYPES, Concept, Project
 
 
 def compute_project_edges(
@@ -83,3 +83,40 @@ def format_journey(weeks: list[dict]) -> str:
             lines.append(f"{prefix}{c.name}{cat}{desc}")
     lines.append(f"\n{len(weeks)} week(s) · {total} concept(s)")
     return "\n".join(lines)
+
+
+def merge_concept_fields(existing: Concept, description, summary, category, quickstart, notes):
+    updates = {}
+    if description and not existing.description:
+        updates["description"] = description
+    if summary and not existing.summary:
+        updates["summary"] = summary
+    if category and not existing.category:
+        updates["category"] = category
+    if quickstart and not existing.quickstart:
+        updates["quickstart"] = quickstart
+    if notes:
+        current = existing.notes or ""
+        if notes not in current:
+            updates["notes"] = f"{current}\n{notes}".strip()
+    return updates
+
+
+def create_concept_edges(conn: sqlite3.Connection, concept_id: str, relationships: list[dict]):
+    if not relationships:
+        return 0
+    created = 0
+    for rel in relationships:
+        target_name = rel.get("target")
+        rel_type = rel.get("type", "related_to")
+        if not target_name or rel_type not in RELATIONSHIP_TYPES:
+            continue
+        target = get_concept(conn, target_name)
+        if not target:
+            continue
+        try:
+            add_edge(conn, concept_id, target.id, rel_type)
+            created += 1
+        except sqlite3.IntegrityError:
+            pass
+    return created

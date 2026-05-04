@@ -6,21 +6,20 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 from nexus.cli_track import SOURCE_CATEGORIES, track_concept
-from nexus.db import get_connection, get_project_by_path, search_fts
+from nexus.db import get_connection, get_project, get_project_by_path, search_fts
 from nexus.db import list_projects as db_list_projects
-from nexus.db_concepts import (
-    add_concept as db_add_concept,
-)
-from nexus.db_concepts import (
-    count_concepts,
-    get_concept,
-    get_edges,
-)
-from nexus.db_concepts import (
-    get_journey as db_get_journey,
-)
+from nexus.db_concepts import add_concept as db_add_concept
+from nexus.db_concepts import count_concepts, get_concept, get_edges
+from nexus.db_concepts import get_journey as db_get_journey
+from nexus.db_concepts import update_concept as db_update_concept
 from nexus.expertise import classify_expertise
-from nexus.graph_helpers import build_concept_detail, concept_dict
+from nexus.graph_helpers import (
+    build_concept_detail,
+    concept_dict,
+    create_concept_edges,
+    format_journey,
+    merge_concept_fields,
+)
 
 VALID_SOURCES = frozenset(SOURCE_CATEGORIES.keys())
 
@@ -31,7 +30,6 @@ mcp = FastMCP(
 
 
 def _resolve_pid(conn, project_id: str | None, project_dir: str | None) -> str | None:
-    """Resolve a project ID from either an explicit ID or a directory path."""
     if project_id:
         return project_id
     if project_dir:
@@ -73,15 +71,12 @@ def list_projects() -> list[dict]:
     """List all tracked projects with concept counts."""
     conn = get_connection()
     try:
-        projects = db_list_projects(conn)
-        result = []
-        for p in projects:
-            result.append({
-                "name": p.name, "path": p.path,
-                "concept_count": count_concepts(conn, project_id=p.id),
-                "last_scanned_at": p.last_scanned_at,
-            })
-        return result
+        return [
+            {"name": p.name, "path": p.path,
+             "concept_count": count_concepts(conn, project_id=p.id),
+             "last_scanned_at": p.last_scanned_at}
+            for p in db_list_projects(conn)
+        ]
     finally:
         conn.close()
 
@@ -102,7 +97,6 @@ def get_expertise(project_id: str | None = None, project_dir: str | None = None)
 @mcp.tool()
 def onboard(project_id: str | None = None, project_dir: str | None = None) -> dict:
     """Get full onboarding context for a project — expertise + project metadata."""
-    from nexus.db import get_project
     conn = get_connection()
     try:
         pid = _resolve_pid(conn, project_id, project_dir)
@@ -120,22 +114,48 @@ def onboard(project_id: str | None = None, project_dir: str | None = None) -> di
 
 
 @mcp.tool()
-def add_concept(name: str, project_dir: str | None = None, category: str | None = None) -> dict:
-    """Add a concept to the knowledge graph."""
+def add_concept(
+    name: str,
+    project_dir: str | None = None,
+    category: str | None = None,
+    description: str | None = None,
+    summary: str | None = None,
+    quickstart: str | None = None,
+    notes: str | None = None,
+    relationships: list[dict] | None = None,
+) -> dict:
+    """Add or enrich a concept. Existing concepts get empty fields filled in."""
     conn = get_connection()
     try:
+        project_id = _resolve_pid(conn, None, project_dir)
         existing = get_concept(conn, name)
         if existing:
-            return {"status": "exists", "id": existing.id, "name": existing.name}
-        project_id = _resolve_pid(conn, None, project_dir)
+            updates = merge_concept_fields(
+                existing, description, summary, category, quickstart, notes,
+            )
+            if updates:
+                db_update_concept(conn, existing.id, **updates)
+            edges = create_concept_edges(conn, existing.id, relationships)
+            return {
+                "status": "enriched" if updates or edges else "exists",
+                "id": existing.id, "name": existing.name, "edges_created": edges,
+            }
         try:
-            c = db_add_concept(conn, name, category=category, project_id=project_id)
+            c = db_add_concept(
+                conn, name, category=category, description=description,
+                summary=summary, quickstart=quickstart, notes=notes,
+                project_id=project_id,
+            )
         except sqlite3.IntegrityError:
             c = get_concept(conn, name)
             if c:
                 return {"status": "exists", "id": c.id, "name": c.name}
             return {"error": f"Failed to add concept: {name}"}
-        return {"status": "added", "id": c.id, "name": c.name, "category": c.category}
+        edges = create_concept_edges(conn, c.id, relationships)
+        return {
+            "status": "added", "id": c.id, "name": c.name,
+            "category": c.category, "edges_created": edges,
+        }
     finally:
         conn.close()
 
@@ -153,25 +173,20 @@ def track_install(name: str, source: str, project_dir: str, dev: bool = False) -
 @mcp.tool()
 def detect_gaps(project_id: str | None = None, project_dir: str | None = None) -> str:
     """Detect missing companion tools for a project's stack."""
-    from nexus.db import get_project
     from nexus.gaps import detect_gaps as _detect_gaps
     from nexus.gaps import format_gaps_report
     conn = get_connection()
     try:
         pid = _resolve_pid(conn, project_id, project_dir)
         proj = get_project(conn, pid) if pid else None
-        gaps = _detect_gaps(conn, project_id=pid)
-        return format_gaps_report(proj.name if proj else None, gaps)
+        return format_gaps_report(proj.name if proj else None, _detect_gaps(conn, project_id=pid))
     finally:
         conn.close()
 
 
 @mcp.tool()
-def get_journey(
-    project_dir: str | None = None, days: int = 90,
-) -> str:
+def get_journey(project_dir: str | None = None, days: int = 90) -> str:
     """Show learning journey -- concepts grouped by week over time."""
-    from nexus.graph_helpers import format_journey
     conn = get_connection()
     try:
         pid = _resolve_pid(conn, None, project_dir)
@@ -179,7 +194,6 @@ def get_journey(
         return format_journey(weeks)
     finally:
         conn.close()
-
 
 def run_server():
     mcp.run(transport="stdio")

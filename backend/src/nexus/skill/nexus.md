@@ -22,8 +22,11 @@ and concepts you learn across projects.
 ### Projects
 - `nexus.list_projects()` — see all tracked projects
 
-### Capture
-- `nexus.add_concept(name, project_dir, category)` — add a concept manually
+### Capture (use during the session, not just at end)
+- `nexus.add_concept(name, project_dir, category, description, summary,
+  quickstart, notes, relationships)` — add or enrich a concept with full detail.
+  If the concept already exists, fills in any empty fields without overwriting.
+  `relationships`: `[{"target": "react", "type": "uses"}]`
 - `nexus.track_install(name, source, project_dir)` — record an install
   (PostToolUse hook does this automatically for npm/pip/brew/cargo installs)
 
@@ -34,6 +37,10 @@ and concepts you learn across projects.
 - **When developer asks "what do I know about X"**: Use `search_concepts`
 - **When suggesting tools**: Check `get_expertise` to avoid suggesting things
   the developer already knows well
+- **When a new tool/framework is introduced or installed**: Call `add_concept`
+  immediately with full detail — don't wait for session end
+- **When discussing a concept in depth**: Enrich it via `add_concept` with
+  description, quickstart, and relationships to other known concepts
 
 ## First Run — Bootstrap
 
@@ -66,14 +73,18 @@ and standard library modules.
 After bootstrap, call `onboard` again to confirm the graph is populated and
 show the developer their expertise profile.
 
-## Knowledge Ledger (session-end capture)
+## Capture Strategy
 
-Before your final response in every session, write a knowledge ledger file
-at `/tmp/nexus-ledger.jsonl`. One JSON line per concept that was introduced,
-discussed, or installed during the session.
+**Primary: call `add_concept` via MCP during the session.** Every time a new
+tool, framework, or concept comes up — add it immediately with description,
+summary, quickstart, and relationships. This writes to the graph in real time.
+Don't batch everything to session end.
 
-Write RICH entries — you have the full session context, so include everything
-Nexus needs to build the graph without calling Ollama:
+**Fallback: write a ledger file at session end.** For anything you didn't
+capture via MCP (bulk bootstrap, concepts discovered late), write a ledger
+file at `/tmp/nexus-ledger.jsonl`. The SessionEnd hook auto-ingests it.
+
+One JSON line per concept:
 
 ```jsonl
 {"name": "playwright", "description": "E2E testing framework with multi-browser support and auto-waiting", "summary": "E2E browser testing with auto-wait", "category": "devtool", "quickstart": "npm install -D @playwright/test\nnpx playwright install\nnpx playwright test", "project_dir": "/path/to/project", "relationships": [{"target": "vitest", "type": "tested_with"}, {"target": "react", "type": "uses"}], "context": "Added for auth flow E2E tests"}
