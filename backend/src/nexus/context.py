@@ -29,6 +29,13 @@ def get_eagle_overview(project_name: str) -> str | None:
         conn.close()
 
 
+_CMD_PREFIXES = ("bash:", "git ", "npm ", "pnpm ", "pip ", "uv ", "cd ", "mkdir ", "rm ", "curl ")
+
+
+def _is_raw_command(text: str) -> bool:
+    return text.strip().lower().startswith(_CMD_PREFIXES)
+
+
 def search_session_context(
     project_name: str, query: str, limit: int = 5,
 ) -> list[str]:
@@ -38,7 +45,7 @@ def search_session_context(
     try:
         snippets: list[str] = []
         q = f"%{query}%"
-        for col in ("learned", "completed", "decisions"):
+        for col in ("learned", "decisions"):
             try:
                 rows = conn.execute(
                     f"SELECT {col} FROM summaries "  # noqa: S608
@@ -47,8 +54,9 @@ def search_session_context(
                     (project_name, q, limit),
                 ).fetchall()
                 for r in rows:
-                    if r[col]:
-                        snippets.append(r[col][:200])
+                    val = r[col]
+                    if val and not _is_raw_command(val):
+                        snippets.append(val[:200])
             except sqlite3.OperationalError:
                 continue
         return snippets[:limit]

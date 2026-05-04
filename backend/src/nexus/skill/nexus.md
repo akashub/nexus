@@ -24,10 +24,11 @@ and concepts you learn across projects.
 
 ### Capture (use during the session, not just at end)
 - `nexus.add_concept(name, project_dir, category, description, summary,
-  quickstart, notes, relationships, overwrite)` — add or update a concept.
+  quickstart, notes, relationships, overwrite, doc_url)` — add or update a concept.
   Default: fills empty fields only. Set `overwrite=true` to replace existing fields
   (use when you have better context than the current description).
   `relationships`: `[{"target": "react", "type": "uses"}]`
+  `doc_url`: official documentation URL (corrects wrong auto-resolved URLs)
 - `nexus.track_install(name, source, project_dir)` — record an install
   (PostToolUse hook does this automatically for npm/pip/brew/cargo installs)
 

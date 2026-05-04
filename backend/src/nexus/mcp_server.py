@@ -71,12 +71,9 @@ def list_projects() -> list[dict]:
     """List all tracked projects with concept counts."""
     conn = get_connection()
     try:
-        return [
-            {"name": p.name, "path": p.path,
-             "concept_count": count_concepts(conn, project_id=p.id),
-             "last_scanned_at": p.last_scanned_at}
-            for p in db_list_projects(conn)
-        ]
+        return [{"name": p.name, "path": p.path,
+                 "concept_count": count_concepts(conn, project_id=p.id),
+                 "last_scanned_at": p.last_scanned_at} for p in db_list_projects(conn)]
     finally:
         conn.close()
 
@@ -124,6 +121,7 @@ def add_concept(
     notes: str | None = None,
     relationships: list[dict] | None = None,
     overwrite: bool = False,
+    doc_url: str | None = None,
 ) -> dict:
     """Add or update a concept. Set overwrite=True to replace existing fields."""
     conn = get_connection()
@@ -133,7 +131,7 @@ def add_concept(
         if existing:
             updates = merge_concept_fields(
                 existing, description, summary, category, quickstart, notes,
-                overwrite=overwrite,
+                overwrite=overwrite, doc_url=doc_url,
             )
             if updates:
                 db_update_concept(conn, existing.id, **updates)
@@ -144,15 +142,16 @@ def add_concept(
             }
         try:
             c = db_add_concept(
-                conn, name, category=category, description=description,
-                summary=summary, quickstart=quickstart, notes=notes,
-                project_id=project_id,
+                conn, name, category=category, description=description, summary=summary,
+                quickstart=quickstart, notes=notes, project_id=project_id,
             )
         except sqlite3.IntegrityError:
             c = get_concept(conn, name)
             if c:
                 return {"status": "exists", "id": c.id, "name": c.name}
             return {"error": f"Failed to add concept: {name}"}
+        if doc_url:
+            db_update_concept(conn, c.id, doc_url=doc_url)
         edges = create_concept_edges(conn, c.id, relationships)
         return {
             "status": "added", "id": c.id, "name": c.name,
