@@ -43,6 +43,10 @@ and concepts you learn across projects.
   immediately with full detail — don't wait for session end
 - **When discussing a concept in depth**: Enrich it via `add_concept` with
   description, quickstart, and relationships to other known concepts
+- **When working on architecture**: Add high-level concepts like "Agent Core",
+  "Auth Flow", "Data Pipeline" — these are graph nodes too, not just packages
+- **When the codebase has modules or layers**: Capture them as concepts with
+  `part_of` or `uses` relationships to the tools they depend on
 
 ## First Run — Bootstrap
 
@@ -110,10 +114,16 @@ One JSON line per concept:
 ### What to capture
 - Packages installed during the session (npm install, pip install, etc.)
 - Tools or frameworks discussed in depth
-- Architectural patterns introduced (e.g. "event sourcing", "CQRS")
-- Concepts the developer learned about
+- **Architecture concepts** — modules, layers, subsystems (e.g. "Agent Core",
+  "Memory Management", "Auth Flow", "Data Pipeline"). These are first-class
+  graph nodes. Connect them to the tools they use via `uses`/`part_of` edges.
+- **Design patterns** introduced (e.g. "event sourcing", "CQRS", "MCP protocol")
+- Domain concepts the developer learned about
+- **Project-specific abstractions** — if the codebase has named subsystems,
+  services, or workflows, capture them with relationships to their dependencies
 
 ### What NOT to capture
 - Standard library features (fs, path, os)
-- Concepts already in the graph with good descriptions (check via MCP)
+- Concepts already in the graph with good descriptions (check via MCP first,
+  but DO update with `overwrite=true` if you have richer context now)
 - Trivial utils that don't warrant a graph node
