@@ -40,16 +40,16 @@ def _copy_hooks() -> None:
             os.chmod(dest, 0o755)
 
 
-_NEXUS_HOOK_SUFFIXES = (
-    "hooks/post-tool-use.sh",
-    "hooks/session-end.sh",
+_NEXUS_HOOK_MARKERS = (
+    "nexus/hooks/post-tool-use.sh",
+    "nexus/hooks/session-end.sh",
 )
 
 
 def _is_nexus_hook(entry: dict) -> bool:
     for h in entry.get("hooks", []):
         cmd = h.get("command", "")
-        if any(cmd.endswith(s) for s in _NEXUS_HOOK_SUFFIXES):
+        if any(m in cmd for m in _NEXUS_HOOK_MARKERS):
             return True
     return False
 

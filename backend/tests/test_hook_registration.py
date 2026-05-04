@@ -11,7 +11,7 @@ def settings_path(tmp_path, monkeypatch):
     monkeypatch.setattr("nexus.cli_mcp.CLAUDE_SETTINGS", path)
     monkeypatch.setattr("nexus.cli_mcp.CLAUDE_JSON", tmp_path / ".claude.json")
     monkeypatch.setattr("nexus.cli_mcp.SKILL_DIR", tmp_path / "skills" / "nexus")
-    monkeypatch.setattr("nexus.cli_mcp.HOOKS_DIR", tmp_path / "hooks")
+    monkeypatch.setattr("nexus.cli_mcp.HOOKS_DIR", tmp_path / ".nexus" / "hooks")
     return path
 
 
@@ -53,6 +53,37 @@ def test_no_duplicate_hooks(settings_path):
     ptu = data["hooks"]["PostToolUse"]
     nexus_hooks = [e for e in ptu if "post-tool-use" in str(e)]
     assert len(nexus_hooks) == 1
+
+
+def test_preserves_eagle_mem_hooks(settings_path):
+    from nexus.cli_mcp import _install_hooks
+    settings_path.write_text(json.dumps({
+        "hooks": {
+            "PostToolUse": [
+                {"matcher": "Read|Write|Edit|Bash", "hooks": [
+                    {"type": "command", "command": "/home/user/.eagle-mem/hooks/post-tool-use.sh"},
+                ]},
+            ],
+            "SessionEnd": [
+                {"hooks": [
+                    {"type": "command", "command": "/home/user/.eagle-mem/hooks/session-end.sh"},
+                ]},
+            ],
+        }
+    }))
+
+    _install_hooks(quiet=True)
+    data = json.loads(settings_path.read_text())
+
+    ptu = data["hooks"]["PostToolUse"]
+    assert len(ptu) == 2
+    assert any("eagle-mem" in str(e) for e in ptu)
+    assert any("nexus" in str(e) for e in ptu)
+
+    se = data["hooks"]["SessionEnd"]
+    assert len(se) == 2
+    assert any("eagle-mem" in str(e) for e in se)
+    assert any("nexus" in str(e) for e in se)
 
 
 def test_cleans_stale_entries(settings_path):
