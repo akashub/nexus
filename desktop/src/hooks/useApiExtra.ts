@@ -66,3 +66,16 @@ export function useVersionCheck() {
     refetchOnWindowFocus: false,
   });
 }
+
+export interface AiModels {
+  ollama: { available: boolean; models: string[] };
+  cloud: Array<{ provider: string; model: string; via?: string }>;
+}
+
+export function useAiModels() {
+  return useQuery({
+    queryKey: ["ai-models"],
+    queryFn: () => apiFetch<AiModels>("/ai/models"),
+    staleTime: 60000,
+  });
+}

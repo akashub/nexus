@@ -91,8 +91,13 @@ export function useAddEdge() {
 export function useEnrichConcept() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, mode = "auto" }: { id: string; mode?: string }) =>
-      apiFetch<{ status: string }>(`/concepts/${id}/enrich?mode=${mode}`, { method: "POST" }),
+    mutationFn: (args: { id: string; mode?: string; provider?: string; model?: string }) => {
+      const { id, mode = "auto", provider, model } = args;
+      const params = new URLSearchParams({ mode });
+      if (provider) params.set("provider", provider);
+      if (model) params.set("model", model);
+      return apiFetch<{ status: string }>(`/concepts/${id}/enrich?${params}`, { method: "POST" });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["concepts"] });
       qc.invalidateQueries({ queryKey: ["concept"] });

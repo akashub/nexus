@@ -101,7 +101,13 @@ def cosine_similarity(a: bytes, b: bytes) -> float:
 
 def smart_generate(
     prompt: str, *, system: str | None = None, prefer_cloud: bool = False,
+    provider: str | None = None, model: str | None = None,
 ) -> str:
+    if provider:
+        if provider == "ollama":
+            return generate(prompt, model=model, system=system)
+        from nexus.ai_cloud import generate_cloud
+        return generate_cloud(prompt, system=system, provider=provider, model=model)
     if prefer_cloud:
         from nexus.ai_cloud import generate_cloud, is_cloud_available
         if is_cloud_available():
@@ -115,7 +121,13 @@ def smart_generate(
     return ""
 
 
-def smart_embed(text: str, *, prefer_cloud: bool = False) -> bytes | None:
+def smart_embed(
+    text: str, *, prefer_cloud: bool = False, provider: str | None = None,
+) -> bytes | None:
+    if provider == "openai":
+        from nexus.ai_cloud import embed_cloud
+        result = embed_cloud(text)
+        return result or embed(text)
     if prefer_cloud:
         from nexus.ai_cloud import embed_cloud, is_cloud_available
         if is_cloud_available():

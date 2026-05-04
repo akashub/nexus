@@ -73,6 +73,33 @@ def ai_status_route():
     return {"available": is_available()}
 
 
+_EMBED_ONLY = {"nomic-embed-text"}
+
+
+@router.get("/ai/models")
+def ai_models_route():
+    import httpx
+
+    from nexus.ai import OLLAMA_URL
+    from nexus.ai_cloud import available_cloud_providers
+
+    ollama_models: list[str] = []
+    ollama_ok = False
+    try:
+        r = httpx.get(f"{OLLAMA_URL}/api/tags", timeout=3.0)
+        if r.status_code == 200:
+            ollama_ok = True
+            for m in r.json().get("models", []):
+                if m["name"].split(":")[0] not in _EMBED_ONLY:
+                    ollama_models.append(m["name"])
+    except Exception:
+        pass
+    return {
+        "ollama": {"available": ollama_ok, "models": ollama_models},
+        "cloud": available_cloud_providers(),
+    }
+
+
 _GITHUB_RELEASE_URL = "https://api.github.com/repos/akashub/nexus/releases/latest"
 _version_cache: dict | None = None
 _version_ts: float = 0

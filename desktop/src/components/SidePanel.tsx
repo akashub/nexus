@@ -1,17 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useConcept, useConcepts, useEdges, useEnrichConcept, useUpdateConcept } from "../hooks/useApi";
-import { useConceptContext } from "../hooks/useApiExtra";
+import { useAiModels, useConceptContext } from "../hooks/useApiExtra";
 import { slugify } from "../types";
 import ConnectModal from "./ConnectModal";
 import QuickstartContent from "./QuickstartContent";
-
-const STATUS_LABELS: Record<string, string> = {
-  fetching_docs: "fetching docs from context7...",
-  generating: "generating description with AI...",
-  fetching_quickstart: "pulling quickstart examples...",
-  embedding: "generating embeddings...",
-  connecting: "finding related concepts...",
-};
+import { CmdList, ConnectionList, EnrichOptions, Sec, STATUS_LABELS, timeAgo } from "./SidePanelParts";
 
 interface Props { conceptId: string; onClose: () => void; onNavigate: (id: string) => void; }
 
@@ -27,6 +20,9 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
   const [showConnect, setShowConnect] = useState(false);
   const [noteDraft, setNoteDraft] = useState(concept?.notes ?? "");
   const [enrichSource, setEnrichSource] = useState("auto");
+  const [enrichProvider, setEnrichProvider] = useState("");
+  const { data: models } = useAiModels();
+  const [aiProvider, aiModel] = enrichProvider ? enrichProvider.split("|") : [];
   const initRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -90,28 +86,10 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
             </Sec>
           )}
           {ctx?.install_commands && ctx.install_commands.length > 0 && (
-            <Sec title="install history">
-              {ctx.install_commands.map((cmd, i) => (
-                <div key={i} className="relative group mb-1.5">
-                  <pre className="text-[11px] text-[var(--nx-text-2)] bg-[var(--nx-input)] border border-[var(--nx-border)] px-2.5 py-1.5 rounded font-mono whitespace-pre-wrap break-all leading-relaxed">{cmd}</pre>
-                  <button onClick={() => navigator.clipboard.writeText(cmd)}
-                    className="absolute top-1 right-1 px-1.5 py-0.5 text-[10px] text-[var(--nx-text-4)] hover:text-[var(--nx-text)] bg-[var(--nx-hover)] rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                    copy</button>
-                </div>
-              ))}
-            </Sec>
+            <Sec title="install history"><CmdList cmds={ctx.install_commands} /></Sec>
           )}
           {concept.setup_commands?.length > 0 && (
-            <Sec title="setup">
-              {concept.setup_commands.map((cmd, i) => (
-                <div key={i} className="relative group mb-1.5">
-                  <pre className="text-[11px] text-[var(--nx-text-2)] bg-[var(--nx-input)] border border-[var(--nx-border)] px-2.5 py-1.5 rounded font-mono whitespace-pre-wrap break-all leading-relaxed">{cmd}</pre>
-                  <button onClick={() => navigator.clipboard.writeText(cmd)}
-                    className="absolute top-1 right-1 px-1.5 py-0.5 text-[10px] text-[var(--nx-text-4)] hover:text-[var(--nx-text)] bg-[var(--nx-hover)] rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                    copy</button>
-                </div>
-              ))}
-            </Sec>
+            <Sec title="setup"><CmdList cmds={concept.setup_commands} /></Sec>
           )}
           <ConnectionList outgoing={outgoing} incoming={incoming} nameById={nameById} onNavigate={onNavigate} />
           <Sec title="notes">
@@ -138,24 +116,16 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
                 className="flex-1 px-3 py-1.5 text-xs text-[var(--nx-text-2)] border border-[var(--nx-border-strong)] rounded hover:bg-[var(--nx-hover)] transition-colors">
                 connect &rarr;
               </button>
-              <button onClick={() => enrich.mutate({ id: conceptId, mode: enrichSource })} disabled={enrich.isPending || !!concept.enrich_status}
+              <button disabled={enrich.isPending || !!concept.enrich_status}
+                onClick={() => enrich.mutate({
+                  id: conceptId, mode: enrichSource, provider: aiProvider, model: aiModel,
+                })}
                 className="flex-1 px-3 py-1.5 text-xs text-[var(--nx-text-2)] border border-[var(--nx-border-strong)] rounded hover:bg-[var(--nx-hover)] disabled:opacity-50 transition-colors">
                 {concept.enrich_status ? "enriching..." : "enrich"}
               </button>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-[var(--nx-text-4)]">source</span>
-              <select value={enrichSource} onChange={(e) => setEnrichSource(e.target.value)}
-                className="flex-1 px-2 py-0.5 text-[10px] text-[var(--nx-text-4)] bg-[var(--nx-input)] border border-[var(--nx-border)] rounded outline-none">
-                <option value="auto">auto</option>
-                <option value="all">all sources</option>
-                <option value="context7">context7</option>
-                <option value="pypi">pypi</option>
-                <option value="npm">npm</option>
-                <option value="github">github</option>
-                <option value="libraries">libraries.io</option>
-              </select>
-            </div>
+            <EnrichOptions enrichSource={enrichSource} setEnrichSource={setEnrichSource}
+              enrichProvider={enrichProvider} setEnrichProvider={setEnrichProvider} models={models} />
           </div>
         </>
       )}
@@ -164,34 +134,3 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
   );
 }
 
-function ConnectionList({ outgoing, incoming, nameById, onNavigate }: { outgoing: any[]; incoming: any[]; nameById: (id: string) => string; onNavigate: (id: string) => void }) {
-  return (
-    <Sec title="connections">
-      {outgoing.map((e: any) => (
-        <button key={e.id} onClick={() => onNavigate(e.target_id)} className="flex items-center gap-1 w-full text-left text-xs py-0.5 group">
-          <span className="text-[var(--nx-text-4)]">&rarr;</span>
-          <span className="text-[var(--nx-text-2)] group-hover:text-[var(--nx-text)] flex-1">{nameById(e.target_id)}</span>
-          <span className="text-[var(--nx-text-4)] text-[11px]">{e.relationship}</span>
-        </button>
-      ))}
-      {incoming.map((e: any) => (
-        <button key={e.id} onClick={() => onNavigate(e.source_id)} className="flex items-center gap-1 w-full text-left text-xs py-0.5 group">
-          <span className="text-[var(--nx-text-4)]">&larr;</span>
-          <span className="text-[var(--nx-text-2)] group-hover:text-[var(--nx-text)] flex-1">{nameById(e.source_id)}</span>
-          <span className="text-[var(--nx-text-4)] text-[11px]">{e.relationship}</span>
-        </button>
-      ))}
-      {outgoing.length === 0 && incoming.length === 0 && <p className="text-[11px] text-[var(--nx-text-4)]">no connections yet</p>}
-    </Sec>
-  );
-}
-
-function Sec({ title, children }: { title: string; children: React.ReactNode }) {
-  return <div className="mb-3"><h3 className="text-[11px] text-[var(--nx-text-4)] uppercase tracking-wider mb-1">{title}</h3>{children}</div>;
-}
-
-function timeAgo(d: string): string {
-  const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000);
-  if (m < 60) return `${m}m ago`;
-  return m < 1440 ? `${Math.floor(m / 60)}h ago` : `${Math.floor(m / 1440)}d ago`;
-}
