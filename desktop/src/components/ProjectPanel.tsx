@@ -6,7 +6,7 @@ import type { Project } from "../types";
 const SCAN_LABELS: Record<string, string> = {
   scanning_dependencies: "scanning project dependencies...",
   syncing_results: "syncing results to graph...",
-  done: "scan complete",
+  done: "scan complete!",
 };
 
 interface Props {
