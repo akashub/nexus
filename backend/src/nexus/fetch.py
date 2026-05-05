@@ -12,7 +12,6 @@ import httpx
 SOURCES = ("context7", "pypi", "npm", "github", "libraries")
 MODES = ("auto", "all", *SOURCES)
 
-
 @dataclass
 class DocResult:
     text: str
@@ -23,6 +22,12 @@ class DocResult:
 
 
 _QUOTA_MARKERS = ("quota exceeded", "rate limit", "too many requests")
+_GENERIC_NAMES = frozenset({
+    "framework", "library", "tool", "plugin", "extension", "module", "package",
+    "app", "application", "service", "server", "client", "api", "sdk", "cli",
+    "ui", "backend", "frontend", "database", "testing", "linting", "styling",
+    "auth", "config", "utils", "helpers", "core", "common", "shared", "base", "main",
+})
 
 
 def _ctx7_key_args() -> list[str]:
@@ -38,32 +43,27 @@ def _ctx7_key_args() -> list[str]:
 
 
 def _mcp_call(method: str, arguments: dict) -> str | None:
-    msg = json.dumps({
-        "jsonrpc": "2.0", "id": 1,
-        "method": "tools/call",
-        "params": {"name": method, "arguments": arguments},
-    })
+    msg = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                       "params": {"name": method, "arguments": arguments}})
     try:
-        cmd = ["npx", "-y", "@upstash/context7-mcp", *_ctx7_key_args()]
         proc = subprocess.run(
-            cmd, input=msg, capture_output=True, text=True, timeout=45,
+            ["npx", "-y", "@upstash/context7-mcp", *_ctx7_key_args()],
+            input=msg, capture_output=True, text=True, timeout=45,
         )
         if proc.returncode != 0 or not proc.stdout.strip():
             return None
-        resp = json.loads(proc.stdout)
-        content = resp.get("result", {}).get("content", [])
+        content = json.loads(proc.stdout).get("result", {}).get("content", [])
         for item in content:
             if item.get("type") == "text":
                 text = item["text"]
-                if any(m in text.lower() for m in _QUOTA_MARKERS):
-                    return None
-                return text
+                return None if any(m in text.lower() for m in _QUOTA_MARKERS) else text
         return None
     except (subprocess.TimeoutExpired, json.JSONDecodeError, OSError):
         return None
 
-
 def _fetch_context7(name: str) -> DocResult | None:
+    if name.lower().strip() in _GENERIC_NAMES:
+        return None
     text = _mcp_call("resolve-library-id", {"query": name, "libraryName": name})
     if not text:
         return None
@@ -108,36 +108,31 @@ def _fetch_npm(name: str) -> DocResult | None:
         return None
 
 
+def _gh_readme(repo: str, headers: dict) -> DocResult | None:
+    try:
+        url = f"https://api.github.com/repos/{repo}/readme"
+        r = httpx.get(url, headers=headers, timeout=10)
+        if r.status_code == 200:
+            gh_url = f"https://github.com/{repo}"
+            return DocResult(text=r.text[:4000], doc_url=gh_url, source="github")
+    except Exception:
+        return None
+
+
 def _fetch_github(name: str) -> DocResult | None:
     slug = name.lower().replace(" ", "-")
     headers = {"Accept": "application/vnd.github.raw+json"}
     token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
     if token:
         headers["Authorization"] = f"Bearer {token}"
-    candidates = [f"{slug}/{slug}", f"{slug}python/{slug}", f"{slug}/{slug}-python"]
-    for repo in candidates:
-        try:
-            url = f"https://api.github.com/repos/{repo}/readme"
-            r = httpx.get(url, headers=headers, timeout=10)
-            if r.status_code == 200:
-                body = r.text[:4000] if isinstance(r.text, str) else r.content.decode()[:4000]
-                return DocResult(text=body, doc_url=f"https://github.com/{repo}", source="github")
-        except Exception:
-            continue
+    for repo in (f"{slug}/{slug}", f"{slug}python/{slug}", f"{slug}/{slug}-python"):
+        if result := _gh_readme(repo, headers):
+            return result
     try:
-        r = httpx.get(
-            "https://api.github.com/search/repositories",
-            params={"q": slug, "per_page": "1"}, headers=headers, timeout=10,
-        )
-        if r.status_code == 200:
-            items = r.json().get("items", [])
-            if items:
-                full_name = items[0]["full_name"]
-                url = f"https://api.github.com/repos/{full_name}/readme"
-                r2 = httpx.get(url, headers=headers, timeout=10)
-                if r2.status_code == 200:
-                    gh_url = f"https://github.com/{full_name}"
-                    return DocResult(text=r2.text[:4000], doc_url=gh_url, source="github")
+        r = httpx.get("https://api.github.com/search/repositories",
+                       params={"q": slug, "per_page": "1"}, headers=headers, timeout=10)
+        if r.status_code == 200 and (items := r.json().get("items")):
+            return _gh_readme(items[0]["full_name"], headers)
     except Exception:
         pass
     return None
@@ -154,15 +149,14 @@ def _fetch_libraries(name: str) -> DocResult | None:
             desc = data.get("description", "")
             if not desc or len(desc) < 20:
                 continue
-            parts = [desc]
-            if data.get("repository_url"):
-                parts.append(f"Repository: {data['repository_url']}")
-            if data.get("homepage"):
-                parts.append(f"Homepage: {data['homepage']}")
+            extras = [desc]
+            for key, label in (("repository_url", "Repository"), ("homepage", "Homepage")):
+                if data.get(key):
+                    extras.append(f"{label}: {data[key]}")
             if data.get("keywords"):
-                parts.append(f"Keywords: {', '.join(data['keywords'][:10])}")
+                extras.append(f"Keywords: {', '.join(data['keywords'][:10])}")
             return DocResult(
-                text="\n".join(parts)[:2000], doc_url=data.get("homepage"),
+                text="\n".join(extras)[:2000], doc_url=data.get("homepage"),
                 source="libraries",
             )
         except Exception:
@@ -179,32 +173,26 @@ _FETCHERS = {
 def fetch_context(name: str, mode: str = "auto") -> DocResult | None:
     if mode in _FETCHERS:
         return _FETCHERS[mode](name)
-    order = list(SOURCES)
     if mode == "auto":
-        for src in order:
-            result = _FETCHERS[src](name)
-            if result:
+        for src in SOURCES:
+            if result := _FETCHERS[src](name):
                 return result
         return None
-    results = [_FETCHERS[src](name) for src in order]
-    hits = [r for r in results if r]
+    hits = [r for r in (_FETCHERS[s](name) for s in SOURCES) if r]
     if not hits:
         return None
-    merged = DocResult(
+    return DocResult(
         text="\n\n---\n\n".join(r.text for r in hits)[:6000],
         library_id=next((r.library_id for r in hits if r.library_id), None),
         doc_url=next((r.doc_url for r in hits if r.doc_url), None),
-        source="all",
-        merged=[r.source for r in hits],
+        source="all", merged=[r.source for r in hits],
     )
-    return merged
 
 
 def fetch_quickstart(library_id: str) -> str | None:
-    return _mcp_call(
-        "query-docs",
-        {"libraryId": library_id, "query": "installation and quick start code examples"},
-    )
+    return _mcp_call("query-docs", {
+        "libraryId": library_id, "query": "installation and quick start code examples",
+    })
 
 
 def resolve_library(name: str) -> tuple[str | None, str | None]:

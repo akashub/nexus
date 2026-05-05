@@ -130,6 +130,40 @@ def test_ai_gap_detection(conn):
     assert "vercel" in gaps[0]["suggestions"]
 
 
+def test_ai_gap_filtered_when_companion_exists(conn):
+    """AI suggests styling gap but tailwindcss already exists -- should be filtered."""
+    p = add_project(conn, "myapp", path="/tmp/myapp")
+    add_concept(conn, "react", category="framework", project_id=p.id)
+    add_concept(conn, "tailwindcss", category="devtool", project_id=p.id)
+
+    ai_response = json.dumps([
+        {
+            "category": "styling",
+            "reason": "No styling solution",
+            "have": ["react"],
+            "missing_type": "styling solution",
+            "suggestions": ["tailwindcss", "styled-components"],
+        },
+        {
+            "category": "deployment",
+            "reason": "No deployment tool",
+            "have": ["react"],
+            "missing_type": "deployment platform",
+            "suggestions": ["vercel", "netlify"],
+        },
+    ])
+
+    with (
+        patch("nexus.ai.is_available", return_value=True),
+        patch("nexus.ai.smart_generate", return_value=ai_response),
+    ):
+        gaps = detect_gaps(conn, project_id=p.id)
+
+    categories = [g["category"] for g in gaps]
+    assert "styling" not in categories, "styling gap should be filtered"
+    assert "deployment" in categories, "deployment gap should remain"
+
+
 def test_ai_fallback_on_failure(conn):
     p = add_project(conn, "myapp", path="/tmp/myapp")
     add_concept(conn, "react", category="framework", project_id=p.id)

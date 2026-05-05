@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useConcept, useConcepts, useEdges, useEnrichConcept, useUpdateConcept } from "../hooks/useApi";
 import { useAiModels, useConceptContext } from "../hooks/useApiExtra";
 import { slugify } from "../types";
+import AiConfigModal from "./AiConfigModal";
 import ConnectModal from "./ConnectModal";
 import QuickstartContent from "./QuickstartContent";
 import { CmdList, ConnectionList, EnrichOptions, Sec, STATUS_LABELS, timeAgo } from "./SidePanelParts";
@@ -18,6 +19,7 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
   const enrich = useEnrichConcept();
   const update = useUpdateConcept();
   const [showConnect, setShowConnect] = useState(false);
+  const [configProvider, setConfigProvider] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState(concept?.notes ?? "");
   const [enrichSource, setEnrichSource] = useState("auto");
   const [enrichProvider, setEnrichProvider] = useState("");
@@ -31,6 +33,17 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
       setNoteDraft(concept.notes ?? "");
     }
   }, [concept, conceptId]);
+
+  const handleProviderChange = (val: string) => {
+    if (!val) { setEnrichProvider(val); return; }
+    const [prov] = val.split("|");
+    const cloud = models?.cloud.find((c) => c.provider === prov);
+    if (cloud && !cloud.configured) {
+      setConfigProvider(prov);
+      return;
+    }
+    setEnrichProvider(val);
+  };
 
   const nameById = (id: string) => {
     const c = allConcepts?.find((c) => c.id === id);
@@ -125,11 +138,13 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
               </button>
             </div>
             <EnrichOptions enrichSource={enrichSource} setEnrichSource={setEnrichSource}
-              enrichProvider={enrichProvider} setEnrichProvider={setEnrichProvider} models={models} />
+              enrichProvider={enrichProvider} setEnrichProvider={handleProviderChange} models={models} />
           </div>
         </>
       )}
       {showConnect && concept && <ConnectModal sourceId={conceptId} sourceName={concept.name} onClose={() => setShowConnect(false)} />}
+      {configProvider && <AiConfigModal provider={configProvider} onClose={() => setConfigProvider(null)}
+        onSaved={() => { setConfigProvider(null); }} />}
     </div>
   );
 }

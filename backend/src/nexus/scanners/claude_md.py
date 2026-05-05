@@ -68,7 +68,10 @@ _SKIP_GENERIC = {
     "framework", "auth", "repo", "real-time", "offline", "offline/pwa",
     "deployment", "hosting", "infra", "infrastructure", "storage",
     "cache", "queue", "messaging", "analytics", "security", "logging",
-    "monitoring", "ci/cd", "build system",
+    "monitoring", "ci/cd", "build system", "stack", "overview",
+    "conventions", "commands", "features", "rules", "workflow",
+    "out of scope", "architecture", "setup", "configuration",
+    "prerequisites", "requirements", "getting started",
 }
 
 
@@ -77,7 +80,8 @@ def _extract_tools_from_section(
 ) -> None:
     for match in _TOOL_PATTERN.finditer(text):
         name = match.group(1).strip()
-        if name.lower() in seen or name.lower() in _SKIP_GENERIC or len(name) > 50:
+        lower = name.lower()
+        if lower in seen or lower in _SKIP_GENERIC or len(name) > 50:
             continue
         words = name.split()
         if len(words) > 3:

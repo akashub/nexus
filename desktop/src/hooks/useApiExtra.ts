@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Concept, Conversation } from "../types";
 import { apiFetch } from "./useApi";
 
@@ -67,9 +67,18 @@ export function useVersionCheck() {
   });
 }
 
+export function useScanStatus(projectId: string | null) {
+  return useQuery({
+    queryKey: ["scan-status", projectId],
+    queryFn: () => apiFetch<{ status: string | null }>(`/projects/${projectId}/scan-status`),
+    enabled: !!projectId,
+    refetchInterval: (q) => q.state.data?.status ? 1000 : false,
+  });
+}
+
 export interface AiModels {
   ollama: { available: boolean; models: string[] };
-  cloud: Array<{ provider: string; model: string; via?: string }>;
+  cloud: Array<{ provider: string; model: string; via?: string; configured: boolean }>;
 }
 
 export function useAiModels() {
@@ -77,5 +86,29 @@ export function useAiModels() {
     queryKey: ["ai-models"],
     queryFn: () => apiFetch<AiModels>("/ai/models"),
     staleTime: 60000,
+  });
+}
+
+export function useAiConfig() {
+  return useQuery({
+    queryKey: ["ai-config"],
+    queryFn: () => apiFetch<Record<string, Record<string, string>>>("/ai/config"),
+    staleTime: 30000,
+  });
+}
+
+export function useSaveAiConfig() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { provider: string; settings: Record<string, string> }) =>
+      apiFetch<{ status: string }>(`/ai/config/${args.provider}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(args.settings),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ai-config"] });
+      qc.invalidateQueries({ queryKey: ["ai-models"] });
+    },
   });
 }

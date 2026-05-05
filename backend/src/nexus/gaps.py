@@ -41,7 +41,7 @@ def detect_gaps(conn: sqlite3.Connection, project_id: str | None = None) -> list
 
     result = _detect_gaps_ai(concepts)
     if result is not None:
-        return result
+        return _filter_existing(result, concepts)
     return _detect_gaps_patterns(concepts)
 
 
@@ -118,6 +118,31 @@ def _normalize(name: str) -> str:
     return re.sub(r"^@[^/]+/", "", n)
 
 
+def _has_companion(companion: str, normalized: set[str]) -> bool:
+    """Check if any normalized concept name matches a companion tool."""
+    for n in normalized:
+        if companion == n:
+            return True
+        parts = re.split(r"[-\s]+", n)
+        if companion in parts:
+            return True
+    return False
+
+
+def _filter_existing(gaps: list[dict], concepts: list) -> list[dict]:
+    """Remove AI-suggested gaps when companion tools already exist."""
+    normalized = {_normalize(c.name) for c in concepts}
+    filtered = []
+    for gap in gaps:
+        suggestions = gap.get("suggestions", [])
+        already_have = any(
+            _has_companion(_normalize(s), normalized) for s in suggestions
+        )
+        if not already_have:
+            filtered.append(gap)
+    return filtered
+
+
 def _detect_gaps_patterns(concepts: list) -> list[dict]:
     normalized = {_normalize(c.name) for c in concepts}
     gaps = []
@@ -125,10 +150,7 @@ def _detect_gaps_patterns(concepts: list) -> list[dict]:
         matched = [s for s in p["signals"] if s in normalized]
         if not matched:
             continue
-        has = any(
-            any(c == n or n.startswith(c + "-") or n.endswith("-" + c) for n in normalized)
-            for c in p["companions"]
-        )
+        has = any(_has_companion(c, normalized) for c in p["companions"])
         if has:
             continue
         gaps.append({

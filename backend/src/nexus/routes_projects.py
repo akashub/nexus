@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 
 from nexus.db import (
@@ -13,7 +15,11 @@ from nexus.db import (
 from nexus.graph_helpers import compute_project_edges
 from nexus.server import ConnDep, ProjectCreate, ProjectUpdate, project_dict
 
+log = logging.getLogger(__name__)
+
 router = APIRouter()
+
+_scan_status: dict[str, str | None] = {}
 
 
 @router.get("/projects")
@@ -85,6 +91,8 @@ def scan_project_route(
     if not p.path:
         raise HTTPException(400, "Project has no path set")
 
+    _scan_status[project_id] = "scanning_dependencies"
+
     def _run_scan():
         from pathlib import Path
 
@@ -94,12 +102,24 @@ def scan_project_route(
         scan_conn = get_connection()
         try:
             result = scan_project(Path(p.path))
+            _scan_status[project_id] = "syncing_results"
             sync_scan_results(scan_conn, p.path, result)
+            import time
+            _scan_status[project_id] = "done"
+            time.sleep(5)
+        except Exception:
+            log.exception("Scan failed for project %s", project_id)
         finally:
             scan_conn.close()
+            _scan_status.pop(project_id, None)
 
     background_tasks.add_task(_run_scan)
     return {"status": "scanning", "project_id": project_id}
+
+
+@router.get("/projects/{project_id}/scan-status")
+def scan_status_route(project_id: str):
+    return {"status": _scan_status.get(project_id)}
 
 
 @router.post("/projects/{project_id}/replicate")

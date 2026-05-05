@@ -76,7 +76,9 @@ export function EnrichOptions({ enrichSource, setEnrichSource, enrichProvider, s
           <option value="">auto</option>
           {models?.ollama.models.map(m => <option key={m} value={`ollama|${m}`}>{m}</option>)}
           {models?.cloud.map(c => (
-            <option key={c.provider} value={`${c.provider}|${c.model}`}>{c.provider}: {c.model}</option>
+            <option key={c.provider} value={`${c.provider}|${c.model}`}>
+              {c.provider}{c.configured ? `: ${c.model}` : " (not configured)"}
+            </option>
           ))}
         </select>
       </div>

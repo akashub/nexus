@@ -14,7 +14,6 @@ from nexus.fetch import fetch_context, fetch_quickstart
 log = logging.getLogger(__name__)
 
 CATEGORIES = ["devtool", "framework", "concept", "pattern", "language"]
-
 _SYSTEM = (
     "You are a concise technical assistant helping a developer build a personal "
     "knowledge graph. Respond with only what is asked, no preamble."
@@ -32,6 +31,7 @@ Respond in EXACTLY this JSON format, nothing else:
  "category": "one of: {categories}"}}"""
 
 _AI_FIELDS = {"description", "summary", "quickstart", "context7_id", "embedding"}
+_USER_FIELDS = {"doc_url", "notes", "category"}
 
 
 def _set_status(conn: sqlite3.Connection, cid: str, status: str | None) -> None:
@@ -97,7 +97,10 @@ def enrich_concept(
     for k, v in fields.items():
         if not v:
             continue
-        if k in _AI_FIELDS or not getattr(c, k, None):
+        existing_val = getattr(c, k, None)
+        if k in _USER_FIELDS and existing_val:
+            continue
+        if k in _AI_FIELDS or not existing_val:
             final[k] = v
 
     if final:
@@ -173,14 +176,12 @@ def _suggest_connections(conn: sqlite3.Connection, concept_id: str) -> None:
     if not c or not c.embedding:
         return
 
-    candidates = []
-    for other in list_concepts(conn, limit=50):
-        if other.id == concept_id or not other.embedding:
-            continue
-        sim = cosine_similarity(c.embedding, other.embedding)
-        if sim > 0.5:
-            candidates.append((other, sim))
-
+    candidates = [
+        (o, cosine_similarity(c.embedding, o.embedding))
+        for o in list_concepts(conn, limit=50)
+        if o.id != concept_id and o.embedding
+    ]
+    candidates = [(o, s) for o, s in candidates if s > 0.5]
     candidates.sort(key=lambda x: x[1], reverse=True)
     for other, sim in candidates[:3]:
         click.echo(f"    {c.name} --[related_to]--> {other.name}  (sim: {sim:.2f})")

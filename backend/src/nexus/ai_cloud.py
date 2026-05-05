@@ -1,16 +1,8 @@
 from __future__ import annotations
 
-import os
 import struct
 
-CLOUD_PROVIDER = os.environ.get("NEXUS_CLOUD_PROVIDER", "")
-CLOUD_API_KEY = os.environ.get("NEXUS_CLOUD_API_KEY", "")
-CLOUD_MODEL = os.environ.get("NEXUS_CLOUD_MODEL", "")
-
-GEMINI_API_KEY = os.environ.get("NEXUS_GEMINI_API_KEY", "")
-GEMINI_PROJECT = os.environ.get("NEXUS_GEMINI_PROJECT", "")
-GEMINI_LOCATION = os.environ.get("NEXUS_GEMINI_LOCATION", "us-central1")
-GEMINI_MODEL = os.environ.get("NEXUS_GEMINI_MODEL", "gemini-2.5-flash")
+from nexus.ai_config import resolve
 
 _DEFAULT_MODELS = {
     "anthropic": "claude-sonnet-4-6",
@@ -20,63 +12,59 @@ _DEFAULT_MODELS = {
 
 
 def is_cloud_available(provider: str | None = None) -> bool:
-    if provider == "gemini":
-        return _is_gemini_available()
     if provider:
-        return provider == CLOUD_PROVIDER and bool(CLOUD_API_KEY)
-    return bool(CLOUD_PROVIDER and CLOUD_API_KEY) or _is_gemini_available()
-
-
-def _is_gemini_available() -> bool:
-    return bool(GEMINI_API_KEY or GEMINI_PROJECT)
+        return bool(resolve(provider))
+    return any(resolve(p) for p in _DEFAULT_MODELS)
 
 
 def available_cloud_providers() -> list[dict]:
     providers = []
-    if CLOUD_PROVIDER == "anthropic" and CLOUD_API_KEY:
-        providers.append({
-            "provider": "anthropic",
-            "model": CLOUD_MODEL or _DEFAULT_MODELS["anthropic"],
-        })
-    if CLOUD_PROVIDER == "openai" and CLOUD_API_KEY:
-        providers.append({
-            "provider": "openai",
-            "model": CLOUD_MODEL or _DEFAULT_MODELS["openai"],
-        })
-    if _is_gemini_available():
-        providers.append({
-            "provider": "gemini",
-            "model": GEMINI_MODEL,
-            "via": "vertex" if GEMINI_PROJECT else "api",
-        })
+    for name, default_model in _DEFAULT_MODELS.items():
+        creds = resolve(name)
+        entry: dict = {
+            "provider": name,
+            "model": creds.get("model", default_model) if creds else default_model,
+            "configured": bool(creds),
+        }
+        if name == "gemini" and creds and creds.get("project"):
+            entry["via"] = "vertex"
+        elif name == "gemini" and creds:
+            entry["via"] = "api"
+        providers.append(entry)
     return providers
-
-
-def _get_model(provider: str | None = None) -> str:
-    if provider and provider != CLOUD_PROVIDER:
-        return _DEFAULT_MODELS.get(provider, "")
-    return CLOUD_MODEL or _DEFAULT_MODELS.get(CLOUD_PROVIDER, "")
 
 
 def generate_cloud(
     prompt: str, *, system: str | None = None, provider: str | None = None,
     model: str | None = None,
 ) -> str:
-    p = provider or CLOUD_PROVIDER
+    p = provider or _default_provider()
+    creds = resolve(p)
+    if not creds:
+        raise ValueError(f"Provider {p} not configured")
     if p == "anthropic":
-        return _anthropic_generate(prompt, system=system, model=model)
+        return _anthropic_generate(prompt, creds, system=system, model=model)
     if p == "openai":
-        return _openai_generate(prompt, system=system, model=model)
+        return _openai_generate(prompt, creds, system=system, model=model)
     if p == "gemini":
-        return _gemini_generate(prompt, system=system, model=model)
+        return _gemini_generate(prompt, creds, system=system, model=model)
     raise ValueError(f"Unknown cloud provider: {p}")
 
 
-def _anthropic_generate(prompt: str, *, system: str | None = None, model: str | None = None) -> str:
+def _default_provider() -> str:
+    for p in _DEFAULT_MODELS:
+        if resolve(p):
+            return p
+    return ""
+
+
+def _anthropic_generate(
+    prompt: str, creds: dict, *, system: str | None = None, model: str | None = None,
+) -> str:
     import anthropic
-    client = anthropic.Anthropic(api_key=CLOUD_API_KEY)
+    client = anthropic.Anthropic(api_key=creds["api_key"])
     kwargs: dict = {
-        "model": model or _get_model("anthropic"),
+        "model": model or creds.get("model", _DEFAULT_MODELS["anthropic"]),
         "max_tokens": 1024,
         "messages": [{"role": "user", "content": prompt}],
     }
@@ -85,38 +73,47 @@ def _anthropic_generate(prompt: str, *, system: str | None = None, model: str | 
     return client.messages.create(**kwargs).content[0].text
 
 
-def _openai_generate(prompt: str, *, system: str | None = None, model: str | None = None) -> str:
+def _openai_generate(
+    prompt: str, creds: dict, *, system: str | None = None, model: str | None = None,
+) -> str:
     from openai import OpenAI
-    client = OpenAI(api_key=CLOUD_API_KEY)
+    client = OpenAI(api_key=creds["api_key"])
     messages: list[dict] = []
     if system:
         messages.append({"role": "system", "content": system})
     messages.append({"role": "user", "content": prompt})
     resp = client.chat.completions.create(
-        model=model or _get_model("openai"), messages=messages, max_tokens=1024,
+        model=model or creds.get("model", _DEFAULT_MODELS["openai"]),
+        messages=messages, max_tokens=1024,
     )
     return resp.choices[0].message.content or ""
 
 
-def _gemini_generate(prompt: str, *, system: str | None = None, model: str | None = None) -> str:
+def _gemini_generate(
+    prompt: str, creds: dict, *, system: str | None = None, model: str | None = None,
+) -> str:
     import httpx
-    model = model or GEMINI_MODEL
-    if GEMINI_PROJECT:
-        return _gemini_vertex(prompt, model, system=system)
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    mdl = model or creds.get("model", _DEFAULT_MODELS["gemini"])
+    if creds.get("project"):
+        return _gemini_vertex(prompt, mdl, creds, system=system)
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{mdl}:generateContent"
     body: dict = {"contents": [{"parts": [{"text": prompt}]}]}
     if system:
         body["systemInstruction"] = {"parts": [{"text": system}]}
-    r = httpx.post(url, params={"key": GEMINI_API_KEY}, json=body, timeout=30.0)
+    r = httpx.post(url, params={"key": creds["api_key"]}, json=body, timeout=30.0)
     r.raise_for_status()
     return r.json()["candidates"][0]["content"]["parts"][0]["text"]
 
 
-def _gemini_vertex(prompt: str, model: str, *, system: str | None = None) -> str:
+def _gemini_vertex(
+    prompt: str, model: str, creds: dict, *, system: str | None = None,
+) -> str:
     import httpx
+    loc = creds.get("location", "us-central1")
+    proj = creds["project"]
     url = (
-        f"https://{GEMINI_LOCATION}-aiplatform.googleapis.com/v1/"
-        f"projects/{GEMINI_PROJECT}/locations/{GEMINI_LOCATION}/"
+        f"https://{loc}-aiplatform.googleapis.com/v1/"
+        f"projects/{proj}/locations/{loc}/"
         f"publishers/google/models/{model}:generateContent"
     )
     body: dict = {"contents": [{"parts": [{"text": prompt}]}]}
@@ -138,15 +135,17 @@ def _get_gcloud_token() -> str:
     ).strip()
 
 
-def embed_cloud(text: str) -> bytes | None:
-    if CLOUD_PROVIDER == "openai":
-        return _openai_embed(text)
+def embed_cloud(text: str, provider: str | None = None) -> bytes | None:
+    p = provider or "openai"
+    creds = resolve(p)
+    if p == "openai" and creds:
+        return _openai_embed(text, creds)
     return None
 
 
-def _openai_embed(text: str) -> bytes | None:
+def _openai_embed(text: str, creds: dict) -> bytes | None:
     from openai import OpenAI
-    client = OpenAI(api_key=CLOUD_API_KEY)
+    client = OpenAI(api_key=creds["api_key"])
     resp = client.embeddings.create(model="text-embedding-3-small", input=text)
     vec = resp.data[0].embedding
     return struct.pack(f"{len(vec)}f", *vec)

@@ -100,6 +100,26 @@ def ai_models_route():
     }
 
 
+@router.get("/ai/config")
+def ai_config_route():
+    from nexus.ai_config import masked
+    return masked()
+
+
+@router.post("/ai/config/{provider}")
+def save_ai_config_route(provider: str, body: dict):
+    from nexus.ai_config import save
+    save(provider, body)
+    return {"status": "saved"}
+
+
+@router.delete("/ai/config/{provider}")
+def delete_ai_config_route(provider: str):
+    from nexus.ai_config import delete
+    delete(provider)
+    return {"status": "deleted"}
+
+
 _GITHUB_RELEASE_URL = "https://api.github.com/repos/akashub/nexus/releases/latest"
 _version_cache: dict | None = None
 _version_ts: float = 0
