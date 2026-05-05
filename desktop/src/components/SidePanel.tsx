@@ -1,3 +1,4 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useRef, useState } from "react";
 import { useConcept, useConcepts, useEdges, useEnrichConcept, useUpdateConcept } from "../hooks/useApi";
 import { useAiModels, useConceptContext } from "../hooks/useApiExtra";
@@ -114,8 +115,8 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
           {concept.quickstart && <Sec title="quickstart (context7)"><QuickstartContent text={concept.quickstart} /></Sec>}
           {concept.doc_url && (
             <Sec title="docs">
-              <a href={concept.doc_url} target="_blank" rel="noopener noreferrer"
-                className="text-xs text-[var(--nx-accent)] hover:underline underline-offset-2 break-all">{concept.doc_url}</a>
+              <button onClick={() => openUrl(concept.doc_url!)}
+                className="text-xs text-[var(--nx-accent)] hover:underline underline-offset-2 break-all text-left cursor-pointer">{concept.doc_url}</button>
             </Sec>
           )}
           <Sec title="source">

@@ -1,3 +1,4 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useState } from "react";
 import AddModal from "./components/AddModal";
 import AddProjectModal from "./components/AddProjectModal";
@@ -115,10 +116,10 @@ export default function App() {
             <span className={version.update_available ? "text-[var(--nx-accent)]" : ""}>
               v{version.current}
               {version.update_available && (
-                <a href={version.release_url || "#"} target="_blank" rel="noopener noreferrer"
-                  className="ml-1 px-1.5 py-0.5 bg-[var(--nx-accent-bg)] border border-[var(--nx-accent)]/20 rounded text-[var(--nx-accent)] hover:underline">
+                <button onClick={() => openUrl(version.release_url || `https://github.com/akashub/nexus/releases/tag/v${version.latest}`)}
+                  className="ml-1 px-1.5 py-0.5 bg-[var(--nx-accent-bg)] border border-[var(--nx-accent)]/20 rounded text-[var(--nx-accent)] hover:underline cursor-pointer">
                   v{version.latest} available
-                </a>
+                </button>
               )}
             </span>
           )}

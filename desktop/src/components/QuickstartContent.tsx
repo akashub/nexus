@@ -1,3 +1,5 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
+
 interface SectionData {
   title: string;
   source: string;
@@ -45,8 +47,8 @@ function Section({ data }: { data: SectionData }) {
         </div>
       ))}
       {data.source && (
-        <a href={data.source} target="_blank" rel="noopener noreferrer"
-          className="block text-[10px] text-[var(--nx-text-4)] hover:text-[var(--nx-text-3)] mt-1.5 truncate">{data.source}</a>
+        <button onClick={() => openUrl(data.source)}
+          className="block text-[10px] text-[var(--nx-text-4)] hover:text-[var(--nx-text-3)] mt-1.5 truncate text-left cursor-pointer">{data.source}</button>
       )}
     </div>
   );
