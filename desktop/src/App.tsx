@@ -13,11 +13,16 @@ import ProjectPanel from "./components/ProjectPanel";
 import ReplicateModal from "./components/ReplicateModal";
 import SearchBar from "./components/SearchBar";
 import SidePanel from "./components/SidePanel";
+import Toolbar from "./components/Toolbar";
 import { useGlobalGraph, useGraph, useOllamaStatus, useStats } from "./hooks/useApi";
-import { useVersionCheck } from "./hooks/useApiExtra";
+import { useBulkEnrich, useEnrichStatus, useVersionCheck } from "./hooks/useApiExtra";
 import { useBackend } from "./hooks/useBackend";
 import { useTheme, type Theme } from "./hooks/useTheme";
 import type { Project } from "./types";
+
+const THEMES: { value: Theme; label: string }[] = [
+  { value: "dark", label: "dark" }, { value: "light", label: "light" }, { value: "system", label: "auto" },
+];
 
 export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -31,6 +36,8 @@ export default function App() {
   const [replicateProject, setReplicateProject] = useState<Project | null>(null);
   const [showJourney, setShowJourney] = useState(false);
   const [showGaps, setShowGaps] = useState(false);
+  const [expertiseFilter, setExpertiseFilter] = useState<string | null>(null);
+  const [enrichPolling, setEnrichPolling] = useState(false);
   const backendStatus = useBackend();
   const { data: graph } = useGraph(activeProject?.id);
   const { data: globalGraph } = useGlobalGraph();
@@ -38,6 +45,16 @@ export default function App() {
   const { data: aiStatus } = useOllamaStatus();
   const { theme, set: setTheme } = useTheme();
   const { data: version } = useVersionCheck();
+  const bulkEnrich = useBulkEnrich();
+  const { data: enrichStatus } = useEnrichStatus(enrichPolling);
+  const enrichLabel = enrichStatus?.status;
+
+  useEffect(() => {
+    if (enrichLabel === "done" || (!enrichLabel && enrichPolling)) {
+      const t = setTimeout(() => setEnrichPolling(false), 1500);
+      return () => clearTimeout(t);
+    }
+  }, [enrichLabel, enrichPolling]);
 
   const handleSelectProjectById = useCallback((id: string) => {
     const proj = globalGraph?.nodes.find((n) => n.id === id);
@@ -79,10 +96,6 @@ export default function App() {
       </div>
     );
   }
-
-  const THEMES: { value: Theme; label: string }[] = [
-    { value: "dark", label: "dark" }, { value: "light", label: "light" }, { value: "system", label: "auto" },
-  ];
 
   return (
     <div className="flex flex-col h-screen bg-[var(--nx-bg)] text-[var(--nx-text)]">
@@ -135,22 +148,18 @@ export default function App() {
           onAddProject={() => setShowAddProject(true)}
           onSelectNode={setSelectedId} selectedId={selectedId}
           categoryFilter={categoryFilter} onCategoryFilter={setCategoryFilter}
+          expertiseFilter={expertiseFilter} onExpertiseFilter={setExpertiseFilter}
         />
         <div className="flex-1 min-w-0 flex flex-col">
-          <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[var(--nx-border)] shrink-0">
-            <input readOnly onClick={() => setShowSearch(true)} placeholder="search..."
-              className="w-36 px-2 py-1 text-[11px] text-[var(--nx-text-3)] bg-[var(--nx-input)] border border-[var(--nx-border)] rounded cursor-pointer hover:bg-[var(--nx-hover)] transition-colors" />
-            <span className="text-[11px] text-[var(--nx-text-4)] ml-0.5">⌘K</span>
-            <Shortcut label="add" keys="⌘N" onClick={() => setShowAdd(true)} />
-            <Shortcut label="ask" keys="⌘/" onClick={() => setShowChat((v) => !v)} />
-            <div className="flex-1" />
-            <Shortcut label="journey" onClick={() => { setShowJourney((v) => !v); setShowGaps(false); }} />
-            {activeProject && <Shortcut label="gaps" onClick={() => { setShowGaps((v) => !v); setShowJourney(false); }} />}
-            {activeProject && <Shortcut label="fit" onClick={() => window.dispatchEvent(new CustomEvent("nexus:fit"))} />}
-          </div>
+          <Toolbar activeProject={activeProject} enrichPolling={enrichPolling} enrichLabel={enrichLabel}
+            onSearch={() => setShowSearch(true)} onAdd={() => setShowAdd(true)} onChat={() => setShowChat((v) => !v)}
+            onEnrichAll={() => { if (activeProject) { bulkEnrich.mutate(activeProject.id); setEnrichPolling(true); } }}
+            onJourney={() => { setShowJourney((v) => !v); setShowGaps(false); }}
+            onGaps={() => { setShowGaps((v) => !v); setShowJourney(false); }}
+            onFit={() => window.dispatchEvent(new CustomEvent("nexus:fit"))} />
           <main className="flex-1 relative">
             {activeProject ? (
-              <GraphView data={graph} onSelectNode={setSelectedId} selectedId={selectedId} categoryFilter={categoryFilter} />
+              <GraphView data={graph} onSelectNode={setSelectedId} selectedId={selectedId} categoryFilter={categoryFilter} expertiseFilter={expertiseFilter} />
             ) : (
               <GlobalGraphView data={globalGraph} onSelectProject={handleSelectProjectById} />
             )}
@@ -187,15 +196,5 @@ export default function App() {
           onClose={() => setReplicateProject(null)} />
       )}
     </div>
-  );
-}
-
-function Shortcut({ label, keys, onClick }: { label: string; keys?: string; onClick?: () => void }) {
-  return (
-    <button onClick={onClick}
-      className="px-2 py-0.5 text-[11px] text-[var(--nx-text-3)] border border-[var(--nx-border)] rounded hover:bg-[var(--nx-hover)] hover:text-[var(--nx-text-2)] transition-colors">
-      {keys && <span className="mr-1 text-[var(--nx-text-4)]">{keys}</span>}
-      {label}
-    </button>
   );
 }

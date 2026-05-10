@@ -112,3 +112,26 @@ export function useSaveAiConfig() {
     },
   });
 }
+
+export function useBulkEnrich() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (projectId?: string) => {
+      const params = projectId ? `?project_id=${projectId}` : "";
+      return apiFetch<{ status: string; count: number }>(`/concepts/enrich-bulk${params}`, { method: "POST" });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["concepts"] });
+      qc.invalidateQueries({ queryKey: ["graph"] });
+    },
+  });
+}
+
+export function useEnrichStatus(enabled: boolean) {
+  return useQuery({
+    queryKey: ["enrich-status"],
+    queryFn: () => apiFetch<{ status: string | null }>("/enrich-status"),
+    enabled,
+    refetchInterval: (q) => q.state.data?.status ? 1000 : false,
+  });
+}

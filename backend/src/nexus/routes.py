@@ -5,15 +5,12 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from nexus.db import (
     add_concept,
     add_edge,
-    count_edges,
     delete_concept,
     delete_edge,
-    get_all_edges,
     get_concept,
     get_edges,
     list_concepts,
     list_conversations,
-    list_projects,
     update_concept,
 )
 from nexus.server import (
@@ -106,31 +103,6 @@ def delete_edge_route(edge_id: str, conn: ConnDep):
 def list_conversations_route(conn: ConnDep, limit: int = Query(default=20, ge=1, le=100)):
     return [{"id": c.id, "question": c.question, "answer": c.answer,
              "created_at": c.created_at} for c in list_conversations(conn, limit=limit)]
-
-
-@router.get("/graph")
-def graph_route(conn: ConnDep, project_id: str | None = None):
-    concepts = list_concepts(conn, limit=500, project_id=project_id)
-    nodes = [concept_dict(c) for c in concepts]
-    node_ids = {c.id for c in concepts}
-    edges = [
-        edge_dict(e) for e in get_all_edges(conn)
-        if e.source_id in node_ids and e.target_id in node_ids
-    ]
-    return {"nodes": nodes, "edges": edges}
-
-
-@router.get("/stats")
-def stats_route(conn: ConnDep, project_id: str | None = None):
-    concepts = list_concepts(conn, limit=10000, project_id=project_id)
-    cats: dict[str, int] = {}
-    for c in concepts:
-        key = c.category or "uncategorized"
-        cats[key] = cats.get(key, 0) + 1
-    return {
-        "concept_count": len(concepts), "edge_count": count_edges(conn),
-        "categories": cats, "project_count": len(list_projects(conn)),
-    }
 
 
 @router.get("/concepts/{concept_id}/context")

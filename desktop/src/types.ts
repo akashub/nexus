@@ -24,6 +24,7 @@ export interface Concept {
   enrich_status: string | null;
   project_id: string | null;
   semantic_group: string | null;
+  expertise_level: string | null;
   setup_commands: string[];
   config_files: { path: string; content: string }[];
   created_at: string;

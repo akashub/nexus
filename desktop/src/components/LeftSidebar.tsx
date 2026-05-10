@@ -14,6 +14,8 @@ interface Props {
   selectedId: string | null;
   categoryFilter: string | null;
   onCategoryFilter: (cat: string | null) => void;
+  expertiseFilter: string | null;
+  onExpertiseFilter: (level: string | null) => void;
 }
 
 export default function LeftSidebar(props: Props) {
@@ -73,7 +75,7 @@ function CmdHint({ cmd, label }: { cmd: string; label: string }) {
   );
 }
 
-function ProjectView({ activeProject, onBackToGlobal, onSelectNode, selectedId, categoryFilter, onCategoryFilter }: Props) {
+function ProjectView({ activeProject, onBackToGlobal, onSelectNode, selectedId, categoryFilter, onCategoryFilter, expertiseFilter, onExpertiseFilter }: Props) {
   const { data: stats } = useStats();
   const { data: recent } = useRecentConcepts();
 
@@ -99,6 +101,13 @@ function ProjectView({ activeProject, onBackToGlobal, onSelectNode, selectedId, 
         ))}
       </div>
 
+      <div className="px-3 pt-2 pb-2 border-t border-[var(--nx-border)]">
+        <h3 className="text-[11px] text-[var(--nx-text-4)] uppercase tracking-wider mb-1.5">expertise</h3>
+        <ExpButton label="all" active={expertiseFilter === null} onClick={() => onExpertiseFilter(null)} />
+        <ExpButton label="known well" active={expertiseFilter === "known_well"} onClick={() => onExpertiseFilter(expertiseFilter === "known_well" ? null : "known_well")} />
+        <ExpButton label="seen" active={expertiseFilter === "seen"} onClick={() => onExpertiseFilter(expertiseFilter === "seen" ? null : "seen")} />
+      </div>
+
       <div className="px-3 py-2">
         <h3 className="text-[11px] text-[var(--nx-text-4)] uppercase tracking-wider mb-1.5">recent</h3>
         {recent && recent.length > 0 ? (
@@ -116,6 +125,18 @@ function ProjectView({ activeProject, onBackToGlobal, onSelectNode, selectedId, 
         )}
       </div>
     </>
+  );
+}
+
+function ExpButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button onClick={onClick}
+      className={`flex items-center gap-1.5 w-full text-left text-xs py-0.5 px-1 rounded transition-colors ${
+        active ? "text-[var(--nx-text)] bg-[var(--nx-hover)]" : "text-[var(--nx-text-3)] hover:text-[var(--nx-text)]"
+      }`}>
+      <span>·</span>
+      <span>{label}</span>
+    </button>
   );
 }
 

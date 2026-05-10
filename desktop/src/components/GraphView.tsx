@@ -9,15 +9,17 @@ import { addGroupLabels, bindEvents } from "./graphEvents";
 import { graphStyles } from "./graphStyles";
 export { CATEGORY_COLORS } from "./graphStyles";
 
-interface Props { data: GraphData | undefined; onSelectNode: (id: string | null) => void; selectedId: string | null; categoryFilter: string | null; }
+interface Props { data: GraphData | undefined; onSelectNode: (id: string | null) => void; selectedId: string | null; categoryFilter: string | null; expertiseFilter: string | null; }
 interface SimNode extends SimulationNodeDatum { id: string }
 
-function structuralHash(d: GraphData, filter: string | null): string {
-  const ids = filter ? d.nodes.filter((n) => n.category === filter).map((n) => n.id) : d.nodes.map((n) => n.id);
-  return ids.sort().join(",") + "|" + d.edges.map((e) => e.id).sort().join(",") + "|" + (filter || "");
+function structuralHash(d: GraphData, filter: string | null, expFilter: string | null): string {
+  let nodes = d.nodes;
+  if (filter) nodes = nodes.filter((n) => n.category === filter);
+  if (expFilter) nodes = nodes.filter((n) => n.expertise_level === expFilter);
+  return nodes.map((n) => n.id).sort().join(",") + "|" + d.edges.map((e) => e.id).sort().join(",") + "|" + (filter || "") + "|" + (expFilter || "");
 }
 
-export default function GraphView({ data, onSelectNode, selectedId, categoryFilter }: Props) {
+export default function GraphView({ data, onSelectNode, selectedId, categoryFilter, expertiseFilter }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
   const simRef = useRef<ReturnType<typeof forceSimulation<SimNode>> | null>(null);
@@ -37,7 +39,8 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
   ), []);
 
   const buildElements = useCallback((d: GraphData): cytoscape.ElementDefinition[] => {
-    const nodes = categoryFilter ? d.nodes.filter((n) => n.category === categoryFilter) : d.nodes;
+    let nodes = categoryFilter ? d.nodes.filter((n) => n.category === categoryFilter) : d.nodes;
+    if (expertiseFilter) nodes = nodes.filter((n) => n.expertise_level === expertiseFilter);
     const nodeIds = new Set(nodes.map((n) => n.id));
     const edges = filterEdges(d, nodeIds);
     const deg: Record<string, number> = {};
@@ -49,7 +52,7 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
       } })),
       ...edges.map((e) => ({ data: { id: e.id, source: e.source_id, target: e.target_id, label: e.relationship || "", rel: e.relationship || "" } })),
     ];
-  }, [categoryFilter, filterEdges]);
+  }, [categoryFilter, expertiseFilter, filterEdges]);
 
   useEffect(() => () => {
     if (simRef.current) simRef.current.stop();
@@ -86,7 +89,7 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
 
   useEffect(() => {
     if (!containerRef.current || !data) return;
-    const hash = structuralHash(data, categoryFilter);
+    const hash = structuralHash(data, categoryFilter, expertiseFilter);
     if (hash !== lastStructHash.current || !cyRef.current) {
       lastStructHash.current = hash;
       if (simRef.current) simRef.current.stop();
@@ -98,7 +101,8 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
         minZoom: 0.3, maxZoom: 3, wheelSensitivity: 0.3,
       });
       const w = containerRef.current.clientWidth, h = containerRef.current.clientHeight;
-      const filtered = categoryFilter ? data.nodes.filter((n) => n.category === categoryFilter) : data.nodes;
+      let filtered = categoryFilter ? data.nodes.filter((n) => n.category === categoryFilter) : data.nodes;
+      if (expertiseFilter) filtered = filtered.filter((n) => n.expertise_level === expertiseFilter);
       const nIds = new Set(filtered.map((n) => n.id));
       const simNodes: SimNode[] = filtered.map((n) => ({
         id: n.id, x: w / 2 + (Math.random() - 0.5) * w * 0.3, y: h / 2 + (Math.random() - 0.5) * h * 0.3,
@@ -135,7 +139,7 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
         node.data("enriching", !!n.enrich_status);
       }
     }
-  }, [data, onSelectNode, buildElements, categoryFilter, isDark]);
+  }, [data, onSelectNode, buildElements, categoryFilter, expertiseFilter, isDark]);
 
   useEffect(() => {
     const cy = cyRef.current; if (!cy) return; cy.nodes().unselect();
