@@ -186,7 +186,7 @@ flowchart TD
     orphan --> llm
     context --> llm
     llm --> result
-    result -->|"max 3 edges"| graph["Graph<br/>confidence: inferred"]
+    result -->|"max 3 edges"| db["Graph<br/>confidence: inferred"]
 ```
 
 **Constraints:**
