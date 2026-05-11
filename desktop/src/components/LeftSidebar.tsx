@@ -16,6 +16,8 @@ interface Props {
   onCategoryFilter: (cat: string | null) => void;
   expertiseFilter: string | null;
   onExpertiseFilter: (level: string | null) => void;
+  showEnvLayer: boolean;
+  onToggleEnvLayer: () => void;
 }
 
 export default function LeftSidebar(props: Props) {
@@ -75,7 +77,7 @@ function CmdHint({ cmd, label }: { cmd: string; label: string }) {
   );
 }
 
-function ProjectView({ activeProject, onBackToGlobal, onSelectNode, selectedId, categoryFilter, onCategoryFilter, expertiseFilter, onExpertiseFilter }: Props) {
+function ProjectView({ activeProject, onBackToGlobal, onSelectNode, selectedId, categoryFilter, onCategoryFilter, expertiseFilter, onExpertiseFilter, showEnvLayer, onToggleEnvLayer }: Props) {
   const { data: stats } = useStats();
   const { data: recent } = useRecentConcepts();
 
@@ -106,6 +108,15 @@ function ProjectView({ activeProject, onBackToGlobal, onSelectNode, selectedId, 
         <ExpButton label="all" active={expertiseFilter === null} onClick={() => onExpertiseFilter(null)} />
         <ExpButton label="known well" active={expertiseFilter === "known_well"} onClick={() => onExpertiseFilter(expertiseFilter === "known_well" ? null : "known_well")} />
         <ExpButton label="seen" active={expertiseFilter === "seen"} onClick={() => onExpertiseFilter(expertiseFilter === "seen" ? null : "seen")} />
+      </div>
+
+      <div className="px-3 pt-2 pb-2 border-t border-[var(--nx-border)]">
+        <h3 className="text-[11px] text-[var(--nx-text-4)] uppercase tracking-wider mb-1.5">layers</h3>
+        <label className="flex items-center gap-1.5 text-xs text-[var(--nx-text-3)] cursor-pointer py-0.5 px-1">
+          <input type="checkbox" checked={showEnvLayer} onChange={onToggleEnvLayer}
+            className="w-3 h-3 rounded accent-[var(--nx-accent)]" />
+          <span>show dev environment</span>
+        </label>
       </div>
 
       <div className="px-3 py-2">

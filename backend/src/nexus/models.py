@@ -48,6 +48,8 @@ class Concept:
     enrich_status: str | None = None
     project_id: str | None = None
     semantic_group: str | None = None
+    layer: str = "project"
+    usage_summary: str | None = None
     setup_commands: list[str] = field(default_factory=list)
     config_files: list[dict] = field(default_factory=list)
     created_at: str = ""
@@ -71,6 +73,8 @@ class Concept:
             enrich_status=row.get("enrich_status"),
             project_id=row.get("project_id"),
             semantic_group=row.get("semantic_group"),
+            layer=row.get("layer", "project"),
+            usage_summary=row.get("usage_summary"),
             setup_commands=setup, config_files=config,
             created_at=row.get("created_at", ""),
             updated_at=row.get("updated_at", ""),
@@ -85,6 +89,7 @@ class Edge:
     relationship: str
     description: str | None = None
     weight: float = 1.0
+    confidence: str = "structural"
     created_at: str = ""
 
     @classmethod
@@ -96,6 +101,7 @@ class Edge:
             relationship=row["relationship"],
             description=row.get("description"),
             weight=row.get("weight", 1.0),
+            confidence=row.get("confidence", "structural"),
             created_at=row.get("created_at", ""),
         )
 

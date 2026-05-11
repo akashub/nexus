@@ -87,13 +87,25 @@ export default function SidePanel({ conceptId, onClose, onNavigate }: Props) {
               ? <p className="text-xs text-[var(--nx-text-2)] leading-relaxed">{concept.description}</p>
               : <p className="text-xs text-[var(--nx-text-4)]">not enriched yet — click &ldquo;enrich&rdquo; below</p>}
           </Sec>
-          {(ctx?.usage_summary || ctx?.usage_context) && (
+          {ctx?.usage_summary && (
             <Sec title="usage in project">
-              <p className="text-xs text-[var(--nx-text-2)] leading-relaxed">{ctx.usage_summary || ctx.usage_context?.slice(0, 600)}</p>
+              <p className="text-xs text-[var(--nx-text-2)] leading-relaxed">{ctx.usage_summary}</p>
+            </Sec>
+          )}
+          {ctx?.raw_context && ctx.raw_context.length > 0 && (
+            <Sec title="from dev sessions">
+              <details className="group">
+                <summary className="text-xs text-[var(--nx-text-4)] cursor-pointer hover:text-[var(--nx-text-3)] transition-colors">show raw ({ctx.raw_context.length})</summary>
+                <div className="mt-1.5 space-y-1">
+                  {ctx.raw_context.map((s, i) => (
+                    <p key={i} className="text-xs text-[var(--nx-text-3)] leading-relaxed border-l-2 border-[var(--nx-border)] pl-2">{s.slice(0, 200)}</p>
+                  ))}
+                </div>
+              </details>
             </Sec>
           )}
           {ctx?.claude_memories && ctx.claude_memories.length > 0 && (
-            <Sec title="from dev sessions">
+            <Sec title="claude memories">
               {ctx.claude_memories.map((m, i) => (
                 <p key={i} className="text-xs text-[var(--nx-text-3)] leading-relaxed mb-1 border-l-2 border-[var(--nx-border)] pl-2">{m.slice(0, 200)}</p>
               ))}

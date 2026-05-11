@@ -94,29 +94,31 @@ def scan_project_route(
     _scan_status[project_id] = "scanning_dependencies"
 
     def _run_scan():
-        from pathlib import Path
-
         from nexus.db import get_connection
         from nexus.db_concepts import list_concepts
         from nexus.enrich import enrich_concept
-        from nexus.scanner import scan_project
-        from nexus.sync import sync_scan_results
+        from nexus.pipeline import rebuild_project_edges
         scan_conn = get_connection()
         try:
-            result = scan_project(Path(p.path))
-            _scan_status[project_id] = "syncing_results"
-            sync_scan_results(scan_conn, p.path, result)
+            def _status(msg: str):
+                _scan_status[project_id] = msg
+            _status("scanning + rebuilding edges")
+            rebuild_project_edges(
+                scan_conn, project_id,
+                project_path=p.path, project_name=p.name,
+                status_cb=_status,
+            )
             unenriched = [
                 c for c in list_concepts(scan_conn, project_id=project_id, limit=500)
                 if not c.description
             ]
             for i, c in enumerate(unenriched):
-                _scan_status[project_id] = f"enriching ({i + 1}/{len(unenriched)})"
+                _status(f"enriching ({i + 1}/{len(unenriched)})")
                 try:
                     enrich_concept(scan_conn, c.id)
                 except Exception:
                     log.debug("Enrich failed for %s", c.name, exc_info=True)
-            _scan_status[project_id] = "done"
+            _status("done")
         except Exception:
             log.exception("Scan failed for project %s", project_id)
         finally:
@@ -159,12 +161,12 @@ def compact_project_route(
     }
 
 
-def _bg_infer(pid: str | None = None):
+def _bg_infer(pid: str | None = None, path: str | None = None, name: str | None = None):
     from nexus.db import get_connection
-    from nexus.infer import infer_relationships
+    from nexus.pipeline import rebuild_project_edges
     c = get_connection()
     try:
-        infer_relationships(c, project_id=pid, verbose=True)
+        rebuild_project_edges(c, pid, project_path=path, project_name=name)
     finally:
         c.close()
 
@@ -173,9 +175,10 @@ def _bg_infer(pid: str | None = None):
 def infer_relationships_route(
     project_id: str, conn: ConnDep, background_tasks: BackgroundTasks,
 ):
-    if not get_project(conn, project_id):
+    p = get_project(conn, project_id)
+    if not p:
         raise HTTPException(404, f"Project not found: {project_id}")
-    background_tasks.add_task(_bg_infer, project_id)
+    background_tasks.add_task(_bg_infer, project_id, p.path, p.name)
     return {"status": "inferring", "project_id": project_id}
 
 
@@ -194,5 +197,3 @@ def global_graph_route(conn: ConnDep):
     edges = compute_project_edges(conn, projects)
     unassigned_count = count_concepts(conn, unassigned=True)
     return {"nodes": nodes, "edges": edges, "unassigned_count": unassigned_count}
-
-

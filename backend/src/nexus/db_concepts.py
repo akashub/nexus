@@ -110,12 +110,13 @@ def delete_concept(conn: sqlite3.Connection, cid: str) -> bool:
 def add_edge(
     conn: sqlite3.Connection, source_id: str, target_id: str, relationship: str,
     *, description: str | None = None, weight: float = 1.0,
+    confidence: str = "structural",
 ) -> Edge:
     eid = str(uuid.uuid4())
     conn.execute(
-        "INSERT INTO edges (id, source_id, target_id, relationship, description, weight) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
-        (eid, source_id, target_id, relationship, description, weight),
+        "INSERT INTO edges (id, source_id, target_id, relationship, "
+        "description, weight, confidence) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (eid, source_id, target_id, relationship, description, weight, confidence),
     )
     conn.commit()
     row = conn.execute("SELECT * FROM edges WHERE id = ?", (eid,)).fetchone()

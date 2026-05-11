@@ -15,7 +15,6 @@ router = APIRouter()
 _enrich_status: dict[str, str | None] = {}
 
 
-
 @router.get("/graph")
 def graph_route(conn: ConnDep, project_id: str | None = None):
     concepts = list_concepts(conn, limit=500, project_id=project_id)
@@ -74,8 +73,9 @@ def bulk_enrich_route(
     _enrich_status["bulk"] = f"enriching (0/{len(unenriched)})"
 
     def _run():
-        from nexus.db import get_connection
+        from nexus.db import get_connection, get_project
         from nexus.enrich import enrich_concept
+        from nexus.pipeline import rebuild_project_edges
         ec = get_connection()
         try:
             for i, c in enumerate(unenriched):
@@ -84,6 +84,14 @@ def bulk_enrich_route(
                     enrich_concept(ec, c.id)
                 except Exception:
                     log.debug("Bulk enrich failed for %s", c.name, exc_info=True)
+            if project_id:
+                _enrich_status["bulk"] = "rebuilding edges"
+                p = get_project(ec, project_id)
+                rebuild_project_edges(
+                    ec, project_id,
+                    project_path=p.path if p else None,
+                    project_name=p.name if p else None,
+                )
             _enrich_status["bulk"] = "done"
         except Exception:
             log.exception("Bulk enrich failed")

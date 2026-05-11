@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 
 from nexus.db import (
@@ -116,22 +118,34 @@ def concept_context_route(concept_id: str, conn: ConnDep):
         project = get_project(conn, c.project_id)
     from nexus.context import (
         get_claude_memories,
-        get_concept_context,
         get_install_commands,
+        search_session_context,
         summarize_usage,
     )
     p_name = project.name if project else ""
     p_path = project.path if project else ""
-    usage = get_concept_context(p_name, p_path or "", c.name)
+    raw_snippets = search_session_context(p_name, c.name) if p_name else []
+    raw_snippets = [s for s in raw_snippets if len(s.strip()) >= 40]
+    seen = set()
+    raw_snippets = [s for s in raw_snippets if not (s in seen or seen.add(s))]
     installs = get_install_commands(p_name, c.name) if p_name else []
     memories = get_claude_memories(p_path or "")
-    import re
     name_re = re.compile(r'\b' + re.escape(c.name.lower()) + r'\b')
     relevant = [m for m in memories if name_re.search(m["content"].lower())]
-    summary = summarize_usage(c.name, usage)
+    summary = c.usage_summary
+    if not summary and raw_snippets:
+        summary = summarize_usage(c.name, "\n".join(raw_snippets))
+        if summary:
+            # Conditional update: only write if still NULL (idempotent under concurrent GETs)
+            conn.execute(
+                "UPDATE concepts SET usage_summary = ?, updated_at = datetime('now')"
+                " WHERE id = ? AND usage_summary IS NULL",
+                (summary, c.id),
+            )
+            conn.commit()
     return {
-        "usage_context": usage,
-        "usage_summary": summary,
+        "usage_summary": summary or "",
+        "raw_context": raw_snippets[:5],
         "install_commands": installs,
         "claude_memories": [m["content"][:300] for m in relevant[:3]],
     }

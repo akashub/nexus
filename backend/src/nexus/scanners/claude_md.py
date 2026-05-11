@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from nexus.scanners import ScannedConcept, ScanResult
+from nexus.scanners import ScannedConcept, ScannedRelationship, ScanResult
 
 
 def scan_claude_md(project_path: Path) -> ScanResult:
@@ -78,6 +78,7 @@ _SKIP_GENERIC = {
 def _extract_tools_from_section(
     text: str, result: ScanResult, seen: set[str],
 ) -> None:
+    extracted: list[tuple[str, str]] = []
     for match in _TOOL_PATTERN.finditer(text):
         name = match.group(1).strip()
         lower = name.lower()
@@ -86,12 +87,48 @@ def _extract_tools_from_section(
         words = name.split()
         if len(words) > 3:
             continue
-        category = _guess_category(name, match.group(2))
+        desc = match.group(2).strip()
+        category = _guess_category(name, desc)
         result.concepts.append(ScannedConcept(
             name=name, source="claude_md", category_hint=category,
-            context=match.group(2).strip(),
+            context=desc,
         ))
-        seen.add(name.lower())
+        seen.add(lower)
+        extracted.append((name, desc))
+
+    _infer_claude_md_relationships(extracted, result)
+
+
+_REL_KEYWORDS = {
+    "built on": "depends_on", "powered by": "depends_on",
+    "wraps": "wraps", "wrapper": "wraps",
+    "runs": "uses", "calls": "uses", "uses": "uses",
+    "for": "uses", "via": "uses", "with": "uses",
+}
+
+
+def _infer_claude_md_relationships(
+    extracted: list[tuple[str, str]], result: ScanResult,
+) -> None:
+    names = {name.lower(): name for name, _ in extracted}
+    for name, desc in extracted:
+        desc_lower = desc.lower()
+        for other_lower, other_name in names.items():
+            if other_lower == name.lower():
+                continue
+            if other_lower not in desc_lower:
+                continue
+            rel = "uses"
+            for keyword, rel_type in _REL_KEYWORDS.items():
+                idx = desc_lower.find(keyword)
+                other_idx = desc_lower.find(other_lower)
+                if idx >= 0 and abs(idx - other_idx) < 30:
+                    rel = rel_type
+                    break
+            result.relationships.append(ScannedRelationship(
+                source_name=name, target_name=other_name,
+                relationship=rel, reason=f"CLAUDE.md: {desc[:80]}",
+            ))
 
 
 def _guess_category(name: str, desc: str) -> str:

@@ -3,12 +3,34 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from nexus.scanners import ScannedConcept, ScanResult
+from nexus.scanners import ScannedConcept, ScannedRelationship, ScanResult
 
 _MCP_PATHS = [
     Path.home() / ".claude" / "plugins.json",
     Path.home() / ".claude.json",
 ]
+
+_SECRET_PREFIXES = ("--token", "--key", "--secret", "--password", "--api-key", "--apikey")
+
+
+def _looks_secret(arg: str) -> bool:
+    lower = arg.lower()
+    return any(lower.startswith(p) for p in _SECRET_PREFIXES) or lower.startswith("sk-")
+
+
+def _filter_secret_args(args: list[str]) -> list[str]:
+    """Drop secret flags and their following values from arg lists."""
+    safe: list[str] = []
+    skip_next = False
+    for arg in args:
+        if skip_next:
+            skip_next = False
+            continue
+        if _looks_secret(arg):
+            skip_next = "=" not in arg  # --token VAL vs --token=VAL
+            continue
+        safe.append(arg)
+    return safe
 
 
 def scan_mcp(project_path: Path) -> ScanResult:
@@ -38,6 +60,7 @@ def _parse_mcp_file(
     if not isinstance(servers, dict):
         return
 
+    names_added: list[str] = []
     for name, config in servers.items():
         if name.lower() in seen:
             continue
@@ -47,9 +70,27 @@ def _parse_mcp_file(
             cmd = config.get("command", "")
             args = config.get("args", [])
             if isinstance(args, list):
-                cmd = f"{cmd} {' '.join(str(a) for a in args[:3])}"
+                safe = _filter_secret_args([str(a) for a in args[:5]])
+                cmd = f"{cmd} {' '.join(safe)}"
 
         result.concepts.append(ScannedConcept(
             name=name, source="mcp_config", category_hint="devtool",
             context=f"MCP server: {cmd.strip()[:80]}" if cmd.strip() else None,
         ))
+        names_added.append(name)
+
+    _infer_mcp_relationships(names_added, result)
+
+
+def _infer_mcp_relationships(
+    names: list[str], result: ScanResult,
+) -> None:
+    if len(names) < 2:
+        return
+    for i, src in enumerate(names):
+        for tgt in names[i + 1:]:
+            result.relationships.append(ScannedRelationship(
+                source_name=src, target_name=tgt,
+                relationship="related_to",
+                reason="co-configured MCP servers",
+            ))

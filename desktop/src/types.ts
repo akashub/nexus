@@ -24,6 +24,8 @@ export interface Concept {
   enrich_status: string | null;
   project_id: string | null;
   semantic_group: string | null;
+  layer: string;
+  usage_summary: string | null;
   expertise_level: string | null;
   setup_commands: string[];
   config_files: { path: string; content: string }[];
@@ -38,6 +40,7 @@ export interface Edge {
   relationship: string;
   description: string | null;
   weight: number;
+  confidence: string;
   created_at: string;
 }
 

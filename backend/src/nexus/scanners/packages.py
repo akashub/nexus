@@ -74,43 +74,39 @@ _CONFIG_PAIRS = {
 }
 
 
-def _find_main_framework(deps: dict) -> str | None:
-    for fw in _FRAMEWORKS:
-        match = next((n for n in deps if n.lower() == fw or n.lower().endswith(f"/{fw}")), None)
-        if match:
-            return match
-    return next(iter(deps), None)
-
-
 def _infer_npm_relationships(result: ScanResult, deps: dict, dev_deps: dict) -> None:
     all_deps = {**deps, **dev_deps}
-    main_fw = _find_main_framework(deps)
+    all_lower = {n.lower() for n in all_deps}
+    seen_pairs: set[tuple[str, str]] = set()
 
-    for name in dev_deps:
-        lower = name.lower()
-        if any(t in lower for t in _TEST_TOOLS) and main_fw:
+    def _add(src: str, tgt: str, rel: str, reason: str | None = None) -> None:
+        pair = (src.lower(), tgt.lower())
+        if pair not in seen_pairs and pair[0] != pair[1]:
+            seen_pairs.add(pair)
             result.relationships.append(ScannedRelationship(
-                source_name=name, target_name=main_fw,
-                relationship="tested_with",
-            ))
-        elif any(t in lower for t in _BUILD_TOOLS) and main_fw:
-            result.relationships.append(ScannedRelationship(
-                source_name=name, target_name=main_fw,
-                relationship="builds_into",
-            ))
-        elif any(t in lower for t in _LINT_TOOLS) and main_fw:
-            result.relationships.append(ScannedRelationship(
-                source_name=name, target_name=main_fw,
-                relationship="configured_by",
+                source_name=src, target_name=tgt,
+                relationship=rel, reason=reason,
             ))
 
     for name in all_deps:
+        lower = name.lower()
+        # Sub-package: @tailwindcss/postcss part_of tailwindcss
+        if "/" in lower:
+            scope = lower.split("/")[0].lstrip("@")
+            if scope in all_lower:
+                parent = next(n for n in all_deps if n.lower() == scope)
+                _add(name, parent, "part_of", "sub-package")
+        for tool in (*_LINT_TOOLS, *_TEST_TOOLS, *_BUILD_TOOLS):
+            is_plugin = lower.startswith(f"{tool}-") or lower.startswith(f"@{tool}/")
+            if is_plugin and tool in all_lower:
+                parent = next(n for n in all_deps if n.lower() == tool)
+                _add(name, parent, "configured_by", "plugin")
+
+    for name in all_deps:
         partner = _CONFIG_PAIRS.get(name.lower())
-        if partner and any(d.lower() == partner for d in all_deps):
-            result.relationships.append(ScannedRelationship(
-                source_name=name, target_name=partner,
-                relationship="configured_by",
-            ))
+        if partner and partner in all_lower:
+            target = next(n for n in all_deps if n.lower() == partner)
+            _add(name, target, "configured_by", "config pair")
 
 
 _SKIP_DIRS = frozenset(
@@ -157,7 +153,11 @@ def _parse_pyproject(
         return
     deps = data.get("project", {}).get("dependencies", [])
     for raw in deps:
-        name = raw.split(">=")[0].split("==")[0].split("<")[0].split("[")[0].strip()
+        spec = raw.split(";")[0]  # strip env markers
+        name = (
+            spec.split(">=")[0].split("~=")[0].split("!=")[0]
+            .split("==")[0].split("<")[0].split("[")[0].strip()
+        )
         if not name or name.startswith("#") or " " in name or "=" in name:
             continue
         lower = name.lower()
@@ -179,7 +179,11 @@ def _parse_requirements(path: Path, result: ScanResult, seen: set[str]) -> None:
         line = line.strip()
         if not line or line.startswith("#") or line.startswith("-"):
             continue
-        name = line.split(">=")[0].split("==")[0].split("<")[0].split("[")[0].strip()
+        spec = line.split(";")[0]  # strip env markers
+        name = (
+            spec.split(">=")[0].split("~=")[0].split("!=")[0]
+            .split("==")[0].split("<")[0].split("[")[0].strip()
+        )
         if not name:
             continue
         lower = name.lower()

@@ -106,6 +106,8 @@ def concept_dict(c: Concept) -> dict:
         "quickstart": c.quickstart, "doc_url": c.doc_url,
         "context7_id": c.context7_id, "enrich_status": c.enrich_status,
         "project_id": c.project_id, "semantic_group": c.semantic_group,
+        "layer": c.layer, "usage_summary": c.usage_summary,
+        "setup_commands": c.setup_commands, "config_files": c.config_files,
         "created_at": c.created_at, "updated_at": c.updated_at,
     }
 
@@ -114,7 +116,8 @@ def edge_dict(e: Edge) -> dict:
     return {
         "id": e.id, "source_id": e.source_id, "target_id": e.target_id,
         "relationship": e.relationship, "description": e.description,
-        "weight": e.weight, "created_at": e.created_at,
+        "weight": e.weight, "confidence": e.confidence,
+        "created_at": e.created_at,
     }
 
 

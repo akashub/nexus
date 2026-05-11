@@ -108,7 +108,7 @@ def _sync_relationships(
         try:
             add_edge(
                 conn, src.id, tgt.id, rel.relationship,
-                description=rel.reason,
+                description=rel.reason, confidence="structural",
             )
             stats["edges_added"] += 1
             if verbose:

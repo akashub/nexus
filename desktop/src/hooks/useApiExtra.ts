@@ -13,7 +13,7 @@ export function useRecentConcepts(limit = 8) {
   return useQuery({ queryKey: ["concepts", "recent", limit], queryFn: () => apiFetch<Concept[]>(`/concepts?limit=${limit}`) });
 }
 
-export interface ConceptContext { usage_context: string; usage_summary: string; install_commands: string[]; claude_memories: string[]; }
+export interface ConceptContext { usage_summary: string; raw_context: string[]; install_commands: string[]; claude_memories: string[]; }
 
 export function useConceptContext(id: string) {
   return useQuery({ queryKey: ["context", id], queryFn: () => apiFetch<ConceptContext>(`/concepts/${id}/context`), enabled: !!id, staleTime: 300000 });

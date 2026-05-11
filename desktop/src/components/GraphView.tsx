@@ -9,17 +9,18 @@ import { addGroupLabels, bindEvents } from "./graphEvents";
 import { graphStyles } from "./graphStyles";
 export { CATEGORY_COLORS } from "./graphStyles";
 
-interface Props { data: GraphData | undefined; onSelectNode: (id: string | null) => void; selectedId: string | null; categoryFilter: string | null; expertiseFilter: string | null; }
+interface Props { data: GraphData | undefined; onSelectNode: (id: string | null) => void; selectedId: string | null; categoryFilter: string | null; expertiseFilter: string | null; showEnvLayer?: boolean; }
 interface SimNode extends SimulationNodeDatum { id: string }
 
-function structuralHash(d: GraphData, filter: string | null, expFilter: string | null): string {
+function structuralHash(d: GraphData, filter: string | null, expFilter: string | null, showEnv?: boolean): string {
   let nodes = d.nodes;
+  if (!showEnv) nodes = nodes.filter((n) => n.layer !== "environment");
   if (filter) nodes = nodes.filter((n) => n.category === filter);
   if (expFilter) nodes = nodes.filter((n) => n.expertise_level === expFilter);
-  return nodes.map((n) => n.id).sort().join(",") + "|" + d.edges.map((e) => e.id).sort().join(",") + "|" + (filter || "") + "|" + (expFilter || "");
+  return nodes.map((n) => n.id).sort().join(",") + "|" + d.edges.map((e) => e.id).sort().join(",") + "|" + (filter || "") + "|" + (expFilter || "") + "|" + (showEnv ? "env" : "");
 }
 
-export default function GraphView({ data, onSelectNode, selectedId, categoryFilter, expertiseFilter }: Props) {
+export default function GraphView({ data, onSelectNode, selectedId, categoryFilter, expertiseFilter, showEnvLayer }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
   const simRef = useRef<ReturnType<typeof forceSimulation<SimNode>> | null>(null);
@@ -39,7 +40,9 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
   ), []);
 
   const buildElements = useCallback((d: GraphData): cytoscape.ElementDefinition[] => {
-    let nodes = categoryFilter ? d.nodes.filter((n) => n.category === categoryFilter) : d.nodes;
+    let nodes = d.nodes;
+    if (!showEnvLayer) nodes = nodes.filter((n) => n.layer !== "environment");
+    if (categoryFilter) nodes = nodes.filter((n) => n.category === categoryFilter);
     if (expertiseFilter) nodes = nodes.filter((n) => n.expertise_level === expertiseFilter);
     const nodeIds = new Set(nodes.map((n) => n.id));
     const edges = filterEdges(d, nodeIds);
@@ -52,7 +55,7 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
       } })),
       ...edges.map((e) => ({ data: { id: e.id, source: e.source_id, target: e.target_id, label: e.relationship || "", rel: e.relationship || "" } })),
     ];
-  }, [categoryFilter, expertiseFilter, filterEdges]);
+  }, [categoryFilter, expertiseFilter, showEnvLayer, filterEdges]);
 
   useEffect(() => () => {
     if (simRef.current) simRef.current.stop();
@@ -89,7 +92,7 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
 
   useEffect(() => {
     if (!containerRef.current || !data) return;
-    const hash = structuralHash(data, categoryFilter, expertiseFilter);
+    const hash = structuralHash(data, categoryFilter, expertiseFilter, showEnvLayer);
     if (hash !== lastStructHash.current || !cyRef.current) {
       lastStructHash.current = hash;
       if (simRef.current) simRef.current.stop();
@@ -101,7 +104,9 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
         minZoom: 0.3, maxZoom: 3, wheelSensitivity: 0.3,
       });
       const w = containerRef.current.clientWidth, h = containerRef.current.clientHeight;
-      let filtered = categoryFilter ? data.nodes.filter((n) => n.category === categoryFilter) : data.nodes;
+      let filtered = data.nodes;
+      if (!showEnvLayer) filtered = filtered.filter((n) => n.layer !== "environment");
+      if (categoryFilter) filtered = filtered.filter((n) => n.category === categoryFilter);
       if (expertiseFilter) filtered = filtered.filter((n) => n.expertise_level === expertiseFilter);
       const nIds = new Set(filtered.map((n) => n.id));
       const simNodes: SimNode[] = filtered.map((n) => ({
@@ -139,7 +144,7 @@ export default function GraphView({ data, onSelectNode, selectedId, categoryFilt
         node.data("enriching", !!n.enrich_status);
       }
     }
-  }, [data, onSelectNode, buildElements, categoryFilter, expertiseFilter, isDark]);
+  }, [data, onSelectNode, buildElements, categoryFilter, expertiseFilter, showEnvLayer, isDark]);
 
   useEffect(() => {
     const cy = cyRef.current; if (!cy) return; cy.nodes().unselect();

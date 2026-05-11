@@ -2,75 +2,149 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from itertools import combinations
+from pathlib import Path
 
 import click
 
 from nexus.ai import cosine_similarity, generate, is_available
-from nexus.db_concepts import add_edge, list_concepts
+from nexus.db_concepts import add_edge, get_edges, list_concepts
 from nexus.models import RELATIONSHIP_TYPES
 
-_SIM_THRESHOLD = 0.55
-_TOP_K = 3
+_SIM_THRESHOLD = 0.7
 _VALID_TYPES = sorted(RELATIONSHIP_TYPES)
 
-_SYSTEM = (
-    "You label relationships between software concepts in a project. "
-    'Reply with ONLY a JSON object: {"relationship": "<type>", '
-    '"reason": "<one sentence about how they relate IN THIS PROJECT>"}. '
-    f"Valid types: {', '.join(_VALID_TYPES)}. "
-    "Pick the most specific type. If none fit, use related_to."
-)
+
+def similarity_pass(
+    conn: sqlite3.Connection, *, project_id: str | None = None,
+) -> dict:
+    concepts = list_concepts(conn, limit=500, project_id=project_id)
+    with_embed = [c for c in concepts if c.embedding and c.category]
+    existing = _load_existing_edges(conn)
+    stats = {"created": 0, "skipped": 0}
+
+    for i, a in enumerate(with_embed):
+        for b in with_embed[i + 1:]:
+            if a.category != b.category:
+                continue
+            sim = cosine_similarity(a.embedding, b.embedding)
+            if sim < _SIM_THRESHOLD:
+                continue
+            pk = _pair_key(a.id, b.id)
+            if pk in existing:
+                stats["skipped"] += 1
+                continue
+            try:
+                add_edge(
+                    conn, a.id, b.id, "similar_to",
+                    description=f"similar ({sim:.2f})",
+                    weight=round(sim, 3), confidence="similarity",
+                )
+                existing.add(pk)
+                stats["created"] += 1
+            except sqlite3.IntegrityError:
+                stats["skipped"] += 1
+    return stats
 
 
-def infer_relationships(
-    conn: sqlite3.Connection,
-    *,
+def llm_gap_fill(
+    conn: sqlite3.Connection, *,
     project_id: str | None = None,
     project_name: str | None = None,
     project_path: str | None = None,
-    verbose: bool = False,
 ) -> dict:
     if not is_available():
-        click.echo("ollama not available — skipping relationship inference")
-        return {"inferred": 0, "skipped": 0, "errors": 0}
+        return {"filled": 0, "skipped": 0, "errors": 0}
 
     concepts = list_concepts(conn, limit=500, project_id=project_id)
-    with_embed = [c for c in concepts if c.embedding]
-    if len(with_embed) < 2:
-        click.echo("need at least 2 concepts with embeddings")
-        return {"inferred": 0, "skipped": 0, "errors": 0}
+    project_layer = [c for c in concepts if c.layer == "project"]
+
+    orphans, connected = [], []
+    for c in project_layer:
+        (connected if get_edges(conn, c.id) else orphans).append(c)
+    connected_names = [c.name for c in connected]
+
+    if not orphans or not connected_names:
+        return {"filled": 0, "skipped": 0, "errors": 0}
 
     overview = _get_project_overview(project_name)
+    claude_md = _read_claude_md(project_path)
+    skeleton = ", ".join(connected_names[:50])
+    stats = {"filled": 0, "skipped": 0, "errors": 0}
     existing = _load_existing_edges(conn)
-    candidates = _find_candidates(with_embed)
-    stats = {"inferred": 0, "skipped": 0, "errors": 0}
+    concept_map = {c.name.lower(): c for c in project_layer}
 
-    for a, b, sim in candidates:
-        pair_key = _pair_key(a.id, b.id)
-        if pair_key in existing:
+    for orphan in orphans:
+        rels = _fill_orphan(orphan, skeleton, overview, claude_md, connected_names)
+        if not rels:
             stats["skipped"] += 1
             continue
-        ctx = _gather_context(project_name, project_path, a.name, b.name)
-        rel = _label_pair(a, b, overview, ctx)
-        if not rel:
-            stats["errors"] += 1
-            continue
-        try:
-            add_edge(
-                conn, a.id, b.id, rel["relationship"],
-                description=rel.get("reason"), weight=round(sim, 3),
-            )
-            existing.add(pair_key)
-            stats["inferred"] += 1
-            if verbose:
-                click.echo(
-                    f"  ~ {a.name} --[{rel['relationship']}]--> "
-                    f"{b.name} ({sim:.2f})",
+        for rel in rels:
+            target_name = rel.get("target", "").lower()
+            target = concept_map.get(target_name)
+            if not target or target.id == orphan.id:
+                continue
+            pk = _pair_key(orphan.id, target.id)
+            if pk in existing:
+                continue
+            rel_type = rel.get("relationship", "related_to")
+            if rel_type not in RELATIONSHIP_TYPES:
+                rel_type = "related_to"
+            try:
+                add_edge(
+                    conn, orphan.id, target.id, rel_type,
+                    description=rel.get("reason"),
+                    confidence="inferred",
                 )
-        except sqlite3.IntegrityError:
-            stats["skipped"] += 1
+                existing.add(pk)
+                stats["filled"] += 1
+            except sqlite3.IntegrityError:
+                pass
     return stats
+
+
+_GAP_SYSTEM = (
+    "You connect orphaned software concepts to a project's dependency graph. "
+    "Reply ONLY with a JSON array of objects: "
+    '[{"target": "<existing concept name>", "relationship": "<type>", '
+    '"reason": "<one sentence>"}]. '
+    f"Valid types: {', '.join(_VALID_TYPES)}. "
+    "Return [] if no confident connection exists. Max 3 connections."
+)
+
+
+def _fill_orphan(
+    orphan, skeleton: str, overview: str, claude_md: str,
+    connected: list[str],
+) -> list[dict]:
+    prompt = f"Orphan concept: {orphan.name}"
+    if orphan.description:
+        prompt += f"\nDescription: {orphan.description[:200]}"
+    prompt += f"\n\nConnected concepts in this project:\n{skeleton}"
+    if overview:
+        prompt += f"\n\nProject overview:\n{overview[:500]}"
+    if claude_md:
+        prompt += f"\n\nProject CLAUDE.md:\n{claude_md[:800]}"
+    prompt += (
+        f"\n\nWhich of the connected concepts does '{orphan.name}' "
+        "relate to, and how?"
+    )
+    try:
+        raw = generate(prompt, system=_GAP_SYSTEM)
+        start = raw.find("[")
+        end = raw.rfind("]") + 1
+        if start < 0 or end <= start:
+            return []
+        data = json.loads(raw[start:end])
+        if not isinstance(data, list):
+            return []
+        valid = [
+            r for r in data
+            if isinstance(r, dict) and r.get("target", "").lower()
+            in {n.lower() for n in connected}
+        ]
+        return valid[:3]
+    except Exception:
+        return []
 
 
 def _get_project_overview(name: str | None) -> str:
@@ -83,29 +157,20 @@ def _get_project_overview(name: str | None) -> str:
         return ""
 
 
-def _gather_context(
-    project_name: str | None, project_path: str | None,
-    name_a: str, name_b: str,
-) -> str:
-    if not project_name:
+def _read_claude_md(project_path: str | None) -> str:
+    if not project_path:
         return ""
-    try:
-        from nexus.context import get_concept_context
-        path = project_path or ""
-        ctx_a = get_concept_context(project_name, path, name_a)
-        ctx_b = get_concept_context(project_name, path, name_b)
-        parts = []
-        if ctx_a:
-            parts.append(f"Context for {name_a}:\n{ctx_a[:300]}")
-        if ctx_b:
-            parts.append(f"Context for {name_b}:\n{ctx_b[:300]}")
-        return "\n\n".join(parts)
-    except Exception:
-        return ""
+    p = Path(project_path) / "CLAUDE.md"
+    if p.exists():
+        try:
+            return p.read_text()[:2000]
+        except OSError:
+            pass
+    return ""
 
 
 def _load_existing_edges(conn: sqlite3.Connection) -> set[tuple[str, str]]:
-    rows = conn.execute("SELECT source_id, target_id FROM edges").fetchall()
+    rows = conn.execute("SELECT source_id, target_id FROM edges LIMIT 10000").fetchall()
     pairs: set[tuple[str, str]] = set()
     for r in rows:
         pairs.add(_pair_key(r["source_id"], r["target_id"]))
@@ -116,47 +181,17 @@ def _pair_key(a: str, b: str) -> tuple[str, str]:
     return (min(a, b), max(a, b))
 
 
-def _find_candidates(concepts: list) -> list[tuple]:
-    scored: dict[str, list[tuple]] = {c.id: [] for c in concepts}
-    for a, b in combinations(concepts, 2):
-        sim = cosine_similarity(a.embedding, b.embedding)
-        if sim >= _SIM_THRESHOLD:
-            scored[a.id].append((a, b, sim))
-            scored[b.id].append((b, a, sim))
-    seen: set[tuple[str, str]] = set()
-    result: list[tuple] = []
-    for cid in scored:
-        top = sorted(scored[cid], key=lambda x: x[2], reverse=True)[:_TOP_K]
-        for a, b, sim in top:
-            pk = _pair_key(a.id, b.id)
-            if pk not in seen:
-                seen.add(pk)
-                result.append((a, b, sim))
-    return sorted(result, key=lambda x: x[2], reverse=True)
-
-
-def _label_pair(a, b, overview: str, context: str) -> dict | None:
-    prompt = f"Concept A: {a.name}"
-    if a.description:
-        prompt += f" — {a.description[:200]}"
-    prompt += f"\nConcept B: {b.name}"
-    if b.description:
-        prompt += f" — {b.description[:200]}"
-    if overview:
-        prompt += f"\n\nProject context:\n{overview[:400]}"
-    if context:
-        prompt += f"\n\nUsage context:\n{context[:400]}"
-    prompt += "\n\nWhat is the relationship from A to B in this project?"
-    try:
-        raw = generate(prompt, system=_SYSTEM)
-        start = raw.find("{")
-        end = raw.rfind("}") + 1
-        if start < 0 or end <= start:
-            return None
-        data = json.loads(raw[start:end])
-        rel = data.get("relationship", "related_to")
-        if rel not in RELATIONSHIP_TYPES:
-            rel = "related_to"
-        return {"relationship": rel, "reason": data.get("reason")}
-    except Exception:
-        return None
+def infer_relationships(
+    conn: sqlite3.Connection, *, project_id: str | None = None,
+    project_name: str | None = None, project_path: str | None = None,
+    verbose: bool = False,
+) -> dict:
+    sim = similarity_pass(conn, project_id=project_id)
+    gap = llm_gap_fill(
+        conn, project_id=project_id,
+        project_name=project_name, project_path=project_path,
+    )
+    if verbose:
+        click.echo(f"  similarity: {sim['created']}, gap-fill: {gap['filled']}")
+    return {"similarity": sim["created"], "inferred": gap["filled"],
+            "skipped": sim["skipped"] + gap["skipped"], "errors": gap.get("errors", 0)}

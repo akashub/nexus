@@ -37,6 +37,7 @@ export default function App() {
   const [showJourney, setShowJourney] = useState(false);
   const [showGaps, setShowGaps] = useState(false);
   const [expertiseFilter, setExpertiseFilter] = useState<string | null>(null);
+  const [showEnvLayer, setShowEnvLayer] = useState(false);
   const [enrichPolling, setEnrichPolling] = useState(false);
   const backendStatus = useBackend();
   const { data: graph } = useGraph(activeProject?.id);
@@ -149,6 +150,7 @@ export default function App() {
           onSelectNode={setSelectedId} selectedId={selectedId}
           categoryFilter={categoryFilter} onCategoryFilter={setCategoryFilter}
           expertiseFilter={expertiseFilter} onExpertiseFilter={setExpertiseFilter}
+          showEnvLayer={showEnvLayer} onToggleEnvLayer={() => setShowEnvLayer((v) => !v)}
         />
         <div className="flex-1 min-w-0 flex flex-col">
           <Toolbar activeProject={activeProject} enrichPolling={enrichPolling} enrichLabel={enrichLabel}
@@ -159,7 +161,7 @@ export default function App() {
             onFit={() => window.dispatchEvent(new CustomEvent("nexus:fit"))} />
           <main className="flex-1 relative">
             {activeProject ? (
-              <GraphView data={graph} onSelectNode={setSelectedId} selectedId={selectedId} categoryFilter={categoryFilter} expertiseFilter={expertiseFilter} />
+              <GraphView data={graph} onSelectNode={setSelectedId} selectedId={selectedId} categoryFilter={categoryFilter} expertiseFilter={expertiseFilter} showEnvLayer={showEnvLayer} />
             ) : (
               <GlobalGraphView data={globalGraph} onSelectProject={handleSelectProjectById} />
             )}
@@ -191,10 +193,8 @@ export default function App() {
       {showSearch && <SearchBar onSelect={setSelectedId} onClose={() => setShowSearch(false)} />}
       {showAdd && <AddModal onClose={() => setShowAdd(false)} />}
       {showAddProject && <AddProjectModal onClose={() => setShowAddProject(false)} />}
-      {replicateProject && (
-        <ReplicateModal projectId={replicateProject.id} projectName={replicateProject.name}
-          onClose={() => setReplicateProject(null)} />
-      )}
+      {replicateProject && <ReplicateModal projectId={replicateProject.id}
+        projectName={replicateProject.name} onClose={() => setReplicateProject(null)} />}
     </div>
   );
 }
