@@ -112,11 +112,13 @@ function ProjectView({ activeProject, onBackToGlobal, onSelectNode, selectedId, 
 
       <div className="px-3 pt-2 pb-2 border-t border-[var(--nx-border)]">
         <h3 className="text-[11px] text-[var(--nx-text-4)] uppercase tracking-wider mb-1.5">layers</h3>
-        <label className="flex items-center gap-1.5 text-xs text-[var(--nx-text-3)] cursor-pointer py-0.5 px-1">
-          <input type="checkbox" checked={showEnvLayer} onChange={onToggleEnvLayer}
-            className="w-3 h-3 rounded accent-[var(--nx-accent)]" />
-          <span>show dev environment</span>
-        </label>
+        <button onClick={onToggleEnvLayer}
+          className="flex items-center gap-2 text-xs text-[var(--nx-text-3)] cursor-pointer py-0.5 px-1 hover:text-[var(--nx-text)] transition-colors">
+          <span className={`relative inline-block w-6 h-3.5 rounded-full transition-colors ${showEnvLayer ? "bg-[var(--nx-accent)]" : "bg-[var(--nx-border)]"}`}>
+            <span className={`absolute top-0.5 left-0.5 w-2.5 h-2.5 rounded-full bg-[var(--nx-bg)] transition-transform ${showEnvLayer ? "translate-x-2.5" : ""}`} />
+          </span>
+          <span>show dev tools</span>
+        </button>
       </div>
 
       <div className="px-3 py-2">
