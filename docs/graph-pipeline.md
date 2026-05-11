@@ -27,11 +27,11 @@ flowchart TB
     end
 
     discover --> edges
-    edges --> graph["Interactive Knowledge Graph"]
+    edges --> kg["Interactive Knowledge Graph"]
 
     style discover fill:#1a1a2e,stroke:#4a4a6a,color:#e0e0e0
     style edges fill:#16213e,stroke:#4a4a6a,color:#e0e0e0
-    style graph fill:#0f3460,stroke:#4a4a6a,color:#e0e0e0
+    style kg fill:#0f3460,stroke:#4a4a6a,color:#e0e0e0
 ```
 
 ---
