@@ -97,22 +97,33 @@ Green checks for Database, MCP Server, Hooks, Skill. Ollama shows red if not run
 
 | Page | Contents |
 |------|----------|
+| **[Graph Pipeline](docs/graph-pipeline.md)** | How Nexus discovers nodes and creates edges — with flowcharts |
 | **[CLI Reference](docs/cli-reference.md)** | All commands, flags, and options |
 | **[Claude Code Integration](docs/claude-code-integration.md)** | MCP server, hooks, skill, passive capture, ledger format |
 | **[API Reference](docs/api-reference.md)** | REST endpoints for the local server |
 | **[Configuration](docs/configuration.md)** | Environment variables, AI models, database |
 | **[Usage Guide](docs/usage-guide.md)** | Workflows, team scenarios, tips |
 
-## How AI enrichment works
+## How graphs are populated
 
-Nexus uses **any Ollama model** for enrichment — not just one specific model. Set `NEXUS_LLM_MODEL` to whatever you have installed (`llama3`, `mistral`, `phi3`, `gemma3`, `gemma4`, etc.). Cloud APIs (Anthropic, OpenAI) work too via optional env vars.
+Nexus reads your project's existing files — `package.json`, `pyproject.toml`, `CLAUDE.md`, `.mcp.json`, git history — and extracts every tool and dependency as a graph node. Then it builds edges in four passes:
 
-The enrichment pipeline:
-1. Fetch docs via Context7, PyPI, npm, GitHub
-2. Generate description and summary via your chosen model
-3. Create embedding via nomic-embed-text
-4. Find related concepts by cosine similarity
-5. Suggest connections
+```
+① Structural    — config files declare real dependencies (highest confidence)
+② Cross-ref     — CLAUDE.md architecture descriptions matched against packages
+③ Similarity    — embedding cosine > 0.7, same category only → similar_to
+④ LLM gap-fill  — orphan concepts connected to skeleton via local AI
+```
+
+Manual edges you create are never deleted. Everything else rebuilds from source on each scan.
+
+See **[Graph Pipeline](docs/graph-pipeline.md)** for the full walkthrough with flowcharts and diagrams.
+
+## AI enrichment
+
+Nexus uses **any Ollama model** for enrichment — set `NEXUS_LLM_MODEL` to whatever you have installed (`llama3`, `mistral`, `gemma3`, `gemma4`, etc.). Cloud APIs (Anthropic, OpenAI) work too via optional env vars.
+
+For each concept: fetch docs (Context7 → PyPI/npm/GitHub fallback) → LLM summarizes → nomic-embed-text generates embedding. Enrichment is optional — the graph works without AI.
 
 See [Configuration](docs/configuration.md) for model setup details.
 

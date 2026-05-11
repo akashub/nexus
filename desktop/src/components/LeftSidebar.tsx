@@ -117,7 +117,7 @@ function ProjectView({ activeProject, onBackToGlobal, onSelectNode, selectedId, 
           <span className={`relative inline-block w-6 h-3.5 rounded-full transition-colors ${showEnvLayer ? "bg-[var(--nx-accent)]" : "bg-[var(--nx-border)]"}`}>
             <span className={`absolute top-0.5 left-0.5 w-2.5 h-2.5 rounded-full bg-[var(--nx-bg)] transition-transform ${showEnvLayer ? "translate-x-2.5" : ""}`} />
           </span>
-          <span>show dev tools</span>
+          <span>{showEnvLayer ? "all dependencies" : "project deps only"}</span>
         </button>
       </div>
 
