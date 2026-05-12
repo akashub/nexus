@@ -439,6 +439,55 @@
       padding: 2px 6px; border-radius: 4px;
     }
 
+    /* ─── PIPELINE ─── */
+    .pipeline-flow {
+      display: flex; flex-direction: column; gap: 0; margin-top: 2.5rem; position: relative;
+    }
+    .pipeline-flow::before {
+      content: ''; position: absolute; left: 28px; top: 0; bottom: 0; width: 2px;
+      background: linear-gradient(to bottom, var(--c-blue), var(--c-purple), var(--c-green), var(--c-orange));
+      opacity: 0.3;
+    }
+    .pipe-phase {
+      display: grid; grid-template-columns: 56px 1fr; gap: 0; padding: 1.4rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05); position: relative;
+    }
+    .pipe-phase:last-child { border-bottom: none; }
+    .pipe-num {
+      width: 40px; height: 40px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 14px; font-weight: 600;
+      position: relative; z-index: 1;
+      margin-left: 8px;
+    }
+    .pipe-phase:nth-child(1) .pipe-num { background: rgba(96,165,250,0.15); color: var(--c-blue); border: 1px solid rgba(96,165,250,0.3); }
+    .pipe-phase:nth-child(2) .pipe-num { background: rgba(167,139,250,0.15); color: var(--c-purple); border: 1px solid rgba(167,139,250,0.3); }
+    .pipe-phase:nth-child(3) .pipe-num { background: rgba(74,222,128,0.15); color: var(--c-green); border: 1px solid rgba(74,222,128,0.3); }
+    .pipe-phase:nth-child(4) .pipe-num { background: rgba(251,191,36,0.15); color: var(--c-orange); border: 1px solid rgba(251,191,36,0.3); }
+    .pipe-body h4 { font-size: 14px; font-weight: 500; color: var(--silver-bright); margin-bottom: 0.3rem; }
+    .pipe-body p { font-size: 12px; color: var(--silver-dim); line-height: 1.6; font-weight: 300; }
+    .pipe-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 0.5rem; }
+    .pipe-tag {
+      font-family: var(--mono); font-size: 10px; padding: 3px 8px; border-radius: 4px;
+      background: rgba(255,255,255,0.05); color: var(--silver); border: 1px solid rgba(255,255,255,0.08);
+    }
+    .pipe-scanners {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 1.5rem;
+    }
+    .pipe-scanner {
+      padding: 1rem; border-radius: 10px;
+      background: linear-gradient(155deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .pipe-scanner h5 {
+      font-size: 11px; font-weight: 500; color: var(--silver-bright);
+      margin-bottom: 0.2rem; font-family: var(--mono);
+    }
+    .pipe-scanner p { font-size: 11px; color: var(--silver-dim); line-height: 1.5; font-weight: 300; }
+    .pipe-conf { display: inline-flex; align-items: center; gap: 5px; margin-top: 0.4rem; }
+    .pipe-conf-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+    .pipe-conf-label { font-size: 10px; color: var(--silver-dim); font-weight: 300; }
+
     /* ─── CTA ─── */
     .cta-section {
       text-align: center; padding: 100px 2rem 140px; position: relative;
@@ -632,6 +681,7 @@
     /* ─── RESPONSIVE ─── */
     @media (max-width: 900px) {
       .glass-grid, .int-grid { grid-template-columns: 1fr; }
+      .pipe-scanners { grid-template-columns: 1fr 1fr; }
       .platform-downloads { flex-direction: column; align-items: center; }
     }
     @media (max-width: 768px) {
@@ -659,6 +709,7 @@
     <a href="#features">Features</a>
     <a href="#how">How It Works</a>
     <a href="#cli">CLI</a>
+    <a href="#pipeline">Pipeline</a>
     <a href="#integrations">Integrations</a>
     <a href="https://github.com/akashub/nexus" target="_blank">GitHub</a>
   </div>
@@ -753,7 +804,7 @@
       <div class="demo-status">
         <span class="demo-status-dot green"></span>
         <span>ollama</span>
-        <span id="demoVersion" style="color:var(--silver-dim)">v0.2.13</span>
+        <span id="demoVersion" style="color:var(--silver-dim)">v0.2.15</span>
         <span class="demo-stats" id="demoStats">12 nodes &middot; 18 edges</span>
       </div>
     </div>
@@ -987,17 +1038,119 @@
 
 <div class="divider"></div>
 
+<!-- ─── PIPELINE ─── -->
+<section id="pipeline">
+  <div class="section-label">Under the Hood</div>
+  <h2>How your graph <strong>builds itself</strong></h2>
+  <p class="section-desc">Nexus reads your project files and constructs the graph in two phases. No manual wiring.</p>
+
+  <h3 style="font-size:13px; font-weight:500; color:var(--silver-bright); margin-top:2.5rem; margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:1px;">Phase 1 &mdash; Discover Nodes</h3>
+  <p style="font-size:12px; color:var(--silver-dim); line-height:1.6; font-weight:300; margin-bottom:1rem;">Six scanners extract concepts from different project files:</p>
+
+  <div class="pipe-scanners">
+    <div class="pipe-scanner">
+      <h5>package.json</h5>
+      <p>npm &amp; Python deps &rarr; react, fastapi, eslint</p>
+    </div>
+    <div class="pipe-scanner">
+      <h5>CLAUDE.md / AGENTS.md</h5>
+      <p><code style="font-size:10px;">**Tool** &mdash; desc</code> patterns in Stack section</p>
+    </div>
+    <div class="pipe-scanner">
+      <h5>MCP configs</h5>
+      <p>.mcp.json, plugins.json &rarr; server names</p>
+    </div>
+    <div class="pipe-scanner">
+      <h5>AI tool configs</h5>
+      <p>.cursorrules, .windsurfrules, COPILOT.md, GEMINI.md</p>
+    </div>
+    <div class="pipe-scanner">
+      <h5>Git history</h5>
+      <p>Install commands in recent commits</p>
+    </div>
+    <div class="pipe-scanner">
+      <h5>Import scanner</h5>
+      <p>Python AST &amp; TypeScript regex (opt-in)</p>
+    </div>
+  </div>
+
+  <h3 style="font-size:13px; font-weight:500; color:var(--silver-bright); margin-top:2.5rem; margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:1px;">Phase 2 &mdash; Create Edges</h3>
+  <p style="font-size:12px; color:var(--silver-dim); line-height:1.6; font-weight:300; margin-bottom:0;">Four passes build relationships with decreasing confidence:</p>
+
+  <div class="pipeline-flow">
+    <div class="pipe-phase">
+      <div class="pipe-num">1</div>
+      <div class="pipe-body">
+        <h4>Structural scan</h4>
+        <p>Config files declare real dependencies. <code style="font-size:11px;">@tailwindcss/postcss</code> &rarr; <code style="font-size:11px;">tailwindcss</code> (part_of), plugin patterns, scoped packages, co-configured tools.</p>
+        <div class="pipe-conf"><span class="pipe-conf-dot" style="background:var(--c-blue);"></span><span class="pipe-conf-label">structural confidence</span></div>
+      </div>
+    </div>
+    <div class="pipe-phase">
+      <div class="pipe-num">2</div>
+      <div class="pipe-body">
+        <h4>CLAUDE.md cross-reference</h4>
+        <p>Architecture descriptions matched against known packages. <code style="font-size:11px;">Cytoscape.js</code> mentioned in CLAUDE.md &rarr; linked to <code style="font-size:11px;">cytoscape</code> in package.json.</p>
+        <div class="pipe-conf"><span class="pipe-conf-dot" style="background:var(--c-blue);"></span><span class="pipe-conf-label">structural confidence</span></div>
+      </div>
+    </div>
+    <div class="pipe-phase">
+      <div class="pipe-num">3</div>
+      <div class="pipe-body">
+        <h4>Similarity pass</h4>
+        <p>Embedding cosine similarity &gt; 0.7, same category only. Creates <code style="font-size:11px;">similar_to</code> edges &mdash; never guesses the relationship type.</p>
+        <div class="pipe-conf"><span class="pipe-conf-dot" style="background:var(--c-purple);"></span><span class="pipe-conf-label">similarity confidence</span></div>
+      </div>
+    </div>
+    <div class="pipe-phase">
+      <div class="pipe-num">4</div>
+      <div class="pipe-body">
+        <h4>LLM gap-fill</h4>
+        <p>Orphan concepts (zero edges) get connected to the existing skeleton by a local LLM. Max 3 edges per orphan. Skipped if Ollama is not running.</p>
+        <div class="pipe-conf"><span class="pipe-conf-dot" style="background:var(--c-orange);"></span><span class="pipe-conf-label">inferred confidence</span></div>
+      </div>
+    </div>
+  </div>
+
+  <p style="font-size:12px; color:var(--silver-dim); margin-top:1.5rem; font-weight:300; line-height:1.6;">Manual edges you create are never deleted. Everything else rebuilds from source on each scan. <a href="https://github.com/akashub/nexus/blob/main/docs/graph-pipeline.md" target="_blank" style="color:var(--c-purple); font-size:12px;">Full pipeline docs &rarr;</a></p>
+</section>
+
+<div class="divider"></div>
+
 <!-- ─── INTEGRATIONS ─── -->
 <section id="integrations">
   <div class="section-label">Ecosystem</div>
   <h2>Works with your <strong>tools</strong></h2>
-  <p class="section-desc">Plugs into the AI coding workflow you already have.</p>
+  <p class="section-desc">Reads config files and memories from every major AI coding tool. Your workflow stays the same.</p>
 
   <div class="int-grid">
     <div class="int-card" style="--accent: var(--c-purple);">
       <h4>Claude Code</h4>
-      <p>MCP server for real-time graph access. Hooks capture installs. Skill teaches the ledger format.</p>
+      <p>MCP server, hooks, skill. Reads <code>CLAUDE.md</code>, <code>AGENTS.md</code>, and <code>~/.claude/</code> memories.</p>
     </div>
+    <div class="int-card" style="--accent: var(--c-blue);">
+      <h4>Cursor</h4>
+      <p>Scans <code>.cursorrules</code> for project conventions and tool preferences.</p>
+    </div>
+    <div class="int-card" style="--accent: var(--c-green);">
+      <h4>Windsurf</h4>
+      <p>Reads <code>.windsurfrules</code> for stack context and project instructions.</p>
+    </div>
+    <div class="int-card" style="--accent: var(--c-orange);">
+      <h4>GitHub Copilot</h4>
+      <p>Parses <code>.github/copilot-instructions.md</code> and <code>COPILOT.md</code> for tool context.</p>
+    </div>
+    <div class="int-card" style="--accent: var(--c-red);">
+      <h4>Aider</h4>
+      <p>Reads <code>.aider/prompts.md</code> config and <code>.aider.chat.history.md</code> session history.</p>
+    </div>
+    <div class="int-card" style="--accent: var(--c-emerald);">
+      <h4>Gemini CLI</h4>
+      <p>Scans <code>GEMINI.md</code> for project setup, stack definitions, and tool preferences.</p>
+    </div>
+  </div>
+
+  <div class="int-grid" style="margin-top:14px;">
     <div class="int-card" style="--accent: var(--c-blue);">
       <h4>Codex &amp; MCP Clients</h4>
       <p>Any MCP-compatible tool works. Register <code>nexus mcp serve</code> and go.</p>
@@ -1005,14 +1158,6 @@
     <div class="int-card" style="--accent: var(--c-green);">
       <h4>Ollama</h4>
       <p>Any local model for generation, nomic-embed-text for embeddings. No API keys required.</p>
-    </div>
-    <div class="int-card" style="--accent: var(--c-orange);">
-      <h4>Cloud AI</h4>
-      <p>Anthropic or OpenAI for higher-quality enrichment. One env var, add <code>--model cloud</code>.</p>
-    </div>
-    <div class="int-card" style="--accent: var(--c-red);">
-      <h4>Desktop App</h4>
-      <p>Tauri-based native app. Interactive graph, search, side panels, project switching.</p>
     </div>
     <div class="int-card" style="--accent: var(--c-emerald);">
       <h4>Context7</h4>
@@ -1407,7 +1552,7 @@ function copyInstall(method) {
       }
     });
   }, { threshold: 0.08 });
-  document.querySelectorAll('.glass-card, .step, .int-card').forEach(el => {
+  document.querySelectorAll('.glass-card, .step, .int-card, .pipe-phase, .pipe-scanner').forEach(el => {
     el.style.opacity = '0'; el.style.transform = 'translateY(24px)';
     obs.observe(el);
   });
