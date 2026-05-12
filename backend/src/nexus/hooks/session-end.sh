@@ -9,10 +9,10 @@ mkdir -p "$(dirname "$LOG_FILE")"
 
 LEDGER="/tmp/nexus-ledger.jsonl"
 if [ -f "$LEDGER" ]; then
-  timeout 30 nexus ingest "$LEDGER" --quiet 2>>"$LOG_FILE" || true
+  nexus ingest "$LEDGER" --quiet 2>>"$LOG_FILE" || true
 fi
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-}"
 if [ -n "$PROJECT_DIR" ]; then
-  timeout 60 nexus scan "$PROJECT_DIR" --quiet 2>>"$LOG_FILE" || true
+  nexus scan "$PROJECT_DIR" --quiet 2>>"$LOG_FILE" || true
 fi

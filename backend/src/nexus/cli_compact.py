@@ -30,7 +30,7 @@ def compact_cmd(
             click.echo(
                 f"  {prefix}{p.name}: "
                 f"{stats.merged} merged, {stats.stale_removed} stale removed, "
-                f"{stats.edges_deduped} edges deduped"
+                f"{stats.edges_deduped} deduped, {stats.edges_pruned} pruned"
             )
     finally:
         conn.close()

@@ -31,12 +31,15 @@ def sync_scan_results(
     project = _ensure_project(conn, project_path, result.project_description)
     stats = {"added": 0, "skipped": 0, "edges_added": 0}
 
+    to_enrich: list[str] = []
     for sc in result.concepts:
         setup = [sc.setup_command] if sc.setup_command else []
         existing = get_concept_by_name_and_project(conn, sc.name, project.id)
         if existing:
             if setup and not existing.setup_commands:
                 update_concept(conn, existing.id, setup_commands=setup)
+            if enrich and not existing.embedding:
+                to_enrich.append(existing.id)
             stats["skipped"] += 1
             continue
         global_existing = get_concept_by_name(conn, sc.name)
@@ -71,6 +74,14 @@ def sync_scan_results(
                 enrich_concept(conn, c.id)
             except Exception:
                 update_concept(conn, c.id, enrich_status=None)
+
+    if to_enrich:
+        from nexus.enrich import enrich_concept
+        for cid in to_enrich:
+            try:
+                enrich_concept(conn, cid)
+            except Exception:
+                update_concept(conn, cid, enrich_status=None)
 
     _sync_relationships(conn, project.id, result, stats, verbose)
 

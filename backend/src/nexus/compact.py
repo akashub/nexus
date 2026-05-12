@@ -19,6 +19,7 @@ class CompactStats:
     merged: int = 0
     stale_removed: int = 0
     edges_deduped: int = 0
+    edges_pruned: int = 0
     reembedded: int = 0
     errors: list[str] = field(default_factory=list)
 
@@ -38,6 +39,7 @@ def compact_project(
     concepts = list_concepts(conn, **kw)
 
     _dedup_edges(conn, concepts, stats, dry_run)
+    _prune_weak_edges(conn, concepts, stats, dry_run)
     _merge_similar(conn, concepts, similarity_threshold, stats, dry_run)
     _remove_stale(conn, concepts, stale_days, stats, dry_run)
 
@@ -56,6 +58,24 @@ def _dedup_edges(conn, concepts, stats: CompactStats, dry_run: bool) -> None:
                     delete_edge(conn, e.id)
             else:
                 seen[key] = e.id
+
+
+def _prune_weak_edges(conn, concepts, stats: CompactStats, dry_run: bool) -> None:
+    concept_map = {c.id: c for c in concepts}
+    seen: set[str] = set()
+    for c in concepts:
+        for e in get_edges(conn, c.id):
+            if e.id in seen or e.relationship != "similar_to":
+                continue
+            seen.add(e.id)
+            src = concept_map.get(e.source_id)
+            tgt = concept_map.get(e.target_id)
+            if not src or not tgt:
+                continue
+            if e.weight and e.weight < 0.75:
+                stats.edges_pruned += 1
+                if not dry_run:
+                    delete_edge(conn, e.id)
 
 
 def _merge_similar(

@@ -23,7 +23,7 @@ track() {
   # Strip version pins: react@18.2 -> react, fastapi==0.100 -> fastapi
   name="$(echo "$name" | sed -E 's/[@=><~!].*//')"
   [ -z "$name" ] && return 0
-  timeout 10 nexus track "$name" --project-dir "$PROJECT_DIR" --source "$source" \
+  nexus track "$name" --project-dir "$PROJECT_DIR" --source "$source" \
     ${dev:+--dev} --quiet 2>>"$LOG_FILE" || true
 }
 
