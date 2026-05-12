@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import re
 import sqlite3
 from pathlib import Path
@@ -24,6 +25,7 @@ def scan_eagle_mem(project_path: Path) -> ScanResult:
         _scan_summaries(conn, project_name, result, seen)
         _scan_observations(conn, project_name, result, seen)
         scan_cli_tools(conn, project_name, result, seen)
+        _scan_skill_usage(conn, project_name, result, seen)
     except sqlite3.Error:
         pass
     finally:
@@ -138,6 +140,41 @@ def scan_cli_tools(
                     name=tool, source="eagle_mem", category_hint=cat,
                 ))
                 seen.add(tool)
+
+
+_SKILL_RE = re.compile(r"\b(eagle-[\w-]+|superpowers:[\w-]+)", re.IGNORECASE)
+_CLAUDE_PROJECTS = Path.home() / ".claude" / "projects"
+
+
+def _scan_skill_usage(
+    conn: sqlite3.Connection, project_name: str,
+    result: ScanResult, seen: set[str],
+) -> None:
+    texts: list[str] = []
+    try:
+        rows = conn.execute(
+            "SELECT tool_input_summary FROM observations "
+            "WHERE project = ? AND tool_input_summary IS NOT NULL "
+            "ORDER BY created_at DESC LIMIT 300",
+            (project_name,),
+        ).fetchall()
+        texts.extend(r["tool_input_summary"] for r in rows)
+    except sqlite3.OperationalError:
+        pass
+    for mem_dir in _CLAUDE_PROJECTS.glob(f"*{project_name}*/memory"):
+        for f in mem_dir.glob("*.md"):
+            if f.name != "MEMORY.md":
+                with contextlib.suppress(OSError):
+                    texts.append(f.read_text(errors="ignore")[:1000])
+    for text in texts:
+        for match in _SKILL_RE.finditer(text):
+            name = match.group(1).lower().rstrip("-")
+            if name in seen or name == "eagle-mem":
+                continue
+            result.concepts.append(ScannedConcept(
+                name=name, source="eagle_mem", category_hint="devtool",
+            ))
+            seen.add(name)
 
 
 def _extract_tools_from_text(
