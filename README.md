@@ -24,7 +24,7 @@ You learn dozens of tools while building software — frameworks, CLI tools, pat
 - **Passive capture** — hooks watch your `npm install`, `pip install`, `brew install` commands and scan your project files automatically
 - **AI enrichment** — fetches docs, generates descriptions, creates embeddings, and suggests connections using any local Ollama model
 - **Interactive graph** — desktop app renders your entire stack as a draggable, filterable knowledge graph
-- **Claude Code integration** — MCP server gives Claude direct access to your knowledge graph during sessions
+- **AI tool integration** — MCP server works with Claude Code, Cursor, Windsurf, VS Code, Codex, and Gemini CLI
 - **Works offline** — everything runs locally, no API keys required
 
 ## Install
@@ -99,7 +99,7 @@ Green checks for Database, MCP Server, Hooks, Skill. Ollama shows red if not run
 |------|----------|
 | **[Graph Pipeline](docs/graph-pipeline.md)** | How Nexus discovers nodes and creates edges — with flowcharts |
 | **[CLI Reference](docs/cli-reference.md)** | All commands, flags, and options |
-| **[Claude Code Integration](docs/claude-code-integration.md)** | MCP server, hooks, skill, passive capture, ledger format |
+| **[AI Tool Integration](docs/claude-code-integration.md)** | MCP server for 6 tools, hooks, skill, passive capture, ledger format |
 | **[API Reference](docs/api-reference.md)** | REST endpoints for the local server |
 | **[Configuration](docs/configuration.md)** | Environment variables, AI models, database |
 | **[Usage Guide](docs/usage-guide.md)** | Workflows, team scenarios, tips |

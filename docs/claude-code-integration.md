@@ -1,16 +1,31 @@
-# Claude Code Integration
+# AI Tool Integration
 
-Nexus integrates with Claude Code through three components installed by `nexus mcp install`.
+Nexus integrates with AI coding tools via MCP (Model Context Protocol). Run `nexus mcp install` to auto-detect and configure all supported tools.
+
+## Supported tools
+
+| Tool | Config location | Format |
+|------|----------------|--------|
+| **Claude Code** | `~/.claude.json` | JSON `mcpServers` |
+| **Cursor** | `~/.cursor/mcp.json` | JSON `mcpServers` |
+| **Windsurf** | `~/.codeium/windsurf/mcp_config.json` | JSON `mcpServers` |
+| **VS Code** | `~/Library/Application Support/Code/User/mcp.json` | JSON `servers` |
+| **Codex** | `~/.codex/config.toml` | TOML `[mcp_servers.nexus]` |
+| **Gemini CLI** | `~/.gemini/settings.json` | JSON `mcpServers` |
 
 ## What gets installed
 
+`nexus mcp install` auto-detects which tools are on your machine and configures each one. For Claude Code, it also installs:
+
 | Component | Purpose | Location |
 |-----------|---------|----------|
-| **MCP Server** | Gives Claude read/write access to your knowledge graph | `~/.claude.json` |
+| **MCP Server** | Gives the AI read/write access to your knowledge graph | Tool-specific config |
 | **Hooks** | Auto-captures package installs and runs scans on session end | `~/.claude/settings.json` |
-| **Skill** | Teaches Claude the ledger format for logging tools as you work | `~/.claude/skills/nexus/SKILL.md` |
+| **Skill** | Teaches Claude when and how to call Nexus MCP tools | `~/.claude/skills/nexus/SKILL.md` |
 
-## How passive capture works
+Hooks and skill are Claude Code-specific. Other tools get the MCP server only.
+
+## How passive capture works (Claude Code)
 
 1. You work normally in Claude Code
 2. Claude notices new tools/frameworks and writes entries to `/tmp/nexus-ledger.jsonl`
@@ -21,20 +36,21 @@ Nexus integrates with Claude Code through three components installed by `nexus m
 ## Setup
 
 ```bash
-nexus mcp install
+nexus mcp install              # auto-detect and configure all tools
+nexus mcp install --tool cursor  # configure a specific tool only
 ```
 
 ## Check status
 
 ```bash
-nexus mcp install --check   # quick check
+nexus mcp install --check   # shows status for all 6 tools
 nexus status                # full status with DB stats
 ```
 
 ## Uninstall
 
 ```bash
-nexus mcp install --uninstall
+nexus mcp install --uninstall   # removes Nexus from all tools
 ```
 
 ## Knowledge Ledger Format

@@ -38,7 +38,7 @@ nexus scan /path/to/my-project          # basic scan
 nexus scan /path/to/my-project --enrich # also generate AI descriptions
 ```
 
-This reads `package.json`, `requirements.txt`, `pyproject.toml`, `Cargo.toml`, `Brewfile`, Dockerfiles, CI configs — extracts every dependency and tool, creates concepts, and links them to the project.
+This reads `package.json`, `requirements.txt`, `pyproject.toml`, Dockerfiles, `.mcp.json`, CLAUDE.md, and git history — extracts every dependency and tool, creates concepts, and links them to the project.
 
 ### Mid-project adoption (most common)
 
@@ -97,7 +97,7 @@ Ollama stays the default. Cloud is optional for when you want better description
 
 | During a session | How |
 |-----------------|-----|
-| Reads your graph | MCP tools: `search_graph`, `get_concept_detail`, `get_expertise` |
+| Reads your graph | MCP tools: `search_concepts`, `get_concept_detail`, `get_expertise` |
 | Writes new concepts | MCP tool: `track_install`, `add_concept` |
 | Logs rich entries | Writes to `/tmp/nexus-ledger.jsonl` (skill instructions) |
 | Checks your gaps | MCP tool: `detect_gaps` |
