@@ -17,7 +17,7 @@ from nexus.db import (
     update_project,
 )
 from nexus.models import Project
-from nexus.scanners import ScanResult
+from nexus.scanners import ScanResult, is_valid_concept_name
 
 
 def sync_scan_results(
@@ -31,8 +31,12 @@ def sync_scan_results(
     project = _ensure_project(conn, project_path, result.project_description)
     stats = {"added": 0, "skipped": 0, "edges_added": 0}
 
+    _STRUCTURED_SOURCES = {"package_scan", "claude_md", "mcp_config"}
     to_enrich: list[str] = []
     for sc in result.concepts:
+        if sc.source not in _STRUCTURED_SOURCES and not is_valid_concept_name(sc.name):
+            stats["skipped"] += 1
+            continue
         setup = [sc.setup_command] if sc.setup_command else []
         existing = get_concept_by_name_and_project(conn, sc.name, project.id)
         if existing:

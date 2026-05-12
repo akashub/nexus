@@ -6,6 +6,23 @@ from pathlib import Path
 
 from nexus.scanners import ScannedConcept, ScannedRelationship, ScanResult
 
+_FRAMEWORKS = {
+    "react", "react-dom", "vue", "svelte", "angular", "next", "nuxt",
+    "solid-js", "preact", "express", "fastapi", "flask", "django",
+    "fastify", "hono", "nest", "koa", "sveltekit", "tailwindcss", "bootstrap",
+}
+_DEVTOOLS = {
+    "eslint", "prettier", "biome", "vitest", "jest", "playwright", "cypress",
+    "mocha", "pytest", "ruff", "mypy", "black", "webpack", "vite", "esbuild",
+    "rollup", "turbopack", "parcel", "docker", "storybook", "husky",
+}
+_LANGUAGES = {"typescript", "python", "rust"}
+_KNOWN_CATEGORIES = {
+    **{n: "framework" for n in _FRAMEWORKS},
+    **{n: "devtool" for n in _DEVTOOLS},
+    **{n: "language" for n in _LANGUAGES},
+}
+
 _SKIP_PACKAGES = frozenset(
     {"typescript", "types", "@types", "ts-node", "tslib", "eslint-config-", "prettier", "@eslint"},
 )
@@ -46,8 +63,9 @@ def _scan_single_npm(pkg_file: Path, result: ScanResult) -> None:
     for name in deps:
         if _should_skip(name) or name.lower() in seen:
             continue
+        cat = _KNOWN_CATEGORIES.get(name.lower(), "library")
         result.concepts.append(ScannedConcept(
-            name=name, source="package_scan", category_hint="framework",
+            name=name, source="package_scan", category_hint=cat,
             setup_command=f"npm install {name}",
         ))
         seen.add(name.lower())
@@ -55,8 +73,9 @@ def _scan_single_npm(pkg_file: Path, result: ScanResult) -> None:
     for name in dev_deps:
         if _should_skip(name) or name.lower() in seen:
             continue
+        cat = _KNOWN_CATEGORIES.get(name.lower(), "devtool")
         result.concepts.append(ScannedConcept(
-            name=name, source="package_scan", category_hint="devtool",
+            name=name, source="package_scan", category_hint=cat,
             is_dev_dep=True, setup_command=f"npm install -D {name}",
         ))
         seen.add(name.lower())
@@ -67,7 +86,6 @@ def _scan_single_npm(pkg_file: Path, result: ScanResult) -> None:
 _TEST_TOOLS = {"test", "jest", "vitest", "mocha", "cypress", "playwright"}
 _BUILD_TOOLS = {"webpack", "vite", "esbuild", "rollup", "turbopack", "parcel", "tsup"}
 _LINT_TOOLS = {"eslint", "prettier", "biome", "oxlint", "stylelint"}
-_FRAMEWORKS = ["react", "vue", "svelte", "angular", "next", "nuxt", "solid", "preact"]
 _CONFIG_PAIRS = {
     "postcss": "tailwindcss", "tailwindcss": "postcss",
     "typescript": "ts-node", "ts-node": "typescript",
@@ -164,8 +182,9 @@ def _parse_pyproject(
         if lower in seen or lower in workspace_names:
             continue
         seen.add(lower)
+        cat = _KNOWN_CATEGORIES.get(lower, "library")
         result.concepts.append(ScannedConcept(
-            name=name, source="package_scan", category_hint="framework",
+            name=name, source="package_scan", category_hint=cat,
             setup_command=f"uv add {name}",
         ))
 
@@ -175,22 +194,21 @@ def _parse_requirements(path: Path, result: ScanResult, seen: set[str]) -> None:
         lines = path.read_text().splitlines()
     except OSError:
         return
-    for line in lines:
-        line = line.strip()
-        if not line or line.startswith("#") or line.startswith("-"):
+    for raw_line in lines:
+        raw_line = raw_line.strip()
+        if not raw_line or raw_line.startswith(("#", "-")):
             continue
-        spec = line.split(";")[0]  # strip env markers
-        name = (
-            spec.split(">=")[0].split("~=")[0].split("!=")[0]
-            .split("==")[0].split("<")[0].split("[")[0].strip()
-        )
+        spec = raw_line.split(";")[0]
+        name = spec.split(">=")[0].split("~=")[0].split("!=")[0]
+        name = name.split("==")[0].split("<")[0].split("[")[0].strip()
         if not name:
             continue
         lower = name.lower()
         if lower in seen:
             continue
         seen.add(lower)
+        cat = _KNOWN_CATEGORIES.get(lower, "library")
         result.concepts.append(ScannedConcept(
-            name=name, source="package_scan", category_hint="framework",
+            name=name, source="package_scan", category_hint=cat,
             setup_command=f"pip install {name}",
         ))

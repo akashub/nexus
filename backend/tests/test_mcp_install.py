@@ -10,15 +10,20 @@ from nexus.cli_mcp import MCP_ENTRY
 @pytest.fixture()
 def claude_json(tmp_path, monkeypatch):
     path = tmp_path / ".claude.json"
+    monkeypatch.setattr("nexus.cli_mcp._JSON_TOOLS", {
+        "claude": ("Claude Code", path, "mcpServers", MCP_ENTRY),
+    })
     monkeypatch.setattr("nexus.cli_mcp.CLAUDE_JSON", path)
     monkeypatch.setattr("nexus.cli_mcp.CLAUDE_SETTINGS", tmp_path / "settings.json")
     monkeypatch.setattr("nexus.cli_mcp.SKILL_DIR", tmp_path / "skills" / "nexus")
+    monkeypatch.setattr("nexus.cli_mcp.HOOKS_DIR", tmp_path / "hooks")
+    monkeypatch.setattr("nexus.cli_mcp.SKILL_SRC", tmp_path / "nonexistent.md")
     return path
 
 
 def _install(claude_json):
-    from nexus.cli_mcp import _install_mcp
-    _install_mcp(quiet=True)
+    from nexus.cli_mcp import _install_mcp_json
+    _install_mcp_json("claude", quiet=True)
     return json.loads(claude_json.read_text())
 
 
@@ -45,7 +50,6 @@ def test_install_preserves_other_servers(claude_json):
 def test_uninstall(claude_json, monkeypatch):
     from nexus.cli_mcp import _uninstall
     _install(claude_json)
-    monkeypatch.setattr("nexus.cli_mcp.SKILL_DIR", claude_json.parent / "skills" / "nexus")
     _uninstall(quiet=True)
     data = json.loads(claude_json.read_text())
     assert "nexus" not in data.get("mcpServers", {})
