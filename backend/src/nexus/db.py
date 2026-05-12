@@ -120,6 +120,7 @@ from nexus.db_concepts import (  # noqa: E402, F401
     delete_edge,
     get_all_edges,
     get_concept,
+    get_concept_by_name,
     get_concept_by_name_and_project,
     get_edges,
     get_journey,

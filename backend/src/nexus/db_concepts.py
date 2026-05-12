@@ -22,7 +22,7 @@ _UPDATABLE_COLUMNS = frozenset({
     "name", "description", "summary", "category", "tags",
     "source", "embedding", "notes", "quickstart", "doc_url", "context7_id",
     "enrich_status", "project_id", "setup_commands", "config_files",
-    "semantic_group",
+    "semantic_group", "usage_summary",
 })
 
 
@@ -50,6 +50,13 @@ def get_concept(conn: sqlite3.Connection, id_or_name: str) -> Concept | None:
     row = conn.execute(
         "SELECT * FROM concepts WHERE id = ? OR name = ? COLLATE NOCASE",
         (id_or_name, id_or_name),
+    ).fetchone()
+    return Concept.from_row(dict(row)) if row else None
+
+
+def get_concept_by_name(conn: sqlite3.Connection, name: str) -> Concept | None:
+    row = conn.execute(
+        "SELECT * FROM concepts WHERE name = ? COLLATE NOCASE", (name,),
     ).fetchone()
     return Concept.from_row(dict(row)) if row else None
 

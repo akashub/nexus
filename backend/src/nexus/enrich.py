@@ -23,14 +23,13 @@ _ENRICH_PROMPT = """Analyze '{name}' for a developer's knowledge graph.
 {context}
 Focus on WHAT '{name}' IS and WHY a developer would use it.
 If existing knowledge is provided, improve and expand on it — don't repeat it verbatim.
-If workflow context is provided, incorporate HOW it's used in this developer's projects.
-Do NOT summarize installation steps, onboarding docs, or setup instructions.
+Do NOT include project-specific usage, installation steps, or setup instructions.
 Respond in EXACTLY this JSON format, nothing else:
 {{"description": "2-3 sentence technical description of what it is and its key capabilities",\
  "summary": "one-line summary under 15 words",\
  "category": "one of: {categories}"}}"""
 
-_AI_FIELDS = {"description", "summary", "quickstart", "context7_id", "embedding"}
+_AI_FIELDS = {"description", "summary", "quickstart", "context7_id", "embedding", "usage_summary"}
 _USER_FIELDS = {"doc_url", "notes", "category"}
 
 
@@ -55,7 +54,11 @@ def enrich_concept(
     click.echo(f"  Enriching {c.name} (source={mode})...")
 
     _set_status(conn, concept_id, "fetching_context")
-    eagle_ctx = _fetch_eagle_mem_context(c.name)
+    try:
+        from nexus.scanners.eagle_mem import get_enrichment_context
+        eagle_ctx = get_enrichment_context(c.name)
+    except Exception:
+        eagle_ctx = None
     if eagle_ctx:
         click.echo(f"  Eagle Mem context ({len(eagle_ctx)} chars)")
 
@@ -76,10 +79,13 @@ def enrich_concept(
     docs_text = docs_result.text[:3000] if docs_result else None
     existing_ctx = _build_existing_context(c)
     llm_fields = _generate_all(
-        c.name, docs_text, c.category, eagle_ctx, existing_ctx,
+        c.name, docs_text, c.category, existing_ctx,
         provider=provider, model=model,
     )
     fields.update(llm_fields)
+
+    if eagle_ctx:
+        fields["usage_summary"] = _build_usage_summary(c.name, eagle_ctx)
 
     if docs_result and docs_result.library_id:
         _set_status(conn, concept_id, "fetching_quickstart")
@@ -93,57 +99,57 @@ def enrich_concept(
     if new_embedding:
         fields["embedding"] = new_embedding
 
-    final: dict = {}
-    for k, v in fields.items():
-        if not v:
-            continue
-        existing_val = getattr(c, k, None)
-        if k in _USER_FIELDS and existing_val:
-            continue
-        if k in _AI_FIELDS or not existing_val:
-            final[k] = v
+    final = {
+        k: v for k, v in fields.items()
+        if v and not (k in _USER_FIELDS and getattr(c, k, None))
+        and (k in _AI_FIELDS or not getattr(c, k, None))
+    }
 
     if final:
         final["source"] = provider or "ollama"
-        final["enrich_status"] = None
         update_concept(conn, concept_id, **final)
-        click.echo(f"  Updated: {', '.join(k for k in final if k != 'enrich_status')}")
-    else:
-        _set_status(conn, concept_id, None)
+        click.echo(f"  Updated: {', '.join(final)}")
 
     _set_status(conn, concept_id, "connecting")
-    _suggest_connections(conn, concept_id)
+    c = get_concept(conn, concept_id)
+    if c and c.embedding:
+        candidates = [
+            (o, cosine_similarity(c.embedding, o.embedding))
+            for o in list_concepts(conn, limit=50)
+            if o.id != concept_id and o.embedding
+        ]
+        for other, sim in sorted(candidates, key=lambda x: x[1], reverse=True)[:3]:
+            if sim > 0.5:
+                click.echo(f"    {c.name} --[related_to]--> {other.name}  (sim: {sim:.2f})")
     _set_status(conn, concept_id, None)
 
 
 def _build_existing_context(c) -> str | None:
-    parts: list[str] = []
-    if c.description:
-        parts.append(f"Current description: {c.description}")
-    if c.summary:
-        parts.append(f"Current summary: {c.summary}")
-    if c.notes:
-        parts.append(f"User notes: {c.notes[:500]}")
+    parts = [getattr(c, k) for k in ("description", "summary", "notes") if getattr(c, k, None)]
     return "\n".join(parts) if parts else None
 
 
-def _fetch_eagle_mem_context(name: str) -> str | None:
+def _build_usage_summary(name: str, eagle_ctx: str) -> str:
+    if not is_available() or len(eagle_ctx) < 20:
+        return eagle_ctx[:500]
     try:
-        from nexus.scanners.eagle_mem import get_enrichment_context
-        return get_enrichment_context(name)
+        raw = smart_generate(
+            f"Summarize how '{name}' is used in this developer's projects. "
+            f"2-3 sentences max.\n\n{eagle_ctx[:1500]}",
+            system="Summarize developer tool usage concisely. No preamble.",
+        )
+        return raw.strip()[:500] if raw.strip() else eagle_ctx[:500]
     except Exception:
-        return None
+        return eagle_ctx[:500]
 
 
 def _generate_all(
-    name: str, docs: str | None, existing_cat: str | None, eagle_ctx: str | None = None,
+    name: str, docs: str | None, existing_cat: str | None,
     existing_ctx: str | None = None, provider: str | None = None, model: str | None = None,
 ) -> dict:
     parts: list[str] = []
     if existing_ctx:
         parts.append(f"Existing knowledge (improve on this):\n{existing_ctx}")
-    if eagle_ctx:
-        parts.append(f"Workflow context (how this developer uses it):\n{eagle_ctx[:1500]}")
     if docs:
         parts.append(f"Technical docs:\n{docs}")
     context = "\n\n".join(parts) if parts else "No docs available, use your knowledge."
@@ -171,29 +177,15 @@ def _generate_all(
         return {}
 
 
-def _suggest_connections(conn: sqlite3.Connection, concept_id: str) -> None:
-    c = get_concept(conn, concept_id)
-    if not c or not c.embedding:
-        return
-
-    candidates = [
-        (o, cosine_similarity(c.embedding, o.embedding))
-        for o in list_concepts(conn, limit=50)
-        if o.id != concept_id and o.embedding
-    ]
-    candidates = [(o, s) for o, s in candidates if s > 0.5]
-    candidates.sort(key=lambda x: x[1], reverse=True)
-    for other, sim in candidates[:3]:
-        click.echo(f"    {c.name} --[related_to]--> {other.name}  (sim: {sim:.2f})")
-
-
-def enrich_background(concept_id: str, mode: str = "auto",
-                      provider: str | None = None, model: str | None = None) -> None:
+def enrich_background(
+    concept_id: str, mode: str = "auto",
+    provider: str | None = None, model: str | None = None,
+) -> None:
     conn = get_connection()
     try:
         enrich_concept(conn, concept_id, mode=mode, provider=provider, model=model)
     except Exception:
-        log.exception("Background enrichment failed for concept %s", concept_id)
+        log.exception("Background enrichment failed for %s", concept_id)
         with contextlib.suppress(Exception):
             _set_status(conn, concept_id, None)
     finally:

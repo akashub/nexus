@@ -10,7 +10,7 @@ from nexus.ai import cosine_similarity, generate, is_available
 from nexus.db_concepts import add_edge, get_edges, list_concepts
 from nexus.models import RELATIONSHIP_TYPES
 
-_SIM_THRESHOLD = 0.7
+_SIM_THRESHOLD = 0.75
 _VALID_TYPES = sorted(RELATIONSHIP_TYPES)
 
 
@@ -25,6 +25,11 @@ def similarity_pass(
     for i, a in enumerate(with_embed):
         for b in with_embed[i + 1:]:
             if a.category != b.category:
+                continue
+            if (
+                "/" in a.name and "/" in b.name
+                and a.name.rsplit("/", 1)[0] == b.name.rsplit("/", 1)[0]
+            ):
                 continue
             sim = cosine_similarity(a.embedding, b.embedding)
             if sim < _SIM_THRESHOLD:
@@ -116,18 +121,16 @@ def _fill_orphan(
     orphan, skeleton: str, overview: str, claude_md: str,
     connected: list[str],
 ) -> list[dict]:
-    prompt = f"Orphan concept: {orphan.name}"
+    parts = [f"Orphan concept: {orphan.name}"]
     if orphan.description:
-        prompt += f"\nDescription: {orphan.description[:200]}"
-    prompt += f"\n\nConnected concepts in this project:\n{skeleton}"
+        parts.append(f"Description: {orphan.description[:200]}")
+    parts.append(f"\nConnected concepts in this project:\n{skeleton}")
     if overview:
-        prompt += f"\n\nProject overview:\n{overview[:500]}"
+        parts.append(f"Project overview:\n{overview[:500]}")
     if claude_md:
-        prompt += f"\n\nProject CLAUDE.md:\n{claude_md[:800]}"
-    prompt += (
-        f"\n\nWhich of the connected concepts does '{orphan.name}' "
-        "relate to, and how?"
-    )
+        parts.append(f"Project CLAUDE.md:\n{claude_md[:800]}")
+    parts.append(f"Which of the connected concepts does '{orphan.name}' relate to, and how?")
+    prompt = "\n\n".join(parts)
     try:
         raw = generate(prompt, system=_GAP_SYSTEM)
         start = raw.find("[")
@@ -170,11 +173,8 @@ def _read_claude_md(project_path: str | None) -> str:
 
 
 def _load_existing_edges(conn: sqlite3.Connection) -> set[tuple[str, str]]:
-    rows = conn.execute("SELECT source_id, target_id FROM edges LIMIT 10000").fetchall()
-    pairs: set[tuple[str, str]] = set()
-    for r in rows:
-        pairs.add(_pair_key(r["source_id"], r["target_id"]))
-    return pairs
+    rows = conn.execute("SELECT source_id, target_id FROM edges").fetchall()
+    return {_pair_key(r["source_id"], r["target_id"]) for r in rows}
 
 
 def _pair_key(a: str, b: str) -> tuple[str, str]:

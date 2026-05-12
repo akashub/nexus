@@ -7,14 +7,11 @@ from pathlib import Path
 from nexus.scanners import ScannedConcept, ScanResult
 
 EAGLE_MEM_DB = Path.home() / ".eagle-mem" / "memory.db"
-_CLAUDE_SKILLS = Path.home() / ".claude" / "skills"
-_CLAUDE_PLUGINS = Path.home() / ".claude" / "plugins" / "cache"
 
 
 def scan_eagle_mem(project_path: Path) -> ScanResult:
     result = ScanResult()
     seen: set[str] = set()
-    _scan_claude_tools(result, seen)
     if not EAGLE_MEM_DB.exists():
         return result
     try:
@@ -136,26 +133,11 @@ def scan_cli_tools(
     for row in rows:
         text = (row["tool_input_summary"] or "").lower()
         for tool, cat in _CLI_TOOLS.items():
-            if tool in text and tool not in seen:
+            if tool not in seen and re.search(rf"\b{re.escape(tool)}\b", text):
                 result.concepts.append(ScannedConcept(
                     name=tool, source="eagle_mem", category_hint=cat,
                 ))
                 seen.add(tool)
-
-
-def _scan_claude_tools(result: ScanResult, seen: set[str]) -> None:
-    for base in (_CLAUDE_SKILLS, _CLAUDE_PLUGINS):
-        if not base.exists():
-            continue
-        for d in base.iterdir():
-            if not d.is_dir() or d.name.startswith("temp_"):
-                continue
-            name = d.name
-            if name not in seen:
-                result.concepts.append(ScannedConcept(
-                    name=name, source="eagle_mem", category_hint="devtool",
-                ))
-                seen.add(name)
 
 
 def _extract_tools_from_text(

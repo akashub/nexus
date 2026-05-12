@@ -24,7 +24,7 @@ def scan_claude_md(project_path: Path) -> ScanResult:
 def _parse_file(path: Path, result: ScanResult) -> None:
     try:
         text = path.read_text()
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return
 
     seen = {c.name.lower() for c in result.concepts}
@@ -78,6 +78,10 @@ _SKIP_GENERIC = {
     "conventions", "commands", "features", "rules", "workflow",
     "out of scope", "architecture", "setup", "configuration",
     "prerequisites", "requirements", "getting started",
+    "i18n", "geocoding", "routing", "phase planning", "prompts",
+    "memory", "llm routing", "phase", "testing", "linting",
+    "tooling", "env", "environment", "migrations", "models",
+    "services", "components", "hooks", "types", "utils",
 }
 
 

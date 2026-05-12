@@ -10,9 +10,10 @@ from nexus.db import (
     add_concept,
     add_edge,
     add_project,
-    get_concept,
+    get_concept_by_name,
     get_concept_by_name_and_project,
     get_project_by_path,
+    update_concept,
     update_project,
 )
 from nexus.models import Project
@@ -35,13 +36,11 @@ def sync_scan_results(
         existing = get_concept_by_name_and_project(conn, sc.name, project.id)
         if existing:
             if setup and not existing.setup_commands:
-                from nexus.db import update_concept
                 update_concept(conn, existing.id, setup_commands=setup)
             stats["skipped"] += 1
             continue
-        global_existing = get_concept(conn, sc.name)
+        global_existing = get_concept_by_name(conn, sc.name)
         if global_existing and not global_existing.project_id:
-            from nexus.db import update_concept
             update_concept(
                 conn, global_existing.id, project_id=project.id,
                 **({"setup_commands": setup} if setup else {}),
@@ -52,6 +51,8 @@ def sync_scan_results(
             continue
         if global_existing:
             stats["skipped"] += 1
+            if verbose:
+                click.echo(f"  cross-project: {sc.name} (owned by another project)")
             continue
 
         c = add_concept(
@@ -59,7 +60,6 @@ def sync_scan_results(
             source=sc.source, project_id=project.id,
         )
         if setup:
-            from nexus.db import update_concept
             update_concept(conn, c.id, setup_commands=setup)
         stats["added"] += 1
         if verbose:
@@ -67,7 +67,10 @@ def sync_scan_results(
 
         if enrich:
             from nexus.enrich import enrich_concept
-            enrich_concept(conn, c.id)
+            try:
+                enrich_concept(conn, c.id)
+            except Exception:
+                update_concept(conn, c.id, enrich_status=None)
 
     _sync_relationships(conn, project.id, result, stats, verbose)
 
@@ -99,10 +102,10 @@ def _sync_relationships(
     for rel in result.relationships:
         src = get_concept_by_name_and_project(
             conn, rel.source_name, project_id,
-        )
+        ) or get_concept_by_name(conn, rel.source_name)
         tgt = get_concept_by_name_and_project(
             conn, rel.target_name, project_id,
-        )
+        ) or get_concept_by_name(conn, rel.target_name)
         if not src or not tgt:
             continue
         try:
