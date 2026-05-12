@@ -117,6 +117,7 @@ def concept_context_route(concept_id: str, conn: ConnDep):
         from nexus.db import get_project
         project = get_project(conn, c.project_id)
     from nexus.context import (
+        get_ai_tool_memories,
         get_claude_memories,
         get_install_commands,
         search_session_context,
@@ -130,6 +131,7 @@ def concept_context_route(concept_id: str, conn: ConnDep):
     raw_snippets = [s for s in raw_snippets if not (s in seen or seen.add(s))]
     installs = get_install_commands(p_name, c.name) if p_name else []
     memories = get_claude_memories(p_path or "")
+    memories.extend(get_ai_tool_memories(p_path or ""))
     name_re = re.compile(r'\b' + re.escape(c.name.lower()) + r'\b')
     relevant = [m for m in memories if name_re.search(m["content"].lower())]
     summary = c.usage_summary

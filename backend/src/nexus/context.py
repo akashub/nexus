@@ -32,10 +32,6 @@ def get_eagle_overview(project_name: str) -> str | None:
 _CMD_PREFIXES = ("bash:", "git ", "npm ", "pnpm ", "pip ", "uv ", "cd ", "mkdir ", "rm ", "curl ")
 
 
-def _is_raw_command(text: str) -> bool:
-    return text.strip().lower().startswith(_CMD_PREFIXES)
-
-
 def search_session_context(
     project_name: str, query: str, limit: int = 5,
 ) -> list[str]:
@@ -55,31 +51,13 @@ def search_session_context(
                 ).fetchall()
                 for r in rows:
                     val = r[col]
-                    if val and not _is_raw_command(val):
+                    if val and not val.strip().lower().startswith(_CMD_PREFIXES):
                         snippets.append(val[:200])
             except sqlite3.OperationalError:
                 continue
         return snippets[:limit]
     finally:
         conn.close()
-
-
-def search_eagle_code(project_name: str, query: str, limit: int = 5) -> list[str]:
-    conn = _eagle_conn()
-    if not conn:
-        return []
-    try:
-        rows = conn.execute(
-            "SELECT content, file_path FROM code_chunks_fts "
-            "WHERE code_chunks_fts MATCH ? LIMIT ?",
-            (f'"{query}"', limit),
-        ).fetchall()
-        return [f"{r['file_path']}:\n{r['content'][:300]}" for r in rows]
-    except sqlite3.OperationalError:
-        return []
-    finally:
-        conn.close()
-
 
 _INSTALL_PATTERNS = [
     "pip install%", "uv add%", "uv pip install%",
@@ -152,6 +130,38 @@ def get_claude_memories(project_path: str) -> list[dict]:
     return memories
 
 
+_AI_INSTRUCTION_FILES = [
+    ".cursorrules", ".windsurfrules", ".github/copilot-instructions.md",
+    ".aider/prompts.md", "COPILOT.md", "GEMINI.md",
+]
+
+
+def get_ai_tool_memories(project_path: str) -> list[dict]:
+    if not project_path:
+        return []
+    root = Path(project_path)
+    memories: list[dict] = []
+    for filename in _AI_INSTRUCTION_FILES:
+        p = root / filename
+        if p.exists():
+            try:
+                text = p.read_text(errors="ignore")[:500]
+                memories.append({"name": filename, "type": "instructions", "content": text})
+            except OSError:
+                continue
+    aider_hist = root / ".aider.chat.history.md"
+    if aider_hist.exists():
+        try:
+            text = aider_hist.read_text(errors="ignore")[-1000:]
+            memories.append({
+                "name": ".aider.chat.history.md", "type": "history",
+                "content": text[:500],
+            })
+        except OSError:
+            pass
+    return memories
+
+
 def get_concept_context(
     project_name: str, project_path: str, concept_name: str,
 ) -> str:
@@ -160,16 +170,16 @@ def get_concept_context(
     if sessions:
         parts.append("From sessions:\n" + "\n".join(sessions))
     memories = get_claude_memories(project_path)
+    memories.extend(get_ai_tool_memories(project_path))
     relevant = [m for m in memories if concept_name.lower() in m["content"].lower()]
     if relevant:
-        parts.append("From Claude memories:\n" + "\n".join(
+        parts.append("From AI tool memories:\n" + "\n".join(
             m["content"][:200] for m in relevant[:3]
         ))
     installs = get_install_commands(project_name, concept_name)
     if installs:
         parts.append("Install history:\n" + "\n".join(installs[:3]))
     return "\n\n".join(parts) if parts else ""
-
 
 _usage_cache: dict[str, str] = {}
 
@@ -188,29 +198,3 @@ def summarize_usage(concept_name: str, raw_context: str) -> str:
         return result
     except Exception:
         return ""
-
-
-_TOOL_NAMES = ("railway", "gh", "eagle-mem", "docker", "kubectl", "vercel")
-
-
-def discover_tools_from_eagle(project_name: str) -> list[str]:
-    conn = _eagle_conn()
-    if not conn:
-        return []
-    try:
-        like_clauses = " OR ".join(
-            f"tool_input_summary LIKE '%{t}%'" for t in _TOOL_NAMES
-        )
-        rows = conn.execute(
-            f"SELECT DISTINCT tool_input_summary FROM observations "
-            f"WHERE project = ? AND tool_name = 'Bash' "
-            f"AND ({like_clauses}) LIMIT 50",
-            (project_name,),
-        ).fetchall()
-        tools: set[str] = set()
-        for r in rows:
-            s = (r["tool_input_summary"] or "").lower()
-            tools.update(t for t in _TOOL_NAMES if t in s)
-        return sorted(tools)
-    finally:
-        conn.close()

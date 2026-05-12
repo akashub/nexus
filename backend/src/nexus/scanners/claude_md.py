@@ -5,10 +5,16 @@ from pathlib import Path
 
 from nexus.scanners import ScannedConcept, ScannedRelationship, ScanResult
 
+_INSTRUCTION_FILES = [
+    "CLAUDE.md", "AGENTS.md", ".cursorrules", ".windsurfrules",
+    ".github/copilot-instructions.md", ".aider/prompts.md",
+    "COPILOT.md", "GEMINI.md",
+]
+
 
 def scan_claude_md(project_path: Path) -> ScanResult:
     result = ScanResult()
-    for filename in ("CLAUDE.md", "AGENTS.md"):
+    for filename in _INSTRUCTION_FILES:
         path = project_path / filename
         if path.exists():
             _parse_file(path, result)
