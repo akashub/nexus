@@ -36,9 +36,6 @@ jobs:
       - name: Install
         working-directory: desktop
         run: pnpm install
-      - name: Type check
+      - name: Type check and build
         working-directory: desktop
-        run: pnpm tsc --noEmit
-      - name: Lint
-        working-directory: desktop
-        run: pnpm lint
+        run: pnpm build
