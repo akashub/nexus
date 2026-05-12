@@ -153,6 +153,37 @@ def concept_context_route(concept_id: str, conn: ConnDep):
     }
 
 
+_SKIP_DIRS = frozenset({
+    "Library", "Applications", "Music", "Movies", "Pictures",
+    "Documents", "Downloads", "Public", "node_modules", "venv", ".venv",
+})
+
+
+@router.get("/detect-projects")
+def detect_projects_route():
+    from pathlib import Path
+    home = Path.home()
+    found: list[dict] = []
+
+    def _scan(d: Path, depth: int) -> None:
+        if depth > 3 or len(found) >= 30:
+            return
+        try:
+            for p in d.iterdir():
+                if not p.is_dir() or p.name.startswith(".") or p.name in _SKIP_DIRS:
+                    continue
+                if (p / ".git").is_dir():
+                    found.append({"name": p.name, "path": str(p)})
+                elif depth < 3:
+                    _scan(p, depth + 1)
+        except PermissionError:
+            pass
+
+    _scan(home, 1)
+    found.sort(key=lambda x: x["name"])
+    return found
+
+
 @router.post("/concepts/{concept_id}/enrich")
 def enrich_concept_route(
     concept_id: str, conn: ConnDep, background_tasks: BackgroundTasks,

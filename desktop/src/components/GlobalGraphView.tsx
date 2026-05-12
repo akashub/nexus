@@ -1,5 +1,6 @@
 import cytoscape from "cytoscape";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useAddProject, useDetectProjects, useScanProject } from "../hooks/useApi";
 import { useTheme } from "../hooks/useTheme";
 import type { GlobalGraphData } from "../types";
 import { globalGraphStyles } from "./graphStyles";
@@ -67,16 +68,7 @@ export default function GlobalGraphView({ data, onSelectProject }: Props) {
   }, [data, buildElements, isDark]);
 
   if (!data || data.nodes.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-full text-[var(--nx-text-3)] text-sm">
-        <div className="text-center">
-          <p>no projects yet</p>
-          <p className="text-xs text-[var(--nx-text-4)] mt-1">
-            run <code className="bg-[var(--nx-input)] px-1.5 py-0.5 rounded">nexus scan /path/to/project</code>
-          </p>
-        </div>
-      </div>
-    );
+    return <EmptyState />;
   }
 
   return (
@@ -87,6 +79,52 @@ export default function GlobalGraphView({ data, onSelectProject }: Props) {
           {data.unassigned_count} unassigned concept{data.unassigned_count !== 1 ? "s" : ""}
         </div>
       )}
+    </div>
+  );
+}
+
+function EmptyState() {
+  const { data: detected } = useDetectProjects();
+  const addProject = useAddProject();
+  const scanProject = useScanProject();
+  const [adding, setAdding] = useState<string | null>(null);
+
+  async function handleAdd(d: { name: string; path: string }) {
+    setAdding(d.path);
+    addProject.mutate({ name: d.name, path: d.path }, {
+      onSuccess: (p) => scanProject.mutate(p.id),
+      onSettled: () => setAdding(null),
+    });
+  }
+
+  return (
+    <div className="flex items-center justify-center h-full text-[var(--nx-text-3)] text-sm">
+      <div className="w-full max-w-md px-4">
+        <p className="text-center mb-4">no projects yet</p>
+        {detected && detected.length > 0 && (
+          <div className="space-y-1.5">
+            <p className="text-[11px] text-[var(--nx-text-4)] uppercase tracking-wide mb-2">
+              detected on your machine
+            </p>
+            {detected.map((d) => (
+              <div key={d.path}
+                className="flex items-center justify-between px-3 py-2 bg-[var(--nx-surface)] border border-[var(--nx-border)] rounded-lg">
+                <div className="min-w-0">
+                  <p className="text-sm text-[var(--nx-text)] truncate">{d.name}</p>
+                  <p className="text-[10px] text-[var(--nx-text-4)] truncate">{d.path}</p>
+                </div>
+                <button onClick={() => handleAdd(d)} disabled={adding === d.path}
+                  className="ml-3 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded-md disabled:opacity-50 shrink-0">
+                  {adding === d.path ? "Adding..." : "Add & Scan"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <p className="text-xs text-[var(--nx-text-4)] mt-4 text-center">
+          or run <code className="bg-[var(--nx-input)] px-1.5 py-0.5 rounded">nexus scan /path/to/project</code>
+        </p>
+      </div>
     </div>
   );
 }

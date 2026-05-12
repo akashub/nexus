@@ -137,6 +137,13 @@ export function useProjects() {
   });
 }
 
+export function useDetectProjects() {
+  return useQuery({
+    queryKey: ["detect-projects"],
+    queryFn: () => apiFetch<{ name: string; path: string }[]>("/detect-projects"),
+  });
+}
+
 export function useAddProject() {
   const qc = useQueryClient();
   return useMutation({
