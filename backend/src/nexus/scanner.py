@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 
 def scan_project(
-    project_path: Path, *, verbose: bool = False, import_depth: int = 0,
+    project_path: Path, *, verbose: bool = False, import_depth: int = 2,
 ) -> ScanResult:
     path = project_path.resolve()
     if not path.is_dir():

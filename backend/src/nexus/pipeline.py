@@ -7,7 +7,6 @@ from collections.abc import Callable
 from pathlib import Path
 
 from nexus.db_concepts import add_edge, list_concepts
-from nexus.infer import llm_gap_fill, similarity_pass
 from nexus.scanner import scan_project
 from nexus.sync import sync_scan_results
 
@@ -21,7 +20,7 @@ def rebuild_project_edges(
     depth: int = 0,
     status_cb: Callable[[str], None] | None = None,
 ) -> dict:
-    stats = {"structural": 0, "similarity": 0, "inferred": 0, "orphans": 0}
+    stats = {"structural": 0, "orphans": 0}
 
     if status_cb:
         status_cb("deleting old edges")
@@ -32,26 +31,13 @@ def rebuild_project_edges(
             status_cb("scanning project files")
         path = Path(project_path)
         if path.is_dir():
-            result = scan_project(path, import_depth=depth)
+            result = scan_project(path, import_depth=max(depth, 2))
             sync_stats = sync_scan_results(conn, project_path, result)
             stats["structural"] = sync_stats.get("edges_added", 0)
 
         if status_cb:
             status_cb("cross-referencing architecture")
         stats["structural"] += _claude_md_cross_ref(conn, project_id, path)
-
-    if status_cb:
-        status_cb("similarity pass")
-    sim = similarity_pass(conn, project_id=project_id)
-    stats["similarity"] = sim["created"]
-
-    if status_cb:
-        status_cb("LLM gap-fill")
-    gap = llm_gap_fill(
-        conn, project_id=project_id,
-        project_name=project_name, project_path=project_path,
-    )
-    stats["inferred"] = gap["filled"]
 
     orphans = [
         c for c in list_concepts(conn, limit=500, project_id=project_id)
