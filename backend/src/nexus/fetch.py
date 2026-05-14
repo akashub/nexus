@@ -71,10 +71,34 @@ def _fetch_context7(name: str) -> DocResult | None:
     if not match:
         return None
     lib_id = match.group(1)
+    if not _ctx7_id_matches(name, lib_id):
+        return None
     docs = _mcp_call("query-docs", {"libraryId": lib_id, "query": "overview and getting started"})
     if not docs:
         return None
     return DocResult(text=docs[:4000], library_id=lib_id, source="context7")
+
+
+def _ctx7_id_matches(name: str, lib_id: str) -> bool:
+    """Check that the resolved Context7 library ID plausibly matches the query."""
+    name_lower = name.lower()
+    # Split the ID path into segments, then split each on hyphens/underscores
+    for segment in lib_id.lower().split("/"):
+        if not segment:
+            continue
+        # Exact segment match (e.g. "vite" == "vite")
+        if segment == name_lower:
+            return True
+        # Check individual hyphen-delimited tokens in the segment
+        tokens = re.split(r"[-_.]", segment)
+        if name_lower in tokens:
+            return True
+        # Allow org names that contain the query (e.g. "reactjs" for "react")
+        seg_norm = segment.replace("-", "").replace("_", "").replace(".", "")
+        name_norm = name_lower.replace("-", "").replace("_", "")
+        if seg_norm == name_norm:
+            return True
+    return False
 
 
 def _fetch_pypi(name: str) -> DocResult | None:

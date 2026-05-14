@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
-from nexus.scanners import ScannedConcept, ScannedRelationship, ScanResult
+from nexus.scanners import ScannedConcept, ScannedRelationship, ScanResult, is_valid_concept_name
 
 _MCP_PATHS = [
     Path.home() / ".claude" / "plugins.json",
@@ -31,6 +32,36 @@ def _filter_secret_args(args: list[str]) -> list[str]:
             continue
         safe.append(arg)
     return safe
+
+
+def _extract_tool_name(key: str, config) -> str:
+    """Derive a meaningful tool name from the MCP server key and config.
+
+    Prefer the package/binary name from args over the raw dict key, which is
+    often an arbitrary user label (e.g. "shadcn" for an MCP server that
+    provides shadcn-ui docs).
+    """
+    if not isinstance(config, dict):
+        return key
+    args = config.get("args", [])
+    if not isinstance(args, list):
+        return key
+    for arg in args:
+        arg = str(arg)
+        if arg.startswith("-"):
+            continue
+        # npm-style scoped package: @scope/name-mcp → name
+        if "/" in arg and not arg.startswith("/"):
+            pkg = arg.rsplit("/", 1)[-1]
+            pkg = re.sub(r"[_-]mcp$", "", pkg)
+            if pkg and is_valid_concept_name(pkg):
+                return pkg
+        # bare binary or path — strip -mcp suffix
+        base = arg.rsplit("/", 1)[-1]
+        base = re.sub(r"[_-]mcp$", "", base)
+        if base and is_valid_concept_name(base):
+            return base
+    return key
 
 
 def scan_mcp(project_path: Path) -> ScanResult:
@@ -61,8 +92,11 @@ def _parse_mcp_file(
         return
 
     names_added: list[str] = []
-    for name, config in servers.items():
+    for key, config in servers.items():
+        name = _extract_tool_name(key, config)
         if name.lower() in seen:
+            continue
+        if not is_valid_concept_name(name):
             continue
         seen.add(name.lower())
         cmd = ""

@@ -10,7 +10,7 @@ from nexus.ai import cosine_similarity, generate, is_available
 from nexus.db_concepts import add_edge, get_edges, list_concepts
 from nexus.models import RELATIONSHIP_TYPES
 
-_SIM_THRESHOLD = 0.75
+_SIM_THRESHOLD = 0.80
 _VALID_TYPES = sorted(RELATIONSHIP_TYPES)
 
 

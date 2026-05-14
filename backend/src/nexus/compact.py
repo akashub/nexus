@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sqlite3
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -51,7 +52,7 @@ def _dedup_edges(conn, concepts, stats: CompactStats, dry_run: bool) -> None:
         edges = get_edges(conn, c.id)
         seen: dict[tuple, str] = {}
         for e in edges:
-            key = (e.source_id, e.target_id, e.relationship)
+            key = (min(e.source_id, e.target_id), max(e.source_id, e.target_id), e.relationship)
             if key in seen:
                 stats.edges_deduped += 1
                 if not dry_run:
@@ -102,9 +103,14 @@ def _merge_similar(
             _do_merge(conn, keep=a, remove=b)
 
 
+def _normalize_name(name: str) -> str:
+    name = re.sub(r"\[.*?\]", "", name)
+    return name.lower().replace("-", "").replace("_", "").replace(".", "")
+
+
 def _names_similar(a: str, b: str) -> bool:
-    a_norm = a.lower().replace("-", "").replace("_", "").replace(".", "")
-    b_norm = b.lower().replace("-", "").replace("_", "").replace(".", "")
+    a_norm = _normalize_name(a)
+    b_norm = _normalize_name(b)
     return a_norm == b_norm or a_norm.startswith(b_norm) or b_norm.startswith(a_norm)
 
 

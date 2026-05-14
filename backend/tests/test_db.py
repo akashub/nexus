@@ -53,7 +53,7 @@ class TestInitDb:
         c = get_connection(db_path)
         migrations = c.execute("SELECT COUNT(*) FROM _migrations").fetchone()[0]
         c.close()
-        assert migrations == 7
+        assert migrations == 8
 
     def test_pragmas(self, conn):
         journal = conn.execute("PRAGMA journal_mode").fetchone()[0]
@@ -113,10 +113,12 @@ class TestConcepts:
     def test_delete_nonexistent(self, conn):
         assert not delete_concept(conn, "fake-id")
 
-    def test_unique_name(self, conn):
-        add_concept(conn, "React")
+    def test_unique_name_per_project(self, conn):
+        from nexus.db import add_project
+        p = add_project(conn, "test-proj")
+        add_concept(conn, "React", project_id=p.id)
         with pytest.raises(Exception, match="UNIQUE"):
-            add_concept(conn, "React")
+            add_concept(conn, "React", project_id=p.id)
 
 
 class TestEdges:

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 import sqlite3
 from pathlib import Path
 
@@ -16,12 +15,13 @@ from nexus.db import (
     get_project_by_path,
     update_concept,
 )
+from nexus.scanners import is_valid_concept_name
 
 SOURCE_CATEGORIES = {
-    "npm": "framework",
-    "pip": "framework",
+    "npm": "library",
+    "pip": "library",
     "brew": "devtool",
-    "cargo": "framework",
+    "cargo": "library",
 }
 
 INSTALL_TEMPLATES = {
@@ -30,9 +30,6 @@ INSTALL_TEMPLATES = {
     "brew": "brew install {name}",
     "cargo": "cargo add {name}",
 }
-
-_VALID_NAME = re.compile(r"^[a-zA-Z0-9@_./-][a-zA-Z0-9@_./-]*$")
-
 
 def _ensure_project(conn, project_dir: str):
     """Get or create a project for the given directory path."""
@@ -57,7 +54,7 @@ def track_concept(
 ) -> dict:
     """Track a newly installed package in the knowledge graph."""
     name = name.strip()
-    if not name or not _VALID_NAME.match(name):
+    if not name or not is_valid_concept_name(name):
         return {"status": "error", "message": f"Invalid package name: {name!r}"}
 
     project = _ensure_project(conn, project_dir)

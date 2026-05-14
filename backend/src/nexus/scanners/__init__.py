@@ -33,6 +33,12 @@ _STOPWORDS = frozenset({
     "high", "low", "left", "right", "top", "end", "big", "small",
     "good", "bad", "best", "real", "sure", "able", "key", "value",
     "package1",
+    "app", "bash", "install", "local", "onboard", "pip", "scan",
+    "search", "serve", "desktop", "status", "init", "compact",
+    "tail", "head", "cat", "grep", "curl", "wget", "ls", "man",
+    "echo", "mkdir", "rm", "cp", "mv", "touch", "chmod",
+    "chown", "sed", "awk", "wc", "diff", "tar",
+    "zip", "unzip", "ssh", "scp", "ping", "kill", "ps", "env",
 })
 
 _VALID_NAME_RE = re.compile(r"^[@a-zA-Z][\w./@-]*$")

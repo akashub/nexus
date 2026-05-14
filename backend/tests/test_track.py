@@ -28,7 +28,7 @@ def test_track_new_concept(conn):
     assert c.name == "react"
     assert c.source == "hook_capture"
     assert c.project_id == p.id
-    assert c.category == "framework"
+    assert c.category == "library"
 
 
 def test_track_existing_noop(conn):
@@ -62,7 +62,7 @@ def test_track_pip_source(conn):
     add_project(conn, "test-proj", path="/tmp/test-proj")
     result = track_concept(conn, "fastapi", "/tmp/test-proj", source="pip")
     c = get_concept(conn, result["id"])
-    assert c.category == "framework"
+    assert c.category == "library"
     assert "pip install fastapi" in (c.setup_commands or [])
 
 
@@ -80,7 +80,7 @@ def test_track_cargo_source(conn):
     result = track_concept(conn, "serde", "/tmp/cargo-proj", source="cargo")
     c = get_concept(conn, result["id"])
     assert c is not None
-    assert c.category == "framework"
+    assert c.category == "library"
     assert "cargo add serde" in (c.setup_commands or [])
 
 
@@ -103,7 +103,7 @@ def test_track_rejects_shell_injection_name(conn):
 
 
 def test_track_same_name_different_projects(conn, tmp_path):
-    """Concept with same name in different projects does not crash."""
+    """Same concept name in different projects creates separate entries."""
     a = tmp_path / "proj-a"
     a.mkdir()
     b = tmp_path / "proj-b"
@@ -111,8 +111,8 @@ def test_track_same_name_different_projects(conn, tmp_path):
     r1 = track_concept(conn, "react", str(a), source="npm")
     assert r1["status"] == "added"
     r2 = track_concept(conn, "react", str(b), source="npm")
-    assert r2["status"] == "exists"
-    assert r2["id"] == r1["id"]
+    assert r2["status"] == "added"
+    assert r2["id"] != r1["id"]
 
 
 def test_track_same_dir_name_different_paths(conn, tmp_path):

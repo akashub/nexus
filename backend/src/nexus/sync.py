@@ -57,9 +57,22 @@ def sync_scan_results(
                 click.echo(f"  claimed: {sc.name}")
             continue
         if global_existing:
-            stats["skipped"] += 1
-            if verbose:
-                click.echo(f"  cross-project: {sc.name} (owned by another project)")
+            try:
+                c = add_concept(
+                    conn, sc.name, category=sc.category_hint or global_existing.category,
+                    source=sc.source, project_id=project.id,
+                )
+                if setup:
+                    update_concept(conn, c.id, setup_commands=setup)
+                if global_existing.description:
+                    update_concept(conn, c.id, description=global_existing.description)
+                if global_existing.embedding:
+                    update_concept(conn, c.id, embedding=global_existing.embedding)
+                stats["added"] += 1
+                if verbose:
+                    click.echo(f"  + {sc.name} (shared from another project)")
+            except sqlite3.IntegrityError:
+                stats["skipped"] += 1
             continue
 
         c = add_concept(
@@ -69,15 +82,9 @@ def sync_scan_results(
         if setup:
             update_concept(conn, c.id, setup_commands=setup)
         stats["added"] += 1
+        to_enrich.append(c.id)
         if verbose:
             click.echo(f"  + {sc.name} ({sc.source})")
-
-        if enrich:
-            from nexus.enrich import enrich_concept
-            try:
-                enrich_concept(conn, c.id)
-            except Exception:
-                update_concept(conn, c.id, enrich_status=None)
 
     if to_enrich:
         from nexus.enrich import enrich_concept
@@ -88,6 +95,15 @@ def sync_scan_results(
                 update_concept(conn, cid, enrich_status=None)
 
     _sync_relationships(conn, project.id, result, stats, verbose)
+
+    if stats["added"] > 0:
+        import contextlib
+
+        from nexus.cluster import cluster_concepts
+        with contextlib.suppress(Exception):
+            cluster_concepts(
+                conn, project_id=project.id, project_name=project.name,
+            )
 
     update_project(
         conn, project.id,

@@ -7,8 +7,14 @@ import sqlite3
 
 import click
 
-from nexus.ai import cosine_similarity, is_available, smart_embed, smart_generate
-from nexus.db import get_concept, get_connection, list_concepts, update_concept
+from nexus.ai import is_available, smart_embed, smart_generate
+from nexus.context import (
+    get_ai_tool_memories,
+    get_claude_memories,
+    get_eagle_overview,
+)
+from nexus.db import get_concept, get_connection, get_project, update_concept
+from nexus.db_concepts import list_concepts
 from nexus.fetch import fetch_context, fetch_quickstart
 
 log = logging.getLogger(__name__)
@@ -62,17 +68,23 @@ def enrich_concept(
     if eagle_ctx:
         click.echo(f"  Eagle Mem context ({len(eagle_ctx)} chars)")
 
+    project_ctx = _build_project_context(conn, c.project_id)
+
     _set_status(conn, concept_id, "fetching_docs")
     docs_result = fetch_context(c.name, mode=mode)
     fields: dict = {}
 
     if docs_result:
-        click.echo(f"  Found docs ({len(docs_result.text)} chars)")
-        if docs_result.library_id:
-            fields["context7_id"] = docs_result.library_id
-        if docs_result.doc_url:
-            fields["doc_url"] = docs_result.doc_url
-    elif not eagle_ctx:
+        if _check_docs_relevance(c.name, docs_result.text, project_ctx, eagle_ctx):
+            click.echo(f"  Found docs ({len(docs_result.text)} chars)")
+            if docs_result.library_id:
+                fields["context7_id"] = docs_result.library_id
+            if docs_result.doc_url:
+                fields["doc_url"] = docs_result.doc_url
+        else:
+            click.echo(f"  Docs rejected — wrong '{c.name}' for this project context.")
+            docs_result = None
+    if not docs_result and not eagle_ctx:
         click.echo("  No docs found, using LLM knowledge only.")
 
     _set_status(conn, concept_id, "generating")
@@ -110,18 +122,69 @@ def enrich_concept(
         update_concept(conn, concept_id, **final)
         click.echo(f"  Updated: {', '.join(final)}")
 
-    _set_status(conn, concept_id, "connecting")
-    c = get_concept(conn, concept_id)
-    if c and c.embedding:
-        candidates = [
-            (o, cosine_similarity(c.embedding, o.embedding))
-            for o in list_concepts(conn, limit=50)
-            if o.id != concept_id and o.embedding
-        ]
-        for other, sim in sorted(candidates, key=lambda x: x[1], reverse=True)[:3]:
-            if sim > 0.5:
-                click.echo(f"    {c.name} --[related_to]--> {other.name}  (sim: {sim:.2f})")
     _set_status(conn, concept_id, None)
+
+
+def _build_project_context(
+    conn: sqlite3.Connection, project_id: str | None,
+) -> str:
+    """Build a rich project profile from all available sources."""
+    if not project_id:
+        return ""
+    parts: list[str] = []
+    project = get_project(conn, project_id)
+    if not project:
+        return ""
+
+    if project.description:
+        parts.append(f"Project: {project.description[:200]}")
+
+    overview = get_eagle_overview(project.name)
+    if overview:
+        parts.append(f"Overview:\n{overview[:400]}")
+
+    siblings = list_concepts(conn, project_id=project_id, limit=50)
+    names = [s.name for s in siblings if s.name]
+    if names:
+        parts.append(f"Stack: {', '.join(names[:30])}")
+
+    if project.path:
+        for mem in get_claude_memories(project.path)[:3]:
+            parts.append(f"Memory ({mem['name']}): {mem['content'][:150]}")
+        for inst in get_ai_tool_memories(project.path)[:2]:
+            parts.append(f"Instructions ({inst['name']}): {inst['content'][:150]}")
+
+    return "\n".join(parts)
+
+
+def _check_docs_relevance(
+    name: str, docs_text: str, project_ctx: str,
+    eagle_ctx: str | None = None,
+) -> bool:
+    """Ask LLM whether fetched docs match this project's context."""
+    if not project_ctx or not is_available():
+        return True
+    parts = [
+        f"Project context:\n{project_ctx[:800]}",
+        f"Fetched docs for '{name}':\n{docs_text[:400]}",
+    ]
+    if eagle_ctx:
+        parts.append(
+            f"Developer's usage of '{name}':\n{eagle_ctx[:300]}"
+        )
+    parts.append(
+        f"Are these docs about the correct '{name}' for this project? "
+        "Reply ONLY 'YES' or 'NO'."
+    )
+    try:
+        sys = (
+            "You validate whether fetched documentation matches "
+            "the intended tool. Reply YES or NO only."
+        )
+        raw = smart_generate("\n\n".join(parts), system=sys)
+        return "no" not in raw.strip().lower()[:10]
+    except Exception:
+        return True
 
 
 def _build_existing_context(c) -> str | None:
