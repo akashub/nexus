@@ -6,10 +6,7 @@ from pathlib import Path
 
 from nexus.scanners import ScannedConcept, ScannedRelationship, ScanResult, is_valid_concept_name
 
-_MCP_PATHS = [
-    Path.home() / ".claude" / "plugins.json",
-    Path.home() / ".claude.json",
-]
+_MCP_PATHS: list[Path] = []
 
 _SECRET_PREFIXES = ("--token", "--key", "--secret", "--password", "--api-key", "--apikey")
 

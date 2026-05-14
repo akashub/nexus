@@ -163,7 +163,7 @@ def _check_docs_relevance(
 ) -> bool:
     """Ask LLM whether fetched docs match this project's context."""
     if not project_ctx or not is_available():
-        return True
+        return False
     parts = [
         f"Project context:\n{project_ctx[:800]}",
         f"Fetched docs for '{name}':\n{docs_text[:400]}",
@@ -182,9 +182,9 @@ def _check_docs_relevance(
             "the intended tool. Reply YES or NO only."
         )
         raw = smart_generate("\n\n".join(parts), system=sys)
-        return "no" not in raw.strip().lower()[:10]
+        return raw.strip().lower().startswith("yes")
     except Exception:
-        return True
+        return False
 
 
 def _build_existing_context(c) -> str | None:

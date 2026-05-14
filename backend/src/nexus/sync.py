@@ -112,6 +112,12 @@ def sync_scan_results(
     return stats
 
 
+_PROJECT_MARKERS = (
+    "pyproject.toml", "package.json", "Cargo.toml", "go.mod",
+    "Gemfile", "pom.xml", "build.gradle", ".git", "CLAUDE.md",
+)
+
+
 def _ensure_project(
     conn: sqlite3.Connection, project_path: str, description: str | None,
 ) -> Project:
@@ -119,7 +125,12 @@ def _ensure_project(
     project = get_project_by_path(conn, path)
     if project:
         return project
-    name = Path(path).name
+    p = Path(path)
+    if not any((p / marker).exists() for marker in _PROJECT_MARKERS):
+        raise click.ClickException(
+            f"Not a project directory (no {', '.join(_PROJECT_MARKERS[:4])}, ...): {path}"
+        )
+    name = p.name
     return add_project(conn, name, path=path, description=description)
 
 

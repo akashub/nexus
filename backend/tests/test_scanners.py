@@ -90,6 +90,7 @@ class TestPackageScanner:
 
 class TestSyncValidation:
     def test_sync_rejects_garbage_names(self, tmp_path):
+        (tmp_path / ".git").mkdir()
         from nexus.db import get_connection, init_db
         db_path = tmp_path / "test.db"
         init_db(db_path)
@@ -105,4 +106,18 @@ class TestSyncValidation:
         stats = sync_scan_results(conn, str(tmp_path), result)
         assert stats["added"] == 1
         assert stats["skipped"] == 3
+        conn.close()
+
+    def test_sync_rejects_non_project_directory(self, tmp_path):
+        from nexus.db import get_connection, init_db
+        db_path = tmp_path / "test.db"
+        init_db(db_path)
+        conn = get_connection(db_path)
+        import click
+        import pytest
+
+        from nexus.scanners import ScanResult
+        from nexus.sync import sync_scan_results
+        with pytest.raises(click.ClickException, match="Not a project directory"):
+            sync_scan_results(conn, str(tmp_path / "random_dir"), ScanResult())
         conn.close()
