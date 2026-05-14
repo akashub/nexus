@@ -37,10 +37,12 @@ def _filter_secret_args(args: list[str]) -> list[str]:
 def _extract_tool_name(key: str, config) -> str:
     """Derive a meaningful tool name from the MCP server key and config.
 
-    Prefer the package/binary name from args over the raw dict key, which is
-    often an arbitrary user label (e.g. "shadcn" for an MCP server that
-    provides shadcn-ui docs).
+    Prefer the dict key when it's a valid concept name — users typically
+    choose short, meaningful keys like "context7" or "shadcn". Only fall
+    back to parsing args when the key is invalid.
     """
+    if is_valid_concept_name(key):
+        return key
     if not isinstance(config, dict):
         return key
     args = config.get("args", [])
@@ -50,15 +52,13 @@ def _extract_tool_name(key: str, config) -> str:
         arg = str(arg)
         if arg.startswith("-"):
             continue
-        # npm-style scoped package: @scope/name-mcp → name
         if "/" in arg and not arg.startswith("/"):
             pkg = arg.rsplit("/", 1)[-1]
-            pkg = re.sub(r"[_-]mcp$", "", pkg)
+            pkg = re.sub(r"[_-]mcp(@.*)?$", "", pkg)
             if pkg and is_valid_concept_name(pkg):
                 return pkg
-        # bare binary or path — strip -mcp suffix
         base = arg.rsplit("/", 1)[-1]
-        base = re.sub(r"[_-]mcp$", "", base)
+        base = re.sub(r"[_-]mcp(@.*)?$", "", base)
         if base and is_valid_concept_name(base):
             return base
     return key
